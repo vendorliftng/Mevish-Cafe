@@ -130,28 +130,37 @@
         const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxEpm1qIgup5q6DBF4F9PEzQD3XEZv0Sqz0otqGdzrbXB079afSjD8P_lpZj1_xpMXy1A/exec"; 
         const WHATSAPP_NUMBER = "2348036181762"; // Format: Country code + number, no '+' or '0'
         
-        // --- 🍔 MENU DATA ---
-        const menuData = [
-            { id: 1, category: "Foods", name: "Jollof/Fried Rice Chicken", price: 6000 },
-            { id: 2, category: "Foods", name: "Jollof/Fried Rice Beef", price: 3500 },
-            { id: 3, category: "Foods", name: "Peppered Chicken", price: 4000 },
-            { id: 4, category: "Pastries", name: "Shawarma Double Sausage", price: 4500 },
-            { id: 5, category: "Pastries", name: "Burger with Cheese & Fries", price: 4500 },
-            { id: 6, category: "Pastries", name: "Mevish Pizza", price: 14000 },
-            { id: 7, category: "Drinks", name: "Chivita", price: 2500 },
-            { id: 8, category: "Drinks", name: "Coke / Sprite / Fanta", price: 700 },
-            { id: 9, category: "Drinks", name: "Greek Yoghurt", price: 2000 }
-        ];
-
+ // --- 🍔 MENU DATA ---
+        let menuData = []; // Start with an empty menu!
         let cart = JSON.parse(localStorage.getItem('mevish_cart')) || [];
 
         // --- 🚀 INITIALIZATION ---
         function init() {
             setGreeting();
-            renderMenu('All');
+            fetchMenuFromSheet(); // Tell the app to go get the menu!
             updateCartUI();
         }
 
+        // New function to pull data directly from your Google Sheet
+        async function fetchMenuFromSheet() {
+            const container = document.getElementById('menu-container');
+            container.innerHTML = "<p style='text-align:center; padding: 20px;'>Loading fresh menu...</p>";
+
+            try {
+                const response = await fetch(APPS_SCRIPT_URL);
+                const result = await response.json();
+                
+                if (result.status === "success") {
+                    menuData = result.data; // Save the sheet data into our app
+                    renderMenu('All');      // Draw the beautiful cards on the screen
+                }
+            } catch (error) {
+                container.innerHTML = "<p style='text-align:center; color: red;'>Failed to load menu. Please refresh.</p>";
+            }
+        }
+
+
+        
         function setGreeting() {
             const hour = new Date().getHours();
             let text = 'Good Evening! 🌙';
