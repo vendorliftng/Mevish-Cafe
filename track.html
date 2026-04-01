@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Track Order | Mevish Eatery</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Roboto', sans-serif; }
+        body { background: #FDFCFB; color: #1D1D1D; display: flex; flex-direction: column; min-height: 100vh; }
+        
+        header { background: #FFF; padding: 20px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .logo-mevish { font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 24px; color: #E63946; }
+        .logo-eatery { font-weight: 300; font-size: 20px; }
+
+        .container { max-width: 400px; margin: 40px auto; padding: 20px; flex-grow: 1; width: 100%; }
+        h1 { font-family: 'Montserrat', sans-serif; font-size: 22px; margin-bottom: 10px; text-align: center; }
+        p.subtitle { text-align: center; color: #6C6C6C; margin-bottom: 30px; font-size: 14px; }
+
+        .search-box { display: flex; gap: 10px; margin-bottom: 30px; }
+        .search-box input { flex: 1; padding: 15px; border: 2px solid #DDD; border-radius: 12px; font-size: 16px; text-transform: uppercase; outline: none; transition: 0.3s; }
+        .search-box input:focus { border-color: #D4AF37; }
+        .search-box button { background: #D4AF37; color: white; border: none; padding: 0 20px; border-radius: 12px; font-weight: bold; cursor: pointer; }
+
+        .result-card { background: white; padding: 25px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); text-align: center; display: none; border-top: 5px solid #E63946; }
+        .result-card.success { display: block; }
+        .status-badge { display: inline-block; padding: 8px 16px; border-radius: 20px; font-weight: bold; font-size: 14px; margin-top: 15px; }
+        .status-pending { background: #FFF3CD; color: #856404; }
+        .status-ready { background: #D4EDDA; color: #155724; }
+
+        .back-link { display: block; text-align: center; margin-top: 30px; color: #E63946; text-decoration: none; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <a href="index.html" style="text-decoration: none;">
+            <span class="logo-mevish">MEVISH</span><span class="logo-eatery" style="color: #1D1D1D;">Eatery</span>
+        </a>
+    </header>
+
+    <div class="container">
+        <h1>Track Your Order</h1>
+        <p class="subtitle">Enter your Order ID (e.g., MEV-1234) below to check its current status.</p>
+
+        <div class="search-box">
+            <input type="text" id="order-id-input" placeholder="MEV-1234">
+            <button onclick="checkStatus()" id="track-btn">Track</button>
+        </div>
+
+        <div class="result-card" id="result-card">
+            <h3 style="margin-bottom: 5px;" id="r-name">Loading...</h3>
+            <p style="color: #6C6C6C; font-size: 14px;" id="r-id"></p>
+            <div class="status-badge" id="r-status">Checking...</div>
+        </div>
+
+        <a href="index.html" class="back-link">← Back to Menu</a>
+    </div>
+
+    <script>
+        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxEpm1qIgup5q6DBF4F9PEzQD3XEZv0Sqz0otqGdzrbXB079afSjD8P_lpZj1_xpMXy1A/exec";
+
+        async function checkStatus() {
+            let input = document.getElementById('order-id-input').value.trim().toUpperCase();
+            if(!input) { alert("Please enter an Order ID."); return; }
+
+            const btn = document.getElementById('track-btn');
+            const card = document.getElementById('result-card');
+            
+            btn.innerText = "...";
+            btn.disabled = true;
+            card.classList.remove('success');
+
+            try {
+                // Fetch using the new tracker parameter
+                const response = await fetch(`${APPS_SCRIPT_URL}?type=track&orderId=${input}`);
+                const result = await response.json();
+
+                if (result.status === "success") {
+                    document.getElementById('r-name').innerText = `Hello, ${result.data.name}!`;
+                    document.getElementById('r-id').innerText = `Order: ${result.data.orderId}`;
+                    
+                    const statusBadge = document.getElementById('r-status');
+                    statusBadge.innerText = result.data.status;
+                    
+                    // If it contains the word 'Paid' or 'Ready', make it green!
+                    if(result.data.status.includes("Paid") || result.data.status.includes("Ready")) {
+                        statusBadge.className = "status-badge status-ready";
+                    } else {
+                        statusBadge.className = "status-badge status-pending";
+                    }
+                    
+                    card.classList.add('success');
+                } else {
+                    alert("Order not found. Please check the ID and try again.");
+                }
+            } catch (error) {
+                alert("Network error. Please try again.");
+            }
+
+            btn.innerText = "Track";
+            btn.disabled = false;
+        }
+    </script>
+</body>
+</html>

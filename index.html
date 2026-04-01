@@ -85,6 +85,15 @@
         .input-group input:focus, .input-group select:focus, .input-group textarea:focus { border-color: var(--accent-gold); }
 
         .submit-btn { width: 100%; background: var(--accent-gold); color: #FFF; border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 700; margin-top: 10px; cursor: pointer; }
+    /* Footer & WhatsApp Bubble (NEW) */
+        footer { background: #1D1D1D; color: #FFF; padding: 40px 20px; text-align: center; margin-top: 40px; border-top-left-radius: 24px; border-top-right-radius: 24px; }
+        .footer-content p { margin-bottom: 8px; font-size: 14px; color: #CCC; }
+        .footer-links { margin-top: 20px; display: flex; justify-content: center; gap: 20px; }
+        .footer-links a { color: var(--accent-gold); text-decoration: none; font-weight: bold; font-size: 14px; }
+        
+        .whatsapp-bubble { position: fixed; bottom: 100px; right: 20px; background: #25D366; color: white; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); z-index: 999; text-decoration: none; transition: 0.3s; }
+        .whatsapp-bubble:active { transform: scale(0.9); }
+    
     </style>
 </head>
 <body>
@@ -148,6 +157,25 @@
             <button class="submit-btn" id="submit-btn" onclick="processOrder()">Send Order via WhatsApp</button>
         </div>
     </div>
+
+    <footer>
+        <div class="logo" style="justify-content: center; margin-bottom: 15px;">
+            <span class="logo-mevish">MEVISH</span><span class="logo-eatery" style="color:white;">Eatery</span>
+        </div>
+        <div class="footer-content">
+            <p>Mevish Eatery | Opposite Federal Secretetiat </p>
+            <p> Mon - Sun: 8:00 AM - 9:00 PM</p>
+            <div class="footer-links">
+                <a href="track.html"> Track Order</a>
+                <a href="https://vendorlift.com.ng/" target="_blank">📷 Instagram</a>
+            </div>
+        </div>
+        <p style="font-size: 11px; color: #666; margin-top: 30px;">© 2026 Mevish Eatery. All rights reserved. Designed by Vendorlift NG</p>
+    </footer>
+
+    <a href="https://wa.me/2348036181762?text=Hello%20Mevish%20Eatery!%20I%20have%20a%20question..." class="whatsapp-bubble" target="_blank">
+        💬
+    </a>
 
     <script>
         const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxEpm1qIgup5q6DBF4F9PEzQD3XEZv0Sqz0otqGdzrbXB079afSjD8P_lpZj1_xpMXy1A/exec"; 
