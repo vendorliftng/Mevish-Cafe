@@ -19,53 +19,68 @@
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Roboto', sans-serif; }
         body { background-color: var(--bg-cream); color: var(--text-dark); padding-bottom: 120px; -webkit-font-smoothing: antialiased; }
 
-        /* Header & Filters */
+        /* Header */
         header { position: sticky; top: 0; background: rgba(253, 252, 251, 0.95); backdrop-filter: blur(10px); z-index: 100; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-        .logo { display: flex; align-items: baseline; gap: 4px; }
         .logo-mevish { font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 24px; color: var(--primary-red); letter-spacing: -0.5px; }
         .logo-eatery { font-weight: 300; font-size: 20px; }
-        .greeting { font-size: 14px; font-weight: 500; color: var(--accent-gold); }
+        
+        /* Hero Section (NEW) */
+        .hero { position: relative; width: 100%; height: 200px; background-image: url('https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80'); background-size: cover; background-position: center; display: flex; align-items: flex-end; padding: 20px; }
+        .hero-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.8)); }
+        .hero-text { position: relative; z-index: 2; color: white; }
+        .hero-text h1 { font-family: 'Montserrat', sans-serif; font-size: 22px; margin-bottom: 5px; }
+        .hero-text p { font-size: 14px; opacity: 0.9; }
 
+        /* Filters */
         .filters { position: sticky; top: 60px; background: var(--bg-cream); z-index: 99; padding: 15px 20px; display: flex; gap: 10px; overflow-x: auto; scrollbar-width: none; }
         .filters::-webkit-scrollbar { display: none; }
         .filter-chip { background: #EEE; color: var(--text-light); padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 500; white-space: nowrap; cursor: pointer; border: none; outline: none; transition: 0.3s; }
         .filter-chip.active { background: var(--accent-gold); color: #FFF; box-shadow: 0 4px 10px rgba(212, 175, 55, 0.3); }
 
-        /* Menu Feed */
+        /* Menu Feed with Images (NEW) */
         .menu-section { padding: 20px; padding-top: 10px; }
-        .category-title { font-family: 'Montserrat', sans-serif; font-size: 18px; margin-bottom: 15px; color: var(--text-dark); margin-top: 20px;}
-        .menu-card { background: var(--card-bg); border-radius: 12px; padding: 15px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
-        .item-info h3 { font-size: 16px; font-weight: 500; margin-bottom: 4px; }
-        .item-price { color: var(--primary-red); font-weight: 700; font-size: 15px; }
-        .add-btn { background: #FFF; border: 2px solid var(--accent-gold); color: var(--accent-gold); width: 36px; height: 36px; border-radius: 50%; font-size: 20px; font-weight: bold; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; }
+        .time-suggestion-badge { background: var(--accent-gold); color: white; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; margin-bottom: 15px; display: inline-block; }
+        
+        .menu-card { background: var(--card-bg); border-radius: 16px; margin-bottom: 20px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.06); display: flex; flex-direction: column; }
+        .item-image { width: 100%; height: 160px; object-fit: cover; background-color: #EEE; }
+        .item-content { padding: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .item-info h3 { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+        .item-price { color: var(--primary-red); font-weight: 700; font-size: 16px; }
+        .add-btn { background: #FFF; border: 2px solid var(--accent-gold); color: var(--accent-gold); width: 40px; height: 40px; border-radius: 50%; font-size: 22px; font-weight: bold; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; }
         .add-btn:active { background: var(--accent-gold); color: #FFF; transform: scale(0.95); }
 
         /* Floating Cart */
-        .floating-cart { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(150px); width: 90%; max-width: 400px; background: var(--primary-red); color: #FFF; border-radius: 30px; padding: 15px 25px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 10px 25px rgba(230, 57, 70, 0.4); z-index: 1000; cursor: pointer; transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .floating-cart { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(150px); width: 90%; max-width: 400px; background: var(--primary-red); color: #FFF; border-radius: 30px; padding: 15px 25px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 10px 25px rgba(230, 57, 70, 0.4); z-index: 1000; cursor: pointer; transition: 0.4s; }
         .floating-cart.visible { transform: translateX(-50%) translateY(0); }
         .cart-info { font-weight: 700; font-size: 16px; }
-        .cart-action { font-weight: 500; font-size: 14px; opacity: 0.9; }
-
+        
         /* Checkout Modal */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 2000; opacity: 0; pointer-events: none; transition: 0.3s; display: flex; align-items: flex-end; }
         .modal-overlay.active { opacity: 1; pointer-events: all; }
-        .modal-content { background: #FFF; width: 100%; border-radius: 24px 24px 0 0; padding: 25px; transform: translateY(100%); transition: 0.4s ease-out; max-height: 85vh; overflow-y: auto; }
+        .modal-content { background: #FFF; width: 100%; border-radius: 24px 24px 0 0; padding: 25px; transform: translateY(100%); transition: 0.4s ease-out; max-height: 90vh; overflow-y: auto; }
         .modal-overlay.active .modal-content { transform: translateY(0); }
         
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .modal-header h2 { font-family: 'Montserrat', sans-serif; font-size: 20px; }
-        .close-btn { background: none; border: none; font-size: 24px; color: var(--text-light); cursor: pointer; }
+        .close-btn { background: none; border: none; font-size: 28px; color: var(--text-light); cursor: pointer; }
 
-        .cart-item-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14px; border-bottom: 1px solid #EEE; padding-bottom: 10px;}
-        .cart-total-row { display: flex; justify-content: space-between; font-weight: 700; font-size: 18px; margin-top: 15px; margin-bottom: 25px; color: var(--primary-red); }
+        /* Cart Edit Controls (NEW) */
+        .cart-item-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #EEE; padding-bottom: 15px; }
+        .cart-item-details { flex: 1; }
+        .cart-item-name { font-size: 15px; font-weight: 500; margin-bottom: 5px; }
+        .cart-item-price { color: var(--primary-red); font-weight: 700; }
+        .qty-controls { display: flex; align-items: center; gap: 10px; background: #F8F8F8; padding: 5px 10px; border-radius: 20px; }
+        .qty-btn { background: none; border: none; font-size: 18px; color: var(--text-dark); cursor: pointer; font-weight: bold; width: 25px; height: 25px; display: flex; align-items: center; justify-content: center; }
+        .qty-number { font-weight: 700; width: 20px; text-align: center; }
+
+        .cart-total-row { display: flex; justify-content: space-between; font-weight: 700; font-size: 20px; margin-top: 15px; margin-bottom: 25px; color: var(--primary-red); }
 
         .input-group { margin-bottom: 15px; }
-        .input-group label { display: block; font-size: 12px; color: var(--text-light); margin-bottom: 5px; font-weight: 500; }
-        .input-group input, .input-group select { width: 100%; padding: 12px; border: 1px solid #DDD; border-radius: 8px; font-size: 16px; outline: none; }
-        .input-group input:focus, .input-group select:focus { border-color: var(--accent-gold); }
+        .input-group label { display: block; font-size: 13px; color: var(--text-light); margin-bottom: 5px; font-weight: 500; }
+        .input-group input, .input-group select, .input-group textarea { width: 100%; padding: 12px; border: 1px solid #DDD; border-radius: 8px; font-size: 16px; outline: none; font-family: inherit; }
+        .input-group input:focus, .input-group select:focus, .input-group textarea:focus { border-color: var(--accent-gold); }
 
-        .submit-btn { width: 100%; background: var(--accent-gold); color: #FFF; border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 700; margin-top: 10px; cursor: pointer; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4); }
-        .submit-btn:disabled { background: #CCC; box-shadow: none; cursor: not-allowed; }
+        .submit-btn { width: 100%; background: var(--accent-gold); color: #FFF; border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 700; margin-top: 10px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -74,33 +89,44 @@
         <div class="logo">
             <span class="logo-mevish">MEVISH</span><span class="logo-eatery">Eatery</span>
         </div>
-        <div class="greeting" id="greeting">Good Day!</div>
     </header>
+
+    <div class="hero">
+        <div class="hero-overlay"></div>
+        <div class="hero-text">
+            <h1 id="hero-greeting">Welcome to Mevish!</h1>
+            <p>Freshly prepared, just for you.</p>
+        </div>
+    </div>
 
     <div class="filters" id="filters">
         <button class="filter-chip active" onclick="filterMenu('All')">All</button>
         <button class="filter-chip" onclick="filterMenu('Foods')">Foods</button>
+        <button class="filter-chip" onclick="filterMenu('Swallows')">Swallows</button>
         <button class="filter-chip" onclick="filterMenu('Pastries')">Pastries</button>
         <button class="filter-chip" onclick="filterMenu('Drinks')">Drinks</button>
     </div>
 
-    <main class="menu-section" id="menu-container"></main>
+    <main class="menu-section" id="menu-container">
+        <p style='text-align:center; padding: 20px;'>Loading delicious menu...</p>
+    </main>
 
     <div class="floating-cart" id="floating-cart" onclick="openCheckout()">
         <div class="cart-info"><span id="cart-count">0</span> Items | ₦<span id="cart-total-float">0</span></div>
-        <div class="cart-action">View Order →</div>
+        <div>View Order →</div>
     </div>
 
     <div class="modal-overlay" id="checkout-modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Complete Order</h2>
+                <h2>Your Order</h2>
                 <button class="close-btn" onclick="closeCheckout()">&times;</button>
             </div>
             
             <div id="cart-items-list"></div>
+            
             <div class="cart-total-row">
-                <span>Total Due:</span>
+                <span>Total:</span>
                 <span>₦<span id="cart-total-modal">0</span></span>
             </div>
 
@@ -108,6 +134,12 @@
                 <label>Your Name</label>
                 <input type="text" id="cust-name" placeholder="E.g., John Doe" required>
             </div>
+            
+            <div class="input-group">
+                <label>Special Instructions (Optional)</label>
+                <textarea id="cust-notes" rows="2" placeholder="E.g., No onions, extra spicy..."></textarea>
+            </div>
+
             <div class="input-group">
                 <label>Order Type</label>
                 <select id="order-type" onchange="toggleLocationInput()">
@@ -128,45 +160,47 @@
     <script>
         // --- ⚙️ CONFIGURATION ZONE ⚙️ ---
         const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxEpm1qIgup5q6DBF4F9PEzQD3XEZv0Sqz0otqGdzrbXB079afSjD8P_lpZj1_xpMXy1A/exec"; 
-        const WHATSAPP_NUMBER = "2348036181762"; // Format: Country code + number, no '+' or '0'
+        const WHATSAPP_NUMBER = "2348036181762"; 
         
- // --- 🍔 MENU DATA ---
-        let menuData = []; // Start with an empty menu!
+        let menuData = []; 
         let cart = JSON.parse(localStorage.getItem('mevish_cart')) || [];
+        let currentTimeOfDay = "All";
 
         // --- 🚀 INITIALIZATION ---
         function init() {
-            setGreeting();
-            fetchMenuFromSheet(); // Tell the app to go get the menu!
+            setTimeContext();
+            fetchMenuFromSheet();
             updateCartUI();
         }
 
-        // New function to pull data directly from your Google Sheet
-        async function fetchMenuFromSheet() {
-            const container = document.getElementById('menu-container');
-            container.innerHTML = "<p style='text-align:center; padding: 20px;'>Loading fresh menu...</p>";
-
-            try {
-                const response = await fetch(APPS_SCRIPT_URL);
-                const result = await response.json();
-                
-                if (result.status === "success") {
-                    menuData = result.data; // Save the sheet data into our app
-                    renderMenu('All');      // Draw the beautiful cards on the screen
-                }
-            } catch (error) {
-                container.innerHTML = "<p style='text-align:center; color: red;'>Failed to load menu. Please refresh.</p>";
+        function setTimeContext() {
+            const hour = new Date().getHours();
+            const greeting = document.getElementById('hero-greeting');
+            
+            // Time of day logic
+            if (hour < 12) {
+                greeting.innerText = 'Good Morning! ☀️';
+                currentTimeOfDay = "Morning";
+            } else if (hour < 17) {
+                greeting.innerText = 'Good Afternoon! 🍽️';
+                currentTimeOfDay = "Afternoon";
+            } else {
+                greeting.innerText = 'Good Evening! 🌙';
+                currentTimeOfDay = "Evening";
             }
         }
 
-
-        
-        function setGreeting() {
-            const hour = new Date().getHours();
-            let text = 'Good Evening! 🌙';
-            if (hour < 12) text = 'Good Morning! ☀️';
-            else if (hour < 18) text = 'Good Afternoon! 🍽️';
-            document.getElementById('greeting').innerText = text;
+        async function fetchMenuFromSheet() {
+            try {
+                const response = await fetch(APPS_SCRIPT_URL);
+                const result = await response.json();
+                if (result.status === "success") {
+                    menuData = result.data; 
+                    renderMenu('All'); 
+                }
+            } catch (error) {
+                document.getElementById('menu-container').innerHTML = "<p style='text-align:center; color: red;'>Could not load menu. Please refresh.</p>";
+            }
         }
 
         // --- 📱 UI RENDERING ---
@@ -174,16 +208,34 @@
             const container = document.getElementById('menu-container');
             container.innerHTML = '';
             
-            let filteredData = categoryFilter === 'All' ? menuData : menuData.filter(i => i.category === categoryFilter);
+            // Smart sorting based on Time of Day
+            let sortedData = [...menuData];
+            if (categoryFilter === 'All') {
+                if (currentTimeOfDay === "Morning") {
+                    container.innerHTML = `<span class="time-suggestion-badge">Perfect for Breakfast</span>`;
+                    sortedData.sort((a, b) => (a.category === 'Pastries' || a.category === 'Drinks' ? -1 : 1));
+                } else {
+                    container.innerHTML = `<span class="time-suggestion-badge">Lunch & Dinner Favorites</span>`;
+                    sortedData.sort((a, b) => (a.category === 'Foods' || a.category === 'Swallows' ? -1 : 1));
+                }
+            }
+
+            let filteredData = categoryFilter === 'All' ? sortedData : menuData.filter(i => i.category === categoryFilter);
             
             filteredData.forEach(item => {
+                // Use a default food image if the sheet doesn't have an image URL
+                const imageUrl = item.image ? item.image : "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=500&q=80";
+                
                 container.innerHTML += `
                     <div class="menu-card">
-                        <div class="item-info">
-                            <h3>${item.name}</h3>
-                            <div class="item-price">₦${item.price.toLocaleString()}</div>
+                        <img src="${imageUrl}" alt="${item.name}" class="item-image" loading="lazy">
+                        <div class="item-content">
+                            <div class="item-info">
+                                <h3>${item.name}</h3>
+                                <div class="item-price">₦${parseInt(item.price).toLocaleString()}</div>
+                            </div>
+                            <button class="add-btn" onclick="addToCart(${item.id}, '${item.name.replace(/'/g, "\\'")}', ${item.price})">+</button>
                         </div>
-                        <button class="add-btn" onclick="addToCart(${item.id}, '${item.name}', ${item.price})">+</button>
                     </div>
                 `;
             });
@@ -195,15 +247,33 @@
             renderMenu(category);
         }
 
-        // --- 🛒 CART LOGIC ---
+        // --- 🛒 CART LOGIC (WITH EDITING) ---
         function addToCart(id, name, price) {
             const existingItem = cart.find(i => i.id === id);
             if (existingItem) existingItem.qty += 1;
             else cart.push({ id, name, price, qty: 1 });
-            
+            saveCart();
+        }
+
+        function increaseQty(id) {
+            const item = cart.find(i => i.id === id);
+            if (item) item.qty += 1;
+            saveCart();
+            openCheckout(); // Refresh modal
+        }
+
+        function decreaseQty(id) {
+            const itemIndex = cart.findIndex(i => i.id === id);
+            if (itemIndex > -1) {
+                cart[itemIndex].qty -= 1;
+                if (cart[itemIndex].qty === 0) cart.splice(itemIndex, 1); // Remove if 0
+            }
+            saveCart();
+            if (cart.length === 0) closeCheckout(); else openCheckout(); // Refresh modal
+        }
+
+        function saveCart() {
             localStorage.setItem('mevish_cart', JSON.stringify(cart));
-            
-            // Haptic feedback (mobile only)
             if (navigator.vibrate) navigator.vibrate(50);
             updateCartUI();
         }
@@ -230,8 +300,15 @@
                 total += (item.price * item.qty);
                 list.innerHTML += `
                     <div class="cart-item-row">
-                        <span>${item.qty}x ${item.name}</span>
-                        <span>₦${(item.price * item.qty).toLocaleString()}</span>
+                        <div class="cart-item-details">
+                            <div class="cart-item-name">${item.name}</div>
+                            <div class="cart-item-price">₦${(item.price * item.qty).toLocaleString()}</div>
+                        </div>
+                        <div class="qty-controls">
+                            <button class="qty-btn" onclick="decreaseQty(${item.id})">-</button>
+                            <span class="qty-number">${item.qty}</span>
+                            <button class="qty-btn" onclick="increaseQty(${item.id})">+</button>
+                        </div>
                     </div>
                 `;
             });
@@ -240,28 +317,22 @@
             document.getElementById('checkout-modal').classList.add('active');
         }
 
-        function closeCheckout() {
-            document.getElementById('checkout-modal').classList.remove('active');
-        }
+        function closeCheckout() { document.getElementById('checkout-modal').classList.remove('active'); }
 
         function toggleLocationInput() {
             const type = document.getElementById('order-type').value;
             const group = document.getElementById('location-group');
-            const label = document.getElementById('location-label');
-            const input = document.getElementById('cust-location');
-            
-            if (type === 'Takeaway') {
-                group.style.display = 'none';
-            } else {
+            if (type === 'Takeaway') group.style.display = 'none';
+            else {
                 group.style.display = 'block';
-                label.innerText = type === 'Dine-In' ? 'Table Number' : 'Delivery Address';
-                input.placeholder = type === 'Dine-In' ? 'E.g., Table 4' : 'Enter full address';
+                document.getElementById('location-label').innerText = type === 'Dine-In' ? 'Table Number' : 'Delivery Address';
             }
         }
 
         // --- 🚀 THE DUAL DISPATCH ENGINE ---
         async function processOrder() {
             const name = document.getElementById('cust-name').value;
+            const notes = document.getElementById('cust-notes').value || 'None';
             const type = document.getElementById('order-type').value;
             const location = document.getElementById('cust-location').value || 'N/A';
             const btn = document.getElementById('submit-btn');
@@ -274,51 +345,32 @@
             const orderId = "MEV-" + Math.floor(1000 + Math.random() * 9000);
             const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
             
-            // 1. Format String for Sheet & WhatsApp
             let orderDetailsStr = cart.map(i => `${i.qty}x ${i.name}`).join(" | ");
+            if (notes !== 'None') orderDetailsStr += ` (Notes: ${notes})`;
             
-            // Data payload for Google Apps Script
-            const payload = {
-                orderId: orderId,
-                customerName: name,
-                orderType: type,
-                location: location,
-                cartItems: orderDetailsStr,
-                totalPrice: totalPrice
-            };
+            const payload = { orderId, customerName: name, orderType: type, location, cartItems: orderDetailsStr, totalPrice };
 
-            // 2. Format WhatsApp Message (URL Encoded)
+            // Format WhatsApp Message
             let waMessage = `*New Order:* ${orderId}%0A*Name:* ${name}%0A*Type:* ${type}`;
             if (type !== 'Takeaway') waMessage += ` (${location})`;
+            if (notes !== 'None') waMessage += `%0A*Notes:* ${notes}`;
             waMessage += `%0A-------------------%0A`;
             cart.forEach(i => { waMessage += `${i.qty}x ${i.name} - ₦${(i.price * i.qty)}%0A`; });
             waMessage += `-------------------%0A*Total: ₦${totalPrice.toLocaleString()}*`;
 
             try {
-                // Action A: Fire to Google Sheets silently (Don't await if you want instant WA redirect, but safer to await)
                 if(APPS_SCRIPT_URL !== "YOUR_APPS_SCRIPT_WEB_APP_URL_HERE") {
-                     await fetch(APPS_SCRIPT_URL, {
-                        method: 'POST',
-                        body: JSON.stringify(payload)
-                    });
+                     await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
                 }
-
-                // Action B: Clear Cart & Open WhatsApp
-                cart = [];
-                localStorage.removeItem('mevish_cart');
-                updateCartUI();
-                closeCheckout();
                 
+                cart = []; localStorage.removeItem('mevish_cart'); updateCartUI(); closeCheckout();
                 window.location.href = `https://wa.me/${WHATSAPP_NUMBER}?text=${waMessage}`;
-                
             } catch (error) {
-                alert("There was an issue processing your order. Please try again.");
-                btn.disabled = false;
-                btn.innerText = "Send Order via WhatsApp";
+                alert("Issue processing order. Please try again.");
+                btn.disabled = false; btn.innerText = "Send Order via WhatsApp";
             }
         }
 
-        // Boot up
         init();
     </script>
 </body>
