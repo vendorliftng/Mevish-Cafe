@@ -24,29 +24,34 @@
         .logo-mevish { font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 24px; color: var(--primary-red); letter-spacing: -0.5px; }
         .logo-eatery { font-weight: 300; font-size: 20px; }
         
-        /* Hero Section (NEW) */
-        .hero { position: relative; width: 100%; height: 200px; background-image: url('https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80'); background-size: cover; background-position: center; display: flex; align-items: flex-end; padding: 20px; }
-        .hero-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.8)); }
-        .hero-text { position: relative; z-index: 2; color: white; }
-        .hero-text h1 { font-family: 'Montserrat', sans-serif; font-size: 22px; margin-bottom: 5px; }
-        .hero-text p { font-size: 14px; opacity: 0.9; }
+        /* Hero Carousel */
+        .hero-carousel { position: relative; width: 100%; height: 220px; overflow: hidden; background-color: #111; }
+        .slide { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-size: cover; background-position: center; opacity: 0; transition: opacity 1s ease-in-out; }
+        .slide.active { opacity: 1; z-index: 1; }
+        .hero-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(to bottom, rgba(0,0,0,0.2), rgba(0,0,0,0.8)); z-index: 2; }
+        .hero-text { position: absolute; bottom: 20px; left: 20px; z-index: 3; color: white; }
+        .hero-text h1 { font-family: 'Montserrat', sans-serif; font-size: 24px; margin-bottom: 5px; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+        .hero-text p { font-size: 14px; opacity: 0.9; font-weight: 300; }
 
-        /* Filters */
-        .filters { position: sticky; top: 60px; background: var(--bg-cream); z-index: 99; padding: 15px 20px; display: flex; gap: 10px; overflow-x: auto; scrollbar-width: none; }
+        /* Filters & Search */
+        .controls-container { position: sticky; top: 60px; background: var(--bg-cream); z-index: 99; padding: 15px 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.02); }
+        .filters { display: flex; gap: 10px; overflow-x: auto; scrollbar-width: none; margin-bottom: 15px; }
         .filters::-webkit-scrollbar { display: none; }
         .filter-chip { background: #EEE; color: var(--text-light); padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 500; white-space: nowrap; cursor: pointer; border: none; outline: none; transition: 0.3s; }
         .filter-chip.active { background: var(--accent-gold); color: #FFF; box-shadow: 0 4px 10px rgba(212, 175, 55, 0.3); }
+        
+        .search-bar { width: 100%; padding: 12px 16px; border: 1px solid #DDD; border-radius: 12px; font-size: 15px; outline: none; transition: 0.3s; background: #FFF; }
+        .search-bar:focus { border-color: var(--accent-gold); box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1); }
 
-        /* Menu Feed with Images (NEW) */
+        /* Minimalist Menu Feed */
         .menu-section { padding: 20px; padding-top: 10px; }
         .time-suggestion-badge { background: var(--accent-gold); color: white; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; margin-bottom: 15px; display: inline-block; }
         
-        .menu-card { background: var(--card-bg); border-radius: 16px; margin-bottom: 20px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.06); display: flex; flex-direction: column; }
-        .item-image { width: 100%; height: 160px; object-fit: cover; background-color: #EEE; }
-        .item-content { padding: 15px; display: flex; justify-content: space-between; align-items: center; }
-        .item-info h3 { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
-        .item-price { color: var(--primary-red); font-weight: 700; font-size: 16px; }
-        .add-btn { background: #FFF; border: 2px solid var(--accent-gold); color: var(--accent-gold); width: 40px; height: 40px; border-radius: 50%; font-size: 22px; font-weight: bold; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; }
+        .menu-card { background: var(--card-bg); border-radius: 12px; padding: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid #F5F5F5; }
+        .item-info { padding-right: 15px; }
+        .item-info h3 { font-size: 16px; font-weight: 600; margin-bottom: 4px; color: var(--text-dark); }
+        .item-price { color: var(--primary-red); font-weight: 700; font-size: 15px; }
+        .add-btn { background: #FFF; border: 2px solid var(--accent-gold); color: var(--accent-gold); width: 38px; height: 38px; border-radius: 50%; font-size: 22px; font-weight: bold; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; flex-shrink: 0; }
         .add-btn:active { background: var(--accent-gold); color: #FFF; transform: scale(0.95); }
 
         /* Floating Cart */
@@ -64,7 +69,6 @@
         .modal-header h2 { font-family: 'Montserrat', sans-serif; font-size: 20px; }
         .close-btn { background: none; border: none; font-size: 28px; color: var(--text-light); cursor: pointer; }
 
-        /* Cart Edit Controls (NEW) */
         .cart-item-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #EEE; padding-bottom: 15px; }
         .cart-item-details { flex: 1; }
         .cart-item-name { font-size: 15px; font-weight: 500; margin-bottom: 5px; }
@@ -77,7 +81,7 @@
 
         .input-group { margin-bottom: 15px; }
         .input-group label { display: block; font-size: 13px; color: var(--text-light); margin-bottom: 5px; font-weight: 500; }
-        .input-group input, .input-group select, .input-group textarea { width: 100%; padding: 12px; border: 1px solid #DDD; border-radius: 8px; font-size: 16px; outline: none; font-family: inherit; }
+        .input-group input, .input-group select, .input-group textarea { width: 100%; padding: 12px; border: 1px solid #DDD; border-radius: 8px; font-size: 16px; outline: none; }
         .input-group input:focus, .input-group select:focus, .input-group textarea:focus { border-color: var(--accent-gold); }
 
         .submit-btn { width: 100%; background: var(--accent-gold); color: #FFF; border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 700; margin-top: 10px; cursor: pointer; }
@@ -91,7 +95,10 @@
         </div>
     </header>
 
-    <div class="hero">
+    <div class="hero-carousel">
+        <div class="slide active" style="background-image: url('https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80');"></div>
+        <div class="slide" style="background-image: url('https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=800&q=80');"></div>
+        <div class="slide" style="background-image: url('https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=800&q=80');"></div>
         <div class="hero-overlay"></div>
         <div class="hero-text">
             <h1 id="hero-greeting">Welcome to Mevish!</h1>
@@ -99,12 +106,15 @@
         </div>
     </div>
 
-    <div class="filters" id="filters">
-        <button class="filter-chip active" onclick="filterMenu('All')">All</button>
-        <button class="filter-chip" onclick="filterMenu('Foods')">Foods</button>
-        <button class="filter-chip" onclick="filterMenu('Swallows')">Swallows</button>
-        <button class="filter-chip" onclick="filterMenu('Pastries')">Pastries</button>
-        <button class="filter-chip" onclick="filterMenu('Drinks')">Drinks</button>
+    <div class="controls-container">
+        <div class="filters" id="filters">
+            <button class="filter-chip active" onclick="filterMenu('All', this)">All</button>
+            <button class="filter-chip" onclick="filterMenu('Foods', this)">Foods</button>
+            <button class="filter-chip" onclick="filterMenu('Swallows', this)">Swallows</button>
+            <button class="filter-chip" onclick="filterMenu('Pastries', this)">Pastries</button>
+            <button class="filter-chip" onclick="filterMenu('Drinks', this)">Drinks</button>
+        </div>
+        <input type="text" class="search-bar" id="search-input" placeholder="🔍 Search for Jollof, Burger, Drinks..." oninput="handleSearch()">
     </div>
 
     <main class="menu-section" id="menu-container">
@@ -122,24 +132,10 @@
                 <h2>Your Order</h2>
                 <button class="close-btn" onclick="closeCheckout()">&times;</button>
             </div>
-            
             <div id="cart-items-list"></div>
-            
-            <div class="cart-total-row">
-                <span>Total:</span>
-                <span>₦<span id="cart-total-modal">0</span></span>
-            </div>
-
-            <div class="input-group">
-                <label>Your Name</label>
-                <input type="text" id="cust-name" placeholder="E.g., John Doe" required>
-            </div>
-            
-            <div class="input-group">
-                <label>Special Instructions (Optional)</label>
-                <textarea id="cust-notes" rows="2" placeholder="E.g., No onions, extra spicy..."></textarea>
-            </div>
-
+            <div class="cart-total-row"><span>Total:</span><span>₦<span id="cart-total-modal">0</span></span></div>
+            <div class="input-group"><label>Your Name</label><input type="text" id="cust-name" placeholder="E.g., John Doe" required></div>
+            <div class="input-group"><label>Special Instructions (Optional)</label><textarea id="cust-notes" rows="2" placeholder="E.g., No onions, extra spicy..."></textarea></div>
             <div class="input-group">
                 <label>Order Type</label>
                 <select id="order-type" onchange="toggleLocationInput()">
@@ -148,46 +144,44 @@
                     <option value="Delivery">Delivery</option>
                 </select>
             </div>
-            <div class="input-group" id="location-group">
-                <label id="location-label">Table Number</label>
-                <input type="text" id="cust-location" placeholder="E.g., Table 4">
-            </div>
-
+            <div class="input-group" id="location-group"><label id="location-label">Table Number</label><input type="text" id="cust-location" placeholder="E.g., Table 4"></div>
             <button class="submit-btn" id="submit-btn" onclick="processOrder()">Send Order via WhatsApp</button>
         </div>
     </div>
 
     <script>
-        // --- ⚙️ CONFIGURATION ZONE ⚙️ ---
         const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxEpm1qIgup5q6DBF4F9PEzQD3XEZv0Sqz0otqGdzrbXB079afSjD8P_lpZj1_xpMXy1A/exec"; 
         const WHATSAPP_NUMBER = "2348036181762"; 
         
         let menuData = []; 
         let cart = JSON.parse(localStorage.getItem('mevish_cart')) || [];
         let currentTimeOfDay = "All";
+        let currentCategory = "All";
 
-        // --- 🚀 INITIALIZATION ---
         function init() {
             setTimeContext();
+            startCarousel();
             fetchMenuFromSheet();
             updateCartUI();
+        }
+
+        // --- 🎠 CAROUSEL LOGIC ---
+        function startCarousel() {
+            const slides = document.querySelectorAll('.slide');
+            let currentSlide = 0;
+            setInterval(() => {
+                slides[currentSlide].classList.remove('active');
+                currentSlide = (currentSlide + 1) % slides.length;
+                slides[currentSlide].classList.add('active');
+            }, 4000);
         }
 
         function setTimeContext() {
             const hour = new Date().getHours();
             const greeting = document.getElementById('hero-greeting');
-            
-            // Time of day logic
-            if (hour < 12) {
-                greeting.innerText = 'Good Morning! ☀️';
-                currentTimeOfDay = "Morning";
-            } else if (hour < 17) {
-                greeting.innerText = 'Good Afternoon! 🍽️';
-                currentTimeOfDay = "Afternoon";
-            } else {
-                greeting.innerText = 'Good Evening! 🌙';
-                currentTimeOfDay = "Evening";
-            }
+            if (hour < 12) { greeting.innerText = 'Good Morning! ☀️'; currentTimeOfDay = "Morning"; }
+            else if (hour < 17) { greeting.innerText = 'Good Afternoon! 🍽️'; currentTimeOfDay = "Afternoon"; }
+            else { greeting.innerText = 'Good Evening! 🌙'; currentTimeOfDay = "Evening"; }
         }
 
         async function fetchMenuFromSheet() {
@@ -196,106 +190,95 @@
                 const result = await response.json();
                 if (result.status === "success") {
                     menuData = result.data; 
-                    renderMenu('All'); 
+                    renderMenu(); 
                 }
             } catch (error) {
                 document.getElementById('menu-container').innerHTML = "<p style='text-align:center; color: red;'>Could not load menu. Please refresh.</p>";
             }
         }
 
-        // --- 📱 UI RENDERING ---
-        function renderMenu(categoryFilter) {
+        // --- 🔍 SEARCH & RENDER LOGIC ---
+        function handleSearch() {
+            renderMenu();
+        }
+
+        function filterMenu(category, btnElement) {
+            document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+            btnElement.classList.add('active');
+            currentCategory = category;
+            document.getElementById('search-input').value = ""; 
+            renderMenu();
+        }
+
+        function renderMenu() {
             const container = document.getElementById('menu-container');
+            const searchQuery = document.getElementById('search-input').value.toLowerCase();
             container.innerHTML = '';
             
-            // Smart sorting based on Time of Day
-            let sortedData = [...menuData];
-            if (categoryFilter === 'All') {
+            let filteredData = [...menuData];
+
+            if (currentCategory !== 'All') {
+                filteredData = filteredData.filter(i => i.category === currentCategory);
+            }
+
+            if (searchQuery !== "") {
+                filteredData = filteredData.filter(i => i.name.toLowerCase().includes(searchQuery));
+            } else if (currentCategory === 'All') {
                 if (currentTimeOfDay === "Morning") {
                     container.innerHTML = `<span class="time-suggestion-badge">Perfect for Breakfast</span>`;
-                    sortedData.sort((a, b) => (a.category === 'Pastries' || a.category === 'Drinks' ? -1 : 1));
+                    filteredData.sort((a, b) => (a.category === 'Pastries' || a.category === 'Drinks' ? -1 : 1));
                 } else {
                     container.innerHTML = `<span class="time-suggestion-badge">Lunch & Dinner Favorites</span>`;
-                    sortedData.sort((a, b) => (a.category === 'Foods' || a.category === 'Swallows' ? -1 : 1));
+                    filteredData.sort((a, b) => (a.category === 'Foods' || a.category === 'Swallows' ? -1 : 1));
                 }
             }
 
-            let filteredData = categoryFilter === 'All' ? sortedData : menuData.filter(i => i.category === categoryFilter);
+            if (filteredData.length === 0) {
+                container.innerHTML = "<p style='text-align:center; color: var(--text-light); padding: 20px;'>No items found.</p>";
+                return;
+            }
             
             filteredData.forEach(item => {
-                // Use a default food image if the sheet doesn't have an image URL
-                const imageUrl = item.image ? item.image : "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=500&q=80";
-                
                 container.innerHTML += `
                     <div class="menu-card">
-                        <img src="${imageUrl}" alt="${item.name}" class="item-image" loading="lazy">
-                        <div class="item-content">
-                            <div class="item-info">
-                                <h3>${item.name}</h3>
-                                <div class="item-price">₦${parseInt(item.price).toLocaleString()}</div>
-                            </div>
-                            <button class="add-btn" onclick="addToCart(${item.id}, '${item.name.replace(/'/g, "\\'")}', ${item.price})">+</button>
+                        <div class="item-info">
+                            <h3>${item.name}</h3>
+                            <div class="item-price">₦${parseInt(item.price).toLocaleString()}</div>
                         </div>
+                        <button class="add-btn" onclick="addToCart(${item.id}, '${item.name.replace(/'/g, "\\'")}', ${item.price})">+</button>
                     </div>
                 `;
             });
         }
 
-        function filterMenu(category) {
-            document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
-            event.target.classList.add('active');
-            renderMenu(category);
-        }
-
-        // --- 🛒 CART LOGIC (WITH EDITING) ---
+        // --- 🛒 CART LOGIC ---
         function addToCart(id, name, price) {
             const existingItem = cart.find(i => i.id === id);
-            if (existingItem) existingItem.qty += 1;
-            else cart.push({ id, name, price, qty: 1 });
+            if (existingItem) existingItem.qty += 1; else cart.push({ id, name, price, qty: 1 });
             saveCart();
         }
-
-        function increaseQty(id) {
-            const item = cart.find(i => i.id === id);
-            if (item) item.qty += 1;
-            saveCart();
-            openCheckout(); // Refresh modal
-        }
-
+        function increaseQty(id) { cart.find(i => i.id === id).qty += 1; saveCart(); openCheckout(); }
         function decreaseQty(id) {
             const itemIndex = cart.findIndex(i => i.id === id);
             if (itemIndex > -1) {
                 cart[itemIndex].qty -= 1;
-                if (cart[itemIndex].qty === 0) cart.splice(itemIndex, 1); // Remove if 0
+                if (cart[itemIndex].qty === 0) cart.splice(itemIndex, 1);
             }
-            saveCart();
-            if (cart.length === 0) closeCheckout(); else openCheckout(); // Refresh modal
+            saveCart(); if (cart.length === 0) closeCheckout(); else openCheckout();
         }
-
-        function saveCart() {
-            localStorage.setItem('mevish_cart', JSON.stringify(cart));
-            if (navigator.vibrate) navigator.vibrate(50);
-            updateCartUI();
-        }
-
+        function saveCart() { localStorage.setItem('mevish_cart', JSON.stringify(cart)); if (navigator.vibrate) navigator.vibrate(50); updateCartUI(); }
         function updateCartUI() {
             const totalItems = cart.reduce((sum, item) => sum + item.qty, 0);
             const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-            
             document.getElementById('cart-count').innerText = totalItems;
             document.getElementById('cart-total-float').innerText = totalPrice.toLocaleString();
-            
             const cartElement = document.getElementById('floating-cart');
-            if (totalItems > 0) cartElement.classList.add('visible');
-            else cartElement.classList.remove('visible');
+            if (totalItems > 0) cartElement.classList.add('visible'); else cartElement.classList.remove('visible');
         }
 
         // --- 💳 CHECKOUT MODAL ---
         function openCheckout() {
-            const list = document.getElementById('cart-items-list');
-            list.innerHTML = '';
-            let total = 0;
-            
+            const list = document.getElementById('cart-items-list'); list.innerHTML = ''; let total = 0;
             cart.forEach(item => {
                 total += (item.price * item.qty);
                 list.innerHTML += `
@@ -309,27 +292,18 @@
                             <span class="qty-number">${item.qty}</span>
                             <button class="qty-btn" onclick="increaseQty(${item.id})">+</button>
                         </div>
-                    </div>
-                `;
+                    </div>`;
             });
-            
             document.getElementById('cart-total-modal').innerText = total.toLocaleString();
             document.getElementById('checkout-modal').classList.add('active');
         }
-
         function closeCheckout() { document.getElementById('checkout-modal').classList.remove('active'); }
-
         function toggleLocationInput() {
-            const type = document.getElementById('order-type').value;
-            const group = document.getElementById('location-group');
+            const type = document.getElementById('order-type').value; const group = document.getElementById('location-group');
             if (type === 'Takeaway') group.style.display = 'none';
-            else {
-                group.style.display = 'block';
-                document.getElementById('location-label').innerText = type === 'Dine-In' ? 'Table Number' : 'Delivery Address';
-            }
+            else { group.style.display = 'block'; document.getElementById('location-label').innerText = type === 'Dine-In' ? 'Table Number' : 'Delivery Address'; }
         }
 
-        // --- 🚀 THE DUAL DISPATCH ENGINE ---
         async function processOrder() {
             const name = document.getElementById('cust-name').value;
             const notes = document.getElementById('cust-notes').value || 'None';
@@ -338,19 +312,15 @@
             const btn = document.getElementById('submit-btn');
 
             if (!name) { alert("Please enter your name."); return; }
-
-            btn.disabled = true;
-            btn.innerText = "Processing...";
+            btn.disabled = true; btn.innerText = "Processing...";
 
             const orderId = "MEV-" + Math.floor(1000 + Math.random() * 9000);
             const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-            
             let orderDetailsStr = cart.map(i => `${i.qty}x ${i.name}`).join(" | ");
             if (notes !== 'None') orderDetailsStr += ` (Notes: ${notes})`;
             
             const payload = { orderId, customerName: name, orderType: type, location, cartItems: orderDetailsStr, totalPrice };
 
-            // Format WhatsApp Message
             let waMessage = `*New Order:* ${orderId}%0A*Name:* ${name}%0A*Type:* ${type}`;
             if (type !== 'Takeaway') waMessage += ` (${location})`;
             if (notes !== 'None') waMessage += `%0A*Notes:* ${notes}`;
@@ -362,7 +332,6 @@
                 if(APPS_SCRIPT_URL !== "YOUR_APPS_SCRIPT_WEB_APP_URL_HERE") {
                      await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
                 }
-                
                 cart = []; localStorage.removeItem('mevish_cart'); updateCartUI(); closeCheckout();
                 window.location.href = `https://wa.me/${WHATSAPP_NUMBER}?text=${waMessage}`;
             } catch (error) {
