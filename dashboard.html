@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mevish | Live Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Roboto', sans-serif; }
+        body { background: #F4F6F8; color: #1D1D1D; padding: 20px; }
+        header { background: #1D1D1D; color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .logo { font-family: 'Montserrat', sans-serif; font-size: 24px; color: #E63946; }
+        .refresh-btn { background: #D4AF37; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+        .order-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); border-top: 4px solid #E63946; }
+        .order-card.paid { border-top-color: #2ECC71; opacity: 0.8; }
+        
+        .header-row { display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid #EEE; padding-bottom: 10px; }
+        .order-id { font-weight: 700; font-size: 18px; }
+        .status-badge { background: #FFF3CD; color: #856404; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: bold; }
+        .status-badge.paid { background: #D4EDDA; color: #155724; }
+        
+        .details p { margin-bottom: 5px; font-size: 14px; }
+        .items-list { background: #F9F9F9; padding: 10px; border-radius: 8px; margin: 10px 0; font-size: 14px; font-family: monospace; }
+        .total { font-size: 18px; font-weight: 900; color: #E63946; margin-bottom: 15px; }
+        
+        .action-row { display: flex; gap: 10px; }
+        .btn-paid { flex: 1; background: #2ECC71; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .btn-paid:disabled { background: #CCC; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo">MEVISH DASHBOARD</div>
+        <button class="refresh-btn" onclick="fetchOrders()">🔄 Refresh Orders</button>
+    </header>
+
+    <div class="grid" id="orders-container">
+        <h3 style="text-align:center; width: 100%;">Loading real-time orders...</h3>
+    </div>
+
+    <script>
+        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxEpm1qIgup5q6DBF4F9PEzQD3XEZv0Sqz0otqGdzrbXB079afSjD8P_lpZj1_xpMXy1A/exec";
+
+        async function fetchOrders() {
+            const container = document.getElementById('orders-container');
+            container.innerHTML = '<h3 style="text-align:center; width: 100%;">Fetching fresh orders...</h3>';
+            
+            try {
+                // Notice the "?type=orders" added to the URL!
+                const response = await fetch(APPS_SCRIPT_URL + "?type=orders");
+                const result = await response.json();
+                
+                if (result.status === "success") {
+                    renderOrders(result.data);
+                }
+            } catch (error) {
+                container.innerHTML = '<h3 style="color:red; text-align:center; width: 100%;">Failed to load orders.</h3>';
+            }
+        }
+
+        function renderOrders(orders) {
+            const container = document.getElementById('orders-container');
+            container.innerHTML = '';
+
+            // Only show today's active orders (Let's keep it clean!)
+            const activeOrders = orders.slice(0, 30); // Grab latest 30 orders
+
+            activeOrders.forEach(order => {
+                const isPaid = order.status.includes("Paid");
+                
+                container.innerHTML += `
+                    <div class="order-card ${isPaid ? 'paid' : ''}">
+                        <div class="header-row">
+                            <span class="order-id">${order.orderId}</span>
+                            <span class="status-badge ${isPaid ? 'paid' : ''}">${order.status}</span>
+                        </div>
+                        <div class="details">
+                            <p><strong>Name:</strong> ${order.name}</p>
+                            <p><strong>Type:</strong> ${order.type} (${order.location})</p>
+                            <div class="items-list">${order.items}</div>
+                            <div class="total">₦${order.total.toLocaleString()}</div>
+                        </div>
+                        ${!isPaid ? `
+                            <div class="action-row">
+                                <button class="btn-paid" onclick="updateStatus('${order.orderId}', 'Paid - POS', this)">Paid (POS)</button>
+                                <button class="btn-paid" style="background:#3498DB;" onclick="updateStatus('${order.orderId}', 'Paid - Cash', this)">Paid (Cash)</button>
+                            </div>
+                        ` : '<p style="text-align:center; color:#2ECC71; font-weight:bold;">Order Complete ✅</p>'}
+                    </div>
+                `;
+            });
+        }
+
+        async function updateStatus(orderId, newStatus, btnElement) {
+            btnElement.innerText = "Saving...";
+            btnElement.disabled = true;
+
+            const payload = {
+                action: "updateStatus",
+                orderId: orderId,
+                newStatus: newStatus
+            };
+
+            try {
+                await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+                
+                // Refresh the screen after saving
+                fetchOrders();
+            } catch (error) {
+                alert("Failed to update status. Check internet connection.");
+                btnElement.innerText = "Try Again";
+                btnElement.disabled = false;
+            }
+        }
+
+        // Load orders immediately
+        fetchOrders();
+        
+        // Automatically refresh every 30 seconds so staff don't have to keep clicking!
+        setInterval(fetchOrders, 30000); 
+    </script>
+</body>
+</html>
