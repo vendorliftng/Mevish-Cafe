@@ -213,15 +213,38 @@
         }
 
         async function fetchMenuFromSheet() {
+            const container = document.getElementById('menu-container');
+            
+            // 1. THE SPEED UPGRADE: Check if we already have the menu memorized
+            const cachedMenu = localStorage.getItem('mevish_menu_cache');
+            
+            if (cachedMenu) {
+                // If we have it, load it INSTANTLY. No waiting!
+                menuData = JSON.parse(cachedMenu);
+                renderMenu();
+            } else {
+                // Only show the loading text if it is their very first time visiting
+                container.innerHTML = "<p style='text-align:center; padding: 20px;'>Loading delicious menu...</p>";
+            }
+
+            // 2. THE BACKGROUND SYNC: Silently ask Google Sheets for the freshest data
             try {
                 const response = await fetch(APPS_SCRIPT_URL);
                 const result = await response.json();
+                
                 if (result.status === "success") {
+                    // Update our memory with the newest prices/items from the owner
+                    localStorage.setItem('mevish_menu_cache', JSON.stringify(result.data));
+                    
+                    // Update the screen with the fresh data
                     menuData = result.data; 
                     renderMenu(); 
                 }
             } catch (error) {
-                document.getElementById('menu-container').innerHTML = "<p style='text-align:center; color: red;'>Could not load menu. Please refresh.</p>";
+                // If the internet drops but we have the cache, do nothing! The user won't even notice.
+                if (!cachedMenu) {
+                    container.innerHTML = "<p style='text-align:center; color: red;'>Could not load menu. Please check your internet.</p>";
+                }
             }
         }
 
