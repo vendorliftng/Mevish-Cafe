@@ -430,13 +430,20 @@
                 if(APPS_SCRIPT_URL !== "YOUR_APPS_SCRIPT_WEB_APP_URL_HERE") {
                      await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
                 }
+                // Clear the cart
                 cart = []; localStorage.removeItem('mevish_cart'); updateCartUI(); closeCheckout();
                 
-                // 1. Open WhatsApp in a new tab/app window
-                window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${waMessage}`, '_blank');
+                // 1. Create the WhatsApp URL
+                const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${waMessage}`;
                 
-                // 2. Redirect the current website tab directly to the tracker with their ID!
-                window.location.href = `track.html?id=${orderId}`;
+                // 2. Open WhatsApp in a new tab
+                window.open(waUrl, '_blank');
+                
+                // 3. Give the browser 1.5 seconds to launch WhatsApp, then redirect the background page
+                setTimeout(() => {
+                    window.location.href = `track.html?id=${orderId}`;
+                }, 1500);
+            
             } catch (error) {
                 alert("Issue processing order. Please try again.");
                 btn.disabled = false; btn.innerText = "Send Order via WhatsApp";
