@@ -401,7 +401,7 @@
                 }
             }
         }
-        
+
         async function processOrder() {
             const name = document.getElementById('cust-name').value;
             const notes = document.getElementById('cust-notes').value || 'None';
@@ -431,7 +431,12 @@
                      await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
                 }
                 cart = []; localStorage.removeItem('mevish_cart'); updateCartUI(); closeCheckout();
-                window.location.href = `https://wa.me/${WHATSAPP_NUMBER}?text=${waMessage}`;
+                
+                // 1. Open WhatsApp in a new tab/app window
+                window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${waMessage}`, '_blank');
+                
+                // 2. Redirect the current website tab directly to the tracker with their ID!
+                window.location.href = `track.html?id=${orderId}`;
             } catch (error) {
                 alert("Issue processing order. Please try again.");
                 btn.disabled = false; btn.innerText = "Send Order via WhatsApp";
