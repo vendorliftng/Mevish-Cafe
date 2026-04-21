@@ -191,6 +191,38 @@
         let cart = JSON.parse(localStorage.getItem('mevish_cart')) || [];
         let currentTimeOfDay = "All";
         let currentCategory = "All";
+        let detectedTable = null;
+
+        function init() {
+            setTimeContext();
+            startCarousel();
+            detectQRCodeTable(); // <--- Tell the app to look for a table number!
+            fetchMenuFromSheet();
+            updateCartUI();
+        }
+
+        // --- 📸 SMART QR CODE DETECTION ---
+        function detectQRCodeTable() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const tableNum = urlParams.get('table');
+            
+            if (tableNum) {
+                detectedTable = "Table " + tableNum;
+                
+                // Pre-fill and lock the inputs in the checkout modal
+                const typeSelect = document.getElementById('order-type');
+                const locationInput = document.getElementById('cust-location');
+                const locationGroup = document.getElementById('location-group');
+                
+                typeSelect.value = "Dine-In";
+                typeSelect.disabled = true; // Lock it so they can't change it
+                
+                locationGroup.style.display = 'block';
+                document.getElementById('location-label').innerText = 'Table Number';
+                locationInput.value = detectedTable;
+                locationInput.disabled = true; // Lock it
+            }
+        }
 
         function init() {
             setTimeContext();
@@ -355,12 +387,21 @@
             document.getElementById('checkout-modal').classList.add('active');
         }
         function closeCheckout() { document.getElementById('checkout-modal').classList.remove('active'); }
-        function toggleLocationInput() {
-            const type = document.getElementById('order-type').value; const group = document.getElementById('location-group');
-            if (type === 'Takeaway') group.style.display = 'none';
-            else { group.style.display = 'block'; document.getElementById('location-label').innerText = type === 'Dine-In' ? 'Table Number' : 'Delivery Address'; }
+       function toggleLocationInput() {
+            // Only allow toggling if a QR code didn't lock the table
+            if (!detectedTable) {
+                const type = document.getElementById('order-type').value; 
+                const group = document.getElementById('location-group');
+                
+                if (type === 'Takeaway') { 
+                    group.style.display = 'none'; 
+                } else { 
+                    group.style.display = 'block'; 
+                    document.getElementById('location-label').innerText = type === 'Dine-In' ? 'Table Number' : 'Delivery Address'; 
+                }
+            }
         }
-
+        
         async function processOrder() {
             const name = document.getElementById('cust-name').value;
             const notes = document.getElementById('cust-notes').value || 'None';
