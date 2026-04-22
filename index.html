@@ -448,30 +448,33 @@
             waMessage += `-------------------%0A*Total: ₦${totalPrice.toLocaleString()}*`;
 
             try {
+                // 1. Send data to Google
                 await fetch(APPS_SCRIPT_URL, {
                     method: 'POST',
                     body: JSON.stringify(payload)
                 });
 
+                // 2. Clear the cart
                 cart = []; 
                 localStorage.removeItem('mevish_cart'); 
                 updateCartUI(); 
                 
-                // FLAW 3 FIX: The Interactive Success Screen (Beats Popup Blockers!)
-                const modalBody = document.getElementById('cart-modal');
-                modalBody.innerHTML = `
-                    <div style="text-align:center; padding: 20px; padding-bottom: 40px;">
-                        <div style="font-size: 50px; margin-bottom: 10px;">✅</div>
-                        <h2 style="color: #2ECC71; margin-bottom: 10px; font-family: 'Montserrat', sans-serif;">Order Sent to Kitchen!</h2>
-                        <p style="color: #666; margin-bottom: 30px; font-size: 16px;">Order ID: <b style="color:#1D1D1D;">${orderId}</b></p>
-                        
-                        <a href="https://wa.me/${WHATSAPP_NUMBER}?text=${waMessage}" target="_blank" style="display:block; background:#25D366; color:white; padding:18px; border-radius:12px; margin-bottom: 15px; text-decoration:none; font-weight:bold; font-size: 16px; box-shadow: 0 4px 10px rgba(37, 211, 102, 0.3);">1. Send WhatsApp Receipt</a>
-                        
-                        <a href="track.html?id=${orderId}" style="display:block; background:#D4AF37; color:white; padding:18px; border-radius:12px; text-decoration:none; font-weight:bold; font-size: 16px; box-shadow: 0 4px 10px rgba(212, 175, 55, 0.3);">2. Track Live Status</a>
-                    </div>
+                // 3. THE BULLETPROOF FIX: Generate a Full-Screen Overlay
+                const successOverlay = document.createElement('div');
+                successOverlay.style.cssText = "position:fixed; top:0; left:0; width:100%; height:100%; background:#FDFCFB; z-index:99999; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; text-align:center;";
+                successOverlay.innerHTML = `
+                    <div style="font-size: 70px; margin-bottom: 15px;">✅</div>
+                    <h2 style="color: #2ECC71; margin-bottom: 10px; font-family: 'Montserrat', sans-serif;">Order Sent to Kitchen!</h2>
+                    <p style="color: #666; margin-bottom: 30px; font-size: 18px;">Order ID: <b style="color:#1D1D1D;">${orderId}</b></p>
+                    
+                    <a href="https://wa.me/${WHATSAPP_NUMBER}?text=${waMessage}" target="_blank" style="display:block; width: 100%; max-width: 350px; background:#25D366; color:white; padding:18px; border-radius:12px; margin-bottom: 15px; text-decoration:none; font-weight:bold; font-size: 18px; box-shadow: 0 4px 10px rgba(37, 211, 102, 0.3);">1. Send WhatsApp Receipt</a>
+                    
+                    <a href="track.html?id=${orderId}" style="display:block; width: 100%; max-width: 350px; background:#D4AF37; color:white; padding:18px; border-radius:12px; text-decoration:none; font-weight:bold; font-size: 18px; box-shadow: 0 4px 10px rgba(212, 175, 55, 0.3);">2. Track Live Status</a>
                 `;
+                document.body.appendChild(successOverlay);
 
             } catch (error) {
+                // If internet fails before reaching Google
                 showToast("⚠️ Issue processing order. Please check your connection.");
                 btn.disabled = false; 
                 btn.innerText = "Checkout";
