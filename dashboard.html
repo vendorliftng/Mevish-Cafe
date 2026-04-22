@@ -33,7 +33,6 @@
         .btn-paid { flex: 1; background: #2ECC71; color: white; border: none; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; min-width: 80px;}
         .btn-paid:disabled { background: #CCC; cursor: not-allowed; }
         
-        /* Toast CSS */
         #toast { visibility: hidden; min-width: 250px; background-color: #1D1D1D; color: #fff; text-align: center; border-radius: 8px; padding: 16px; position: fixed; z-index: 1000; left: 50%; bottom: 30px; transform: translateX(-50%); box-shadow: 0 4px 15px rgba(0,0,0,0.2); transition: opacity 0.4s; opacity: 0; font-weight: bold; border-bottom: 4px solid #E63946; }
     </style>
 </head>
@@ -44,7 +43,7 @@
         <div class="header-controls">
             <select id="cashier-select">
                 <option value="">👤 Select Cashier...</option>
-                </select>
+            </select>
             <button class="refresh-btn" onclick="fetchOrders()">🔄 Refresh</button>
         </div>
     </header>
@@ -56,6 +55,7 @@
     <div id="toast"><span id="toast-msg"></span></div>
 
     <script>
+        // Your real Google Apps Script URL
         const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxEpm1qIgup5q6DBF4F9PEzQD3XEZv0Sqz0otqGdzrbXB079afSjD8P_lpZj1_xpMXy1A/exec";
 
         function showToast(message) {
@@ -71,10 +71,13 @@
 
         async function fetchCashiers() {
             try {
-                const response = await fetch(APPS_SCRIPT_URL + "?type=cashiers");
+                // We add the cache buster here too just in case!
+                const cacheBuster = new Date().getTime();
+                const response = await fetch(APPS_SCRIPT_URL + "?type=cashiers&t=" + cacheBuster);
                 const result = await response.json();
                 if (result.status === "success") {
                     const select = document.getElementById('cashier-select');
+                    select.innerHTML = '<option value="">👤 Select Cashier...</option>';
                     result.data.forEach(name => {
                         select.innerHTML += `<option value="${name}">${name}</option>`;
                     });
@@ -88,7 +91,9 @@
             const container = document.getElementById('orders-container');
             
             try {
-                const response = await fetch(APPS_SCRIPT_URL + "?type=orders");
+                // 👉 THE FIX: We add the exact millisecond to force the browser to pull fresh data!
+                const cacheBuster = new Date().getTime();
+                const response = await fetch(APPS_SCRIPT_URL + "?type=orders&t=" + cacheBuster);
                 const result = await response.json();
                 
                 if (result.status === "success") {
@@ -103,8 +108,9 @@
             const container = document.getElementById('orders-container');
             container.innerHTML = '';
 
-           // Filter out cancelled orders so they disappear from the active screen
-            const activeOrders = orders.filter(order => order.status !== "Cancelled").slice(0, 30);
+            // This successfully hides any order that says "Cancelled"
+            const activeOrders = orders.filter(order => order.status !== "Cancelled").slice(0, 30); 
+
             activeOrders.forEach(order => {
                 const isPaid = order.status.includes("Paid");
                 const isPrep = order.status.includes("Preparing");
@@ -140,7 +146,7 @@
                                 </div>
                             `}
                             
-                           <div class="action-row">
+                            <div class="action-row">
                                 <button class="btn-paid" onclick="processPayment('${order.orderId}', 'Paid - POS', this)">POS</button>
                                 <button class="btn-paid" style="background:#3498DB;" onclick="processPayment('${order.orderId}', 'Paid - Cash', this)">Cash</button>
                                 <button class="btn-paid" style="background:#1D1D1D; flex: 0.5;" onclick="updateStatus('${order.orderId}', 'Cancelled', this)" title="Void this order">❌</button>
@@ -157,7 +163,6 @@
                 showToast("⚠️ Please select your name from the top dropdown first!");
                 return;
             }
-            // Appends the cashier name to the sheet! e.g., "Paid - POS (Sarah)"
             const finalStatus = `${baseStatus} (${cashier})`;
             updateStatus(orderId, finalStatus, btnElement);
         }
@@ -172,6 +177,7 @@
             try {
                 await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
                 showToast("Status Updated!");
+                // Now, when it pulls fresh orders, the cache buster guarantees the cancelled one disappears!
                 fetchOrders(); 
             } catch (error) {
                 showToast("Failed to update status.");
