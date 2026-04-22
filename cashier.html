@@ -64,11 +64,9 @@
         <div class="logo">
             <span class="logo-mevish">MEVISH</span><span class="logo-eatery"> POS</span>
         </div>
-        <select class="cashier-select" id="cashier-name">
-            <option value="Mary">Shift: Mary</option>
-            <option value="John">Shift: John</option>
-            <option value="Manager">Shift: Manager</option>
-        </select>
+        <select id="cashier-select" style="padding: 10px; border-radius: 8px; font-weight: bold; border: none; outline: none; cursor: pointer;">
+        <option value="">👤 Loading Shifts...</option>
+    </select>
     </header>
 
     <div class="controls-container">
@@ -120,12 +118,37 @@
 
     <script>
         const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxEpm1qIgup5q6DBF4F9PEzQD3XEZv0Sqz0otqGdzrbXB079afSjD8P_lpZj1_xpMXy1A/exec"; 
-        
+        async function fetchCashiers() {
+            try {
+                // Fetch the names from your new 'Cashiers' tab
+                const response = await fetch(APPS_SCRIPT_URL + "?type=cashiers");
+                const result = await response.json();
+                
+                if (result.status === "success") {
+                    const select = document.getElementById('cashier-select');
+                    // Clear the "Loading..." text
+                    select.innerHTML = '<option value="">👤 Select Shift...</option>'; 
+                    
+                    // Inject the dynamic names
+                    result.data.forEach(name => {
+                        select.innerHTML += `<option value="Shift: ${name}">Shift: ${name}</option>`;
+                    });
+                }
+            } catch (error) {
+                console.log("Failed to load cashiers.");
+                document.getElementById('cashier-select').innerHTML = '<option value="">⚠️ Error loading</option>';
+            }
+        }
+
         let menuData = []; 
         let cart = [];
         let currentCategory = "All";
 
-        function init() { fetchMenuFromSheet(); }
+        function init() { 
+            fetchCashiers();
+            fetchMenuFromSheet();
+            updateCartUI();
+         }
 
        async function fetchMenuFromSheet() {
             const container = document.getElementById('menu-container');
