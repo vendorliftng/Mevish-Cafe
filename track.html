@@ -28,10 +28,9 @@
         .status-pending { background: #FFF3CD; color: #856404; }
         .status-ready { background: #D4EDDA; color: #155724; }
 
-        /* NEW TIMER UI */
         .timer-container { margin-top: 25px; padding-top: 20px; border-top: 1px dashed #DDD; display: none; }
         .timer-container.active { display: block; }
-        .countdown-text { font-size: 32px; font-weight: 900; color: #E63946; font-family: 'Montserrat', sans-serif; margin: 10px 0; }
+        .countdown-text { font-size: 40px; font-weight: 900; color: #E63946; font-family: 'Montserrat', sans-serif; margin: 10px 0; }
         .disclaimer { font-size: 12px; color: #888; font-style: italic; }
 
         .back-link { display: block; text-align: center; margin-top: 30px; color: #E63946; text-decoration: none; font-weight: bold; }
@@ -47,7 +46,7 @@
 
     <div class="container">
         <h1>Track Your Order</h1>
-        <p class="subtitle">Enter your Order ID (e.g., MEV-1234) below to check its current status.</p>
+        <p class="subtitle">Enter your Order ID below to check its current status.</p>
 
         <div class="search-box">
             <input type="text" id="order-id-input" placeholder="MEV-1234">
@@ -61,8 +60,8 @@
             
             <div class="timer-container" id="timer-box">
                 <p style="font-size: 14px; font-weight: bold; color: #1D1D1D;">Estimated Prep Time:</p>
-                <div class="countdown-text" id="countdown-display">10:00</div>
-                <p class="disclaimer">*Note: Prep times may vary during peak hours. We appreciate your patience!</p>
+                <div class="countdown-text" id="countdown-display">00:00</div>
+                <p class="disclaimer">*Note: Prep times may vary slightly. We appreciate your patience!</p>
             </div>
         </div>
 
@@ -70,31 +69,25 @@
     </div>
 
     <script>
-        // ⚠️ PASTE YOUR REAL URL HERE:
+        // ⚠️ PASTE YOUR REAL GOOGLE SCRIPT URL HERE:
         const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxEpm1qIgup5q6DBF4F9PEzQD3XEZv0Sqz0otqGdzrbXB079afSjD8P_lpZj1_xpMXy1A/exec";
         
         let timerInterval;
         let lastKnownStatus = "";
 
-        // Auto-check on load
         window.onload = function() {
             const urlParams = new URLSearchParams(window.location.search);
             const autoId = urlParams.get('id');
             if (autoId) {
                 document.getElementById('order-id-input').value = autoId;
                 checkStatus(false); 
-                
-                // THE MAGIC: Silently check the database every 10 seconds!
                 setInterval(() => checkStatus(true), 10000); 
             }
         };
 
         async function checkStatus(isSilent = false) {
             let input = document.getElementById('order-id-input').value.trim().toUpperCase();
-            if(!input) { 
-                if(!isSilent) alert("Please enter an Order ID."); 
-                return; 
-            }
+            if(!input) return; 
 
             const btn = document.getElementById('track-btn');
             const card = document.getElementById('result-card');
@@ -105,15 +98,14 @@
             }
 
             try {
-                const cacheBuster = new Date().getTime();
+                // Brute force cache bypass
+                const cacheBuster = new Date().getTime() + Math.floor(Math.random() * 1000);
                 const response = await fetch(`${APPS_SCRIPT_URL}?type=track&orderId=${input}&t=${cacheBuster}`);
                 const result = await response.json();
 
                 if (result.status === "success") {
                     let rawStatus = result.data.status;
                     
-                    // ONLY update the screen if the status actually changed!
-                    // This stops the 15-minute timer from resetting to 15:00 every ten seconds.
                     if (rawStatus !== lastKnownStatus) {
                         lastKnownStatus = rawStatus;
                         
@@ -134,7 +126,7 @@
                         else if (rawStatus.includes("Paid") || rawStatus.includes("Ready")) {
                             statusBadge.innerText = rawStatus;
                             statusBadge.className = "status-badge status-ready";
-                            clearInterval(timerInterval); // Stop the timer if it's done
+                            clearInterval(timerInterval); 
                         } 
                         else if (rawStatus.includes("Preparing")) {
                             statusBadge.innerText = "Preparing your meal!";
@@ -144,8 +136,8 @@
                             let minutes = parseInt(rawStatus.replace(/[^0-9]/g, ''));
                             if (minutes) {
                                 timerBox.classList.add('active');
-                                clearInterval(timerInterval); // Clear old timer
-                                startTimer(minutes * 60); // Start new timer
+                                clearInterval(timerInterval); 
+                                startTimer(minutes * 60); 
                             }
                         } else {
                             statusBadge.innerText = rawStatus;
@@ -153,11 +145,9 @@
                         
                         card.classList.add('success');
                     }
-                } else if (!isSilent) {
-                    alert("Order not found. Please check the ID.");
                 }
             } catch (error) {
-                console.log("Background check failed, retrying next loop...");
+                console.log("Background check skipped.");
             }
 
             if (!isSilent) {

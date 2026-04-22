@@ -29,8 +29,8 @@
         .items-list { background: #F9F9F9; padding: 10px; border-radius: 8px; margin: 10px 0; font-size: 14px; font-family: monospace; }
         .total { font-size: 18px; font-weight: 900; color: #E63946; margin-bottom: 15px; }
         
-        .action-row { display: flex; gap: 10px; flex-wrap: wrap; }
-        .btn-paid { flex: 1; background: #2ECC71; color: white; border: none; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; min-width: 80px;}
+        .action-row { display: flex; gap: 8px; flex-wrap: wrap; }
+        .btn-paid { flex: 1; background: #2ECC71; color: white; border: none; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; min-width: 60px;}
         .btn-paid:disabled { background: #CCC; cursor: not-allowed; }
         
         #toast { visibility: hidden; min-width: 250px; background-color: #1D1D1D; color: #fff; text-align: center; border-radius: 8px; padding: 16px; position: fixed; z-index: 1000; left: 50%; bottom: 30px; transform: translateX(-50%); box-shadow: 0 4px 15px rgba(0,0,0,0.2); transition: opacity 0.4s; opacity: 0; font-weight: bold; border-bottom: 4px solid #E63946; }
@@ -55,7 +55,7 @@
     <div id="toast"><span id="toast-msg"></span></div>
 
     <script>
-        // Your real Google Apps Script URL
+        // ⚠️ PASTE YOUR REAL GOOGLE SCRIPT URL HERE:
         const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxEpm1qIgup5q6DBF4F9PEzQD3XEZv0Sqz0otqGdzrbXB079afSjD8P_lpZj1_xpMXy1A/exec";
 
         function showToast(message) {
@@ -71,7 +71,6 @@
 
         async function fetchCashiers() {
             try {
-                // We add the cache buster here too just in case!
                 const cacheBuster = new Date().getTime();
                 const response = await fetch(APPS_SCRIPT_URL + "?type=cashiers&t=" + cacheBuster);
                 const result = await response.json();
@@ -88,11 +87,8 @@
         }
 
         async function fetchOrders() {
-            const container = document.getElementById('orders-container');
-            
             try {
-                // 👉 THE FIX: We add the exact millisecond to force the browser to pull fresh data!
-                const cacheBuster = new Date().getTime();
+                const cacheBuster = new Date().getTime() + Math.floor(Math.random() * 1000);
                 const response = await fetch(APPS_SCRIPT_URL + "?type=orders&t=" + cacheBuster);
                 const result = await response.json();
                 
@@ -100,7 +96,7 @@
                     renderOrders(result.data);
                 }
             } catch (error) {
-                showToast("Connection issue. Please refresh.");
+                console.log("Background refresh skipped.");
             }
         }
 
@@ -108,7 +104,6 @@
             const container = document.getElementById('orders-container');
             container.innerHTML = '';
 
-            // This successfully hides any order that says "Cancelled"
             const activeOrders = orders.filter(order => order.status !== "Cancelled").slice(0, 30); 
 
             activeOrders.forEach(order => {
@@ -136,9 +131,10 @@
                             ${!isPrep ? `
                                 <p style="font-size: 12px; margin-bottom: 5px; color: #666;">Set Prep Time:</p>
                                 <div class="action-row" style="margin-bottom: 15px;">
+                                    <button class="btn-paid" style="background:#E63946;" onclick="updateStatus('${order.orderId}', 'Preparing - 5', this)">5m</button>
+                                    <button class="btn-paid" style="background:#E63946;" onclick="updateStatus('${order.orderId}', 'Preparing - 10', this)">10m</button>
                                     <button class="btn-paid" style="background:#E63946;" onclick="updateStatus('${order.orderId}', 'Preparing - 15', this)">15m</button>
                                     <button class="btn-paid" style="background:#E63946;" onclick="updateStatus('${order.orderId}', 'Preparing - 30', this)">30m</button>
-                                    <button class="btn-paid" style="background:#E63946;" onclick="updateStatus('${order.orderId}', 'Preparing - 45', this)">45m</button>
                                 </div>
                             ` : `
                                 <div class="action-row" style="margin-bottom: 15px;">
@@ -159,8 +155,8 @@
 
         function processPayment(orderId, baseStatus, btnElement) {
             const cashier = document.getElementById('cashier-select').value;
-            if (!cashier) {
-                showToast("⚠️ Please select your name from the top dropdown first!");
+            if (!cashier || cashier === "") {
+                alert("⚠️ PLEASE SELECT YOUR CASHIER NAME FROM THE TOP DROPDOWN BEFORE TAKING PAYMENT.");
                 return;
             }
             const finalStatus = `${baseStatus} (${cashier})`;
@@ -177,7 +173,6 @@
             try {
                 await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
                 showToast("Status Updated!");
-                // Now, when it pulls fresh orders, the cache buster guarantees the cancelled one disappears!
                 fetchOrders(); 
             } catch (error) {
                 showToast("Failed to update status.");
@@ -186,7 +181,6 @@
             }
         }
 
-        // Initialize App
         fetchCashiers();
         fetchOrders();
         setInterval(fetchOrders, 30000); 
