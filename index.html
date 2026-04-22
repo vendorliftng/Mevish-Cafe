@@ -407,19 +407,38 @@
             const notes = document.getElementById('cust-notes').value || 'None';
             const btn = document.getElementById('submit-btn');
 
-           if (!name) { 
+            // 1. Validation check
+            if (!name) { 
                 showToast("⚠️ Please enter your name to complete the order."); 
                 return; 
             }
-            btn.disabled = true; btn.innerText = "Processing...";
+            
+            // 2. Lock the button
+            btn.disabled = true; 
+            btn.innerText = "Processing...";
 
+            // 3. Build the Order Data
             const orderId = "MEV-" + Math.floor(1000 + Math.random() * 9000);
             const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
             let orderDetailsStr = cart.map(i => `${i.qty}x ${i.name}`).join(" | ");
             if (notes !== 'None') orderDetailsStr += ` (Notes: ${notes})`;
             
-            const payload = { orderId, customerName: name, orderType: type, location, cartItems: orderDetailsStr, totalPrice };
+            const type = document.getElementById('order-type').value;
+            const location = document.getElementById('cust-location').value || 'N/A';
 
+            // 4. Build the Google Sheet Payload
+            const payload = {
+                action: "newOrder",
+                orderId: orderId,
+                customerName: name,
+                orderType: type,
+                location: location,
+                cartItems: orderDetailsStr,
+                totalPrice: totalPrice,
+                status: "Pending" 
+            };
+
+            // 5. Build the WhatsApp Message
             let waMessage = `*New Order:* ${orderId}%0A*Name:* ${name}%0A*Type:* ${type}`;
             if (type !== 'Takeaway') waMessage += ` (${location})`;
             if (notes !== 'None') waMessage += `%0A*Notes:* ${notes}`;
@@ -428,29 +447,34 @@
             waMessage += `-------------------%0A*Total: ₦${totalPrice.toLocaleString()}*`;
 
             try {
-                if(APPS_SCRIPT_URL !== "YOUR_APPS_SCRIPT_WEB_APP_URL_HERE") {
-                     await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
-                }
-                // Clear the cart
-                cart = []; localStorage.removeItem('mevish_cart'); updateCartUI(); closeCheckout();
+                // 6. Send the data to Google Sheets silently
+                await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+
+                // 7. Clear the cart and close the menu
+                cart = []; 
+                localStorage.removeItem('mevish_cart'); 
+                updateCartUI(); 
+                closeCheckout();
                 
-                // 1. Create the WhatsApp URL
-                const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${waMessage}`;
+                // 8. Open WhatsApp in a new tab
+                window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${waMessage}`, '_blank');
                 
-                // 2. Open WhatsApp in a new tab
-                window.open(waUrl, '_blank');
-                
-                // 3. Give the browser 1.5 seconds to launch WhatsApp, then redirect the background page
+                // 9. Redirect the current tab to the tracker
                 setTimeout(() => {
                     window.location.href = `track.html?id=${orderId}`;
                 }, 1500);
-            
+
             } catch (error) {
-                alert("Issue processing order. Please try again.");
-                btn.disabled = false; btn.innerText = "Send Order via WhatsApp";
+                // 10. If the internet fails, unlock the button and warn the user
+                showToast("⚠️ Issue processing order. Please check your connection.");
+                btn.disabled = false; 
+                btn.innerText = "Send Order via WhatsApp";
             }
         }
-
+        
         init();
     </script>
 </body>
