@@ -70,88 +70,101 @@
     </div>
 
     <script>
+        // ⚠️ PASTE YOUR REAL URL HERE:
         const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxEpm1qIgup5q6DBF4F9PEzQD3XEZv0Sqz0otqGdzrbXB079afSjD8P_lpZj1_xpMXy1A/exec";
+        
         let timerInterval;
+        let lastKnownStatus = "";
 
-        // Auto-check if URL has an ID (e.g., track.html?id=MEV-1234)
+        // Auto-check on load
         window.onload = function() {
             const urlParams = new URLSearchParams(window.location.search);
             const autoId = urlParams.get('id');
             if (autoId) {
                 document.getElementById('order-id-input').value = autoId;
-                checkStatus();
+                checkStatus(false); 
+                
+                // THE MAGIC: Silently check the database every 10 seconds!
+                setInterval(() => checkStatus(true), 10000); 
             }
         };
 
-        async function checkStatus() {
+        async function checkStatus(isSilent = false) {
             let input = document.getElementById('order-id-input').value.trim().toUpperCase();
-            if(!input) { alert("Please enter an Order ID."); return; }
+            if(!input) { 
+                if(!isSilent) alert("Please enter an Order ID."); 
+                return; 
+            }
 
             const btn = document.getElementById('track-btn');
             const card = document.getElementById('result-card');
             
-            btn.innerText = "...";
-            btn.disabled = true;
-            card.classList.remove('success');
-            clearInterval(timerInterval); 
+            if (!isSilent) {
+                btn.innerText = "...";
+                btn.disabled = true;
+            }
 
             try {
                 const response = await fetch(`${APPS_SCRIPT_URL}?type=track&orderId=${input}`);
                 const result = await response.json();
 
                 if (result.status === "success") {
-                    document.getElementById('r-name').innerText = `Hello, ${result.data.name}!`;
-                    document.getElementById('r-id').innerText = `Order: ${result.data.orderId}`;
-                    
-                    const statusBadge = document.getElementById('r-status');
-                    const timerBox = document.getElementById('timer-box');
                     let rawStatus = result.data.status;
                     
-                    // Default badge color
-                    statusBadge.className = "status-badge status-pending";
-                    timerBox.classList.remove('active');
-
-                    // 1. If it's brand new (Pending)
-                    if (rawStatus === "Pending") {
-                        statusBadge.innerText = "Awaiting Kitchen Confirmation...";
-                        statusBadge.style.background = "#EEE";
-                        statusBadge.style.color = "#555";
-                    } 
-                    // 2. If it is done (Ready/Paid)
-                    else if (rawStatus.includes("Paid") || rawStatus.includes("Ready")) {
-                        statusBadge.innerText = rawStatus;
-                        statusBadge.className = "status-badge status-ready";
-                    } 
-                    // 3. If it is accepted with a timer (e.g., "Preparing - 20")
-                    else if (rawStatus.includes("Preparing")) {
-                        statusBadge.innerText = "Preparing your meal!";
-                        statusBadge.style.background = "#D4AF37"; // Gold color
-                        statusBadge.style.color = "#FFF";
+                    // ONLY update the screen if the status actually changed!
+                    // This stops the 15-minute timer from resetting to 15:00 every ten seconds.
+                    if (rawStatus !== lastKnownStatus) {
+                        lastKnownStatus = rawStatus;
                         
-                        // Extract the number of minutes from the string!
-                        let minutes = parseInt(rawStatus.replace(/[^0-9]/g, ''));
-                        if (minutes) {
-                            timerBox.classList.add('active');
-                            startTimer(minutes * 60); 
+                        document.getElementById('r-name').innerText = `Hello, ${result.data.name}!`;
+                        document.getElementById('r-id').innerText = `Order: ${result.data.orderId}`;
+                        
+                        const statusBadge = document.getElementById('r-status');
+                        const timerBox = document.getElementById('timer-box');
+                        
+                        statusBadge.className = "status-badge status-pending";
+                        timerBox.classList.remove('active');
+
+                        if (rawStatus === "Pending") {
+                            statusBadge.innerText = "Awaiting Kitchen Confirmation...";
+                            statusBadge.style.background = "#EEE";
+                            statusBadge.style.color = "#555";
+                        } 
+                        else if (rawStatus.includes("Paid") || rawStatus.includes("Ready")) {
+                            statusBadge.innerText = rawStatus;
+                            statusBadge.className = "status-badge status-ready";
+                            clearInterval(timerInterval); // Stop the timer if it's done
+                        } 
+                        else if (rawStatus.includes("Preparing")) {
+                            statusBadge.innerText = "Preparing your meal!";
+                            statusBadge.style.background = "#D4AF37"; 
+                            statusBadge.style.color = "#FFF";
+                            
+                            let minutes = parseInt(rawStatus.replace(/[^0-9]/g, ''));
+                            if (minutes) {
+                                timerBox.classList.add('active');
+                                clearInterval(timerInterval); // Clear old timer
+                                startTimer(minutes * 60); // Start new timer
+                            }
+                        } else {
+                            statusBadge.innerText = rawStatus;
                         }
-                    } else {
-                        // Catch-all for other statuses
-                        statusBadge.innerText = rawStatus;
+                        
+                        card.classList.add('success');
                     }
-                    
-                    card.classList.add('success');
-                } else {
+                } else if (!isSilent) {
                     alert("Order not found. Please check the ID.");
                 }
             } catch (error) {
-                alert("Network error. Please try again.");
+                console.log("Background check failed, retrying next loop...");
             }
 
-            btn.innerText = "Track";
-            btn.disabled = false;
+            if (!isSilent) {
+                btn.innerText = "Track";
+                btn.disabled = false;
+            }
         }
 
-        
         function startTimer(durationInSeconds) {
             let timer = durationInSeconds;
             const display = document.getElementById('countdown-display');
