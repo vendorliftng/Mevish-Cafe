@@ -103,8 +103,8 @@
             const container = document.getElementById('orders-container');
             container.innerHTML = '';
 
-            const activeOrders = orders.slice(0, 30); 
-
+           // Filter out cancelled orders so they disappear from the active screen
+            const activeOrders = orders.filter(order => order.status !== "Cancelled").slice(0, 30);
             activeOrders.forEach(order => {
                 const isPaid = order.status.includes("Paid");
                 const isPrep = order.status.includes("Preparing");
@@ -140,9 +140,10 @@
                                 </div>
                             `}
                             
-                            <div class="action-row">
-                                <button class="btn-paid" onclick="processPayment('${order.orderId}', 'Paid - POS', this)">Paid (POS)</button>
-                                <button class="btn-paid" style="background:#3498DB;" onclick="processPayment('${order.orderId}', 'Paid - Cash', this)">Paid (Cash)</button>
+                           <div class="action-row">
+                                <button class="btn-paid" onclick="processPayment('${order.orderId}', 'Paid - POS', this)">POS</button>
+                                <button class="btn-paid" style="background:#3498DB;" onclick="processPayment('${order.orderId}', 'Paid - Cash', this)">Cash</button>
+                                <button class="btn-paid" style="background:#1D1D1D; flex: 0.5;" onclick="updateStatus('${order.orderId}', 'Cancelled', this)" title="Void this order">❌</button>
                             </div>
                         ` : '<p style="text-align:center; color:#2ECC71; font-weight:bold; margin-top: 15px;">Order Complete ✅</p>'}
                     </div>
