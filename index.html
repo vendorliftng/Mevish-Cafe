@@ -405,11 +405,12 @@
         async function processOrder() {
             const name = document.getElementById('cust-name').value;
             const notes = document.getElementById('cust-notes').value || 'None';
-            const type = document.getElementById('order-type').value;
-            const location = document.getElementById('cust-location').value || 'N/A';
             const btn = document.getElementById('submit-btn');
 
-            if (!name) { alert("Please enter your name."); return; }
+           if (!name) { 
+                showToast("⚠️ Please enter your name to complete the order."); 
+                return; 
+            }
             btn.disabled = true; btn.innerText = "Processing...";
 
             const orderId = "MEV-" + Math.floor(1000 + Math.random() * 9000);

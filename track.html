@@ -93,7 +93,7 @@
             btn.innerText = "...";
             btn.disabled = true;
             card.classList.remove('success');
-            clearInterval(timerInterval); // Reset timer if they search again
+            clearInterval(timerInterval); 
 
             try {
                 const response = await fetch(`${APPS_SCRIPT_URL}?type=track&orderId=${input}`);
@@ -104,20 +104,44 @@
                     document.getElementById('r-id').innerText = `Order: ${result.data.orderId}`;
                     
                     const statusBadge = document.getElementById('r-status');
-                    statusBadge.innerText = result.data.status;
+                    const timerBox = document.getElementById('timer-box');
+                    let rawStatus = result.data.status;
                     
-                    if(result.data.status.includes("Paid") || result.data.status.includes("Ready")) {
+                    // Default badge color
+                    statusBadge.className = "status-badge status-pending";
+                    timerBox.classList.remove('active');
+
+                    // 1. If it's brand new (Pending)
+                    if (rawStatus === "Pending") {
+                        statusBadge.innerText = "Awaiting Kitchen Confirmation...";
+                        statusBadge.style.background = "#EEE";
+                        statusBadge.style.color = "#555";
+                    } 
+                    // 2. If it is done (Ready/Paid)
+                    else if (rawStatus.includes("Paid") || rawStatus.includes("Ready")) {
+                        statusBadge.innerText = rawStatus;
                         statusBadge.className = "status-badge status-ready";
-                        document.getElementById('timer-box').classList.remove('active'); // Hide timer if done
+                    } 
+                    // 3. If it is accepted with a timer (e.g., "Preparing - 20")
+                    else if (rawStatus.includes("Preparing")) {
+                        statusBadge.innerText = "Preparing your meal!";
+                        statusBadge.style.background = "#D4AF37"; // Gold color
+                        statusBadge.style.color = "#FFF";
+                        
+                        // Extract the number of minutes from the string!
+                        let minutes = parseInt(rawStatus.replace(/[^0-9]/g, ''));
+                        if (minutes) {
+                            timerBox.classList.add('active');
+                            startTimer(minutes * 60); 
+                        }
                     } else {
-                        statusBadge.className = "status-badge status-pending";
-                        document.getElementById('timer-box').classList.add('active'); // Show timer if pending
-                        startTimer(10 * 60); // Start 10 minute countdown
+                        // Catch-all for other statuses
+                        statusBadge.innerText = rawStatus;
                     }
                     
                     card.classList.add('success');
                 } else {
-                    alert("Order not found. Please check the ID and try again.");
+                    alert("Order not found. Please check the ID.");
                 }
             } catch (error) {
                 alert("Network error. Please try again.");
@@ -127,6 +151,7 @@
             btn.disabled = false;
         }
 
+        
         function startTimer(durationInSeconds) {
             let timer = durationInSeconds;
             const display = document.getElementById('countdown-display');
