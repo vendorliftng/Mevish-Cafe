@@ -402,31 +402,33 @@
             }
         }
 
-        async function processOrder() {
+       async function processOrder() {
             const name = document.getElementById('cust-name').value;
-            const notes = document.getElementById('cust-notes').value || 'None';
+            const notes = document.getElementById('cust-notes') ? document.getElementById('cust-notes').value : 'None';
             const btn = document.getElementById('submit-btn');
 
-            // 1. Validation check
             if (!name) { 
                 showToast("⚠️ Please enter your name to complete the order."); 
                 return; 
             }
             
-            // 2. Lock the button
             btn.disabled = true; 
             btn.innerText = "Processing...";
 
-            // 3. Build the Order Data
             const orderId = "MEV-" + Math.floor(1000 + Math.random() * 9000);
             const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
             let orderDetailsStr = cart.map(i => `${i.qty}x ${i.name}`).join(" | ");
-            if (notes !== 'None') orderDetailsStr += ` (Notes: ${notes})`;
+            if (notes !== 'None' && notes !== '') orderDetailsStr += ` (Notes: ${notes})`;
             
             const type = document.getElementById('order-type').value;
-            const location = document.getElementById('cust-location').value || 'N/A';
+            
+            // FLAW 1 FIX: Auto-Detect Table Number from QR Code!
+            let location = document.getElementById('cust-location') ? document.getElementById('cust-location').value : '';
+            if (!location || location.trim() === '') {
+                const urlParams = new URLSearchParams(window.location.search);
+                location = urlParams.get('table') ? 'Table ' + urlParams.get('table') : 'N/A';
+            }
 
-            // 4. Build the Google Sheet Payload
             const payload = {
                 action: "newOrder",
                 orderId: orderId,
@@ -438,40 +440,41 @@
                 status: "Pending" 
             };
 
-            // 5. Build the WhatsApp Message
             let waMessage = `*New Order:* ${orderId}%0A*Name:* ${name}%0A*Type:* ${type}`;
             if (type !== 'Takeaway') waMessage += ` (${location})`;
-            if (notes !== 'None') waMessage += `%0A*Notes:* ${notes}`;
+            if (notes !== 'None' && notes !== '') waMessage += `%0A*Notes:* ${notes}`;
             waMessage += `%0A-------------------%0A`;
-            cart.forEach(i => { waMessage += `${i.qty}x ${i.name} - ₦${(i.price * i.qty)}%0A`; });
+            cart.forEach(i => { waMessage += `${i.qty}x ${i.name} - ₦${(i.price * i.qty).toLocaleString()}%0A`; });
             waMessage += `-------------------%0A*Total: ₦${totalPrice.toLocaleString()}*`;
 
             try {
-                // 6. Send the data to Google Sheets silently
                 await fetch(APPS_SCRIPT_URL, {
                     method: 'POST',
                     body: JSON.stringify(payload)
                 });
 
-                // 7. Clear the cart and close the menu
                 cart = []; 
                 localStorage.removeItem('mevish_cart'); 
                 updateCartUI(); 
-                closeCheckout();
                 
-                // 8. Open WhatsApp in a new tab
-                window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${waMessage}`, '_blank');
-                
-                // 9. Redirect the current tab to the tracker
-                setTimeout(() => {
-                    window.location.href = `track.html?id=${orderId}`;
-                }, 1500);
+                // FLAW 3 FIX: The Interactive Success Screen (Beats Popup Blockers!)
+                const modalBody = document.getElementById('cart-modal');
+                modalBody.innerHTML = `
+                    <div style="text-align:center; padding: 20px; padding-bottom: 40px;">
+                        <div style="font-size: 50px; margin-bottom: 10px;">✅</div>
+                        <h2 style="color: #2ECC71; margin-bottom: 10px; font-family: 'Montserrat', sans-serif;">Order Sent to Kitchen!</h2>
+                        <p style="color: #666; margin-bottom: 30px; font-size: 16px;">Order ID: <b style="color:#1D1D1D;">${orderId}</b></p>
+                        
+                        <a href="https://wa.me/${WHATSAPP_NUMBER}?text=${waMessage}" target="_blank" style="display:block; background:#25D366; color:white; padding:18px; border-radius:12px; margin-bottom: 15px; text-decoration:none; font-weight:bold; font-size: 16px; box-shadow: 0 4px 10px rgba(37, 211, 102, 0.3);">1. Send WhatsApp Receipt</a>
+                        
+                        <a href="track.html?id=${orderId}" style="display:block; background:#D4AF37; color:white; padding:18px; border-radius:12px; text-decoration:none; font-weight:bold; font-size: 16px; box-shadow: 0 4px 10px rgba(212, 175, 55, 0.3);">2. Track Live Status</a>
+                    </div>
+                `;
 
             } catch (error) {
-                // 10. If the internet fails, unlock the button and warn the user
                 showToast("⚠️ Issue processing order. Please check your connection.");
                 btn.disabled = false; 
-                btn.innerText = "Send Order via WhatsApp";
+                btn.innerText = "Checkout";
             }
         }
         

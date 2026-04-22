@@ -105,7 +105,8 @@
             }
 
             try {
-                const response = await fetch(`${APPS_SCRIPT_URL}?type=track&orderId=${input}`);
+                const cacheBuster = new Date().getTime();
+                const response = await fetch(`${APPS_SCRIPT_URL}?type=track&orderId=${input}&t=${cacheBuster}`);
                 const result = await response.json();
 
                 if (result.status === "success") {
