@@ -155,17 +155,34 @@
                 let status = order.status || "";
                 let itemsStr = order.items || "";
                 
-                // --- DATE FILTER LOGIC ---
-                // We assume order.date is something the script passes. If not, we fall back to string matching.
-                // *For ultimate stability, we extract the date from the orderId if your script doesn't send a timestamp*
+                // --- ACTUAL DATE FILTER LOGIC ---
                 let passFilter = true;
                 
-                // Note: For true date filtering, you need a timestamp column in Google Sheets. 
-                // For this demo, we assume all data fetched is "valid", but you can expand this logic:
-                // if (filterValue === 'today' && !isToday(order.timestamp)) passFilter = false;
+                // Only filter if they didn't select "All Time" and the order has a valid date
+                if (filterValue !== 'all' && order.timestamp) {
+                    const orderDate = new Date(order.timestamp);
+                    const today = new Date();
+                    
+                    if (filterValue === 'today') {
+                        // Check if the order's Day, Month, and Year match exactly today
+                        if (orderDate.toDateString() !== today.toDateString()) passFilter = false;
+                        
+                    } else if (filterValue === 'week') {
+                        // Check if the order is within the last 7 days
+                        const oneWeekAgo = new Date();
+                        oneWeekAgo.setDate(today.getDate() - 7);
+                        if (orderDate < oneWeekAgo || orderDate > today) passFilter = false;
+                        
+                    } else if (filterValue === 'month') {
+                        // Check if the order matches the current Month and Year
+                        if (orderDate.getMonth() !== today.getMonth() || orderDate.getFullYear() !== today.getFullYear()) passFilter = false;
+                    }
+                }
                 
+                // If the order didn't pass the date check, skip to the next order immediately
                 if (!passFilter) return;
 
+                
                 // --- CASHIER SPLIT MATH ---
                 if (status.includes("Paid")) {
                     totalRevenue += amount;
