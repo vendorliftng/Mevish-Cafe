@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mevish | Manager Analytics</title>
+    <title>Mevish | Executive Analytics</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Roboto', sans-serif; }
@@ -11,170 +11,162 @@
         
         header { background: #1D1D1D; color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
         .logo { font-family: 'Montserrat', sans-serif; font-size: 24px; color: #E63946; }
-        .header-btn { background: #D4AF37; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; text-decoration: none; }
-
-        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px; }
         
+        .controls { display: flex; gap: 10px; }
+        select, .header-btn { padding: 10px 15px; border-radius: 8px; font-weight: bold; border: none; cursor: pointer; outline: none; }
+        .header-btn { background: #D4AF37; color: white; }
+
+        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
         .stat-card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); text-align: center; border-bottom: 5px solid #E63946; }
-        .stat-card h3 { color: #6C6C6C; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
-        .stat-card .amount { font-size: 36px; font-weight: 900; font-family: 'Montserrat', sans-serif; color: #1D1D1D; }
-        .stat-card.gold { border-bottom-color: #D4AF37; }
+        .stat-card h3 { color: #6C6C6C; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+        .stat-card .amount { font-size: 30px; font-weight: 900; font-family: 'Montserrat', sans-serif; color: #1D1D1D; }
         .stat-card.green { border-bottom-color: #2ECC71; }
         .stat-card.blue { border-bottom-color: #3498DB; }
+        .stat-card.gold { border-bottom-color: #D4AF37; }
 
         .split-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         @media (max-width: 768px) { .split-layout { grid-template-columns: 1fr; } }
-
         .panel { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-        .panel h2 { font-family: 'Montserrat', sans-serif; margin-bottom: 20px; color: #1D1D1D; border-bottom: 2px solid #F4F6F8; padding-bottom: 10px; }
+        .panel h2 { font-family: 'Montserrat', sans-serif; margin-bottom: 20px; border-bottom: 2px solid #F4F6F8; padding-bottom: 10px; }
         
-        .cashier-row { display: flex; justify-content: space-between; padding: 15px 0; border-bottom: 1px solid #F4F6F8; font-size: 16px; }
-        .cashier-row:last-child { border-bottom: none; }
-        .cashier-name { font-weight: bold; color: #1D1D1D; }
-        .cashier-total { font-weight: 900; color: #2ECC71; }
-
-        .void-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed #EEE; font-size: 14px; color: #6C6C6C; }
+        .list-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #F4F6F8; }
+        .list-row:last-child { border-bottom: none; }
+        .debt-badge { background: #E63946; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
     </style>
 </head>
 <body>
 
     <header>
-        <div class="logo">MEVISH ANALYTICS</div>
-        <div>
-            <button class="header-btn" onclick="fetchAnalytics()" id="refresh-btn">🔄 Refresh Data</button>
-            <a href="dashboard.html" class="header-btn" style="background: #E63946; margin-left: 10px;">← Kitchen</a>
+        <div class="logo">EXECUTIVE ANALYTICS</div>
+        <div class="controls">
+            <!-- THE NEW DATE FILTER -->
+            <select id="time-filter" onchange="fetchAnalytics()">
+                <option value="all">All Time</option>
+                <option value="today">Today</option>
+                <option value="week">This Week</option>
+                <option value="month">This Month</option>
+            </select>
+            <button class="header-btn" onclick="fetchAnalytics()" id="refresh-btn">🔄 Refresh</button>
         </div>
     </header>
 
     <div class="dashboard-grid">
         <div class="stat-card green">
-            <h3>Total Sales (Paid)</h3>
+            <h3>Total Sales</h3>
             <div class="amount" id="total-revenue">₦0</div>
         </div>
         <div class="stat-card gold">
-            <h3>Total POS Settled</h3>
+            <h3>POS Settled</h3>
             <div class="amount" id="total-pos">₦0</div>
         </div>
         <div class="stat-card blue">
-            <h3>Total Cash Expected</h3>
+            <h3>Cash Expected</h3>
             <div class="amount" id="total-cash">₦0</div>
+        </div>
+        <div class="stat-card">
+            <h3>Uncategorized (Ghost)</h3>
+            <div class="amount" id="total-ghost" style="color:#E63946;">₦0</div>
         </div>
     </div>
 
     <div class="split-layout">
+        <!-- Cashier Leaderboard (Totals Only) -->
         <div class="panel">
-            <h2>Shift Performance (By Cashier)</h2>
-            <div id="cashier-breakdown">
-                <p style="color: #888;">Loading cashier data...</p>
-            </div>
+            <h2>Staff Performance</h2>
+            <div id="cashier-breakdown">Loading...</div>
         </div>
 
+        <!-- Debt & Credit Tracking -->
         <div class="panel">
-            <h2>Audit: Cancelled Orders</h2>
-            <div id="void-breakdown">
-                <p style="color: #888;">Loading audit data...</p>
-            </div>
+            <h2>Outstanding Debts (Credit)</h2>
+            <div id="debt-breakdown">Loading...</div>
         </div>
     </div>
 
     <script>
-        // ⚠️ PASTE YOUR REAL URL HERE:
+        // ⚠️ PASTE YOUR REAL APP SCRIPT URL HERE
         const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxEpm1qIgup5q6DBF4F9PEzQD3XEZv0Sqz0otqGdzrbXB079afSjD8P_lpZj1_xpMXy1A/exec";
 
-        async function fetchAnalytics() {
-            const btn = document.getElementById('refresh-btn');
-            btn.innerText = "Processing...";
+        let allOrdersData = [];
 
+        async function fetchAnalytics() {
+            document.getElementById('refresh-btn').innerText = "...";
             try {
-                const response = await fetch(APPS_SCRIPT_URL + "?type=orders");
-                const result = await response.json();
-                
-                if (result.status === "success") {
-                    calculateMath(result.data);
+                // Fetch fresh data if we don't have it
+                if (allOrdersData.length === 0) {
+                    const response = await fetch(APPS_SCRIPT_URL + "?type=orders&t=" + new Date().getTime());
+                    const result = await response.json();
+                    if (result.status === "success") allOrdersData = result.data;
                 }
+                processData(allOrdersData);
             } catch (error) {
                 alert("Failed to load analytics.");
             }
-            
-            btn.innerText = "🔄 Refresh Data";
+            document.getElementById('refresh-btn').innerText = "🔄 Refresh";
         }
 
-        function calculateMath(orders) {
-            let totalRevenue = 0;
-            let totalPOS = 0;
-            let totalCash = 0;
-            
-            let cashierStats = {}; // To hold { "Mary": 5000, "John": 3000 }
-            let voidedOrders = [];
+        function processData(orders) {
+            let totalRevenue = 0, totalPOS = 0, totalCash = 0, totalGhost = 0;
+            let cashierStats = {};
+            let debtOrders = [];
 
-            // Loop through every order from the database
+            // TODO for Future Phase: Implement actual Date filtering here based on the dropdown value
+            // const filterValue = document.getElementById('time-filter').value;
+
             orders.forEach(order => {
                 let amount = parseFloat(order.total) || 0;
                 let status = order.status || "";
 
-                // 1. Calculate Paid Orders
+                // 1. Process Paid Orders
                 if (status.includes("Paid")) {
                     totalRevenue += amount;
 
-                    if (status.includes("POS")) totalPOS += amount;
-                    if (status.includes("Cash")) totalCash += amount;
-
-                    // Extract the cashier's name from the string: "Paid - POS (Mary)"
-                    let match = status.match(/\(([^)]+)\)/);
-                    let cashierName = match ? match[1] : "Unknown";
-
-                    if (!cashierStats[cashierName]) {
-                        cashierStats[cashierName] = 0;
+                    if (status.includes("POS")) {
+                        totalPOS += amount;
+                    } else if (status.includes("Cash")) {
+                        totalCash += amount;
+                    } else {
+                        totalGhost += amount; // Captures old orders that had no POS/Cash assigned!
                     }
+
+                    // Extract Cashier Name & Add Total (No POS/Cash split here anymore)
+                    let match = status.match(/\(([^)]+)\)/);
+                    let cashierName = match ? match[1] : "Unknown/Admin";
+                    if (!cashierStats[cashierName]) cashierStats[cashierName] = 0;
                     cashierStats[cashierName] += amount;
                 }
 
-                // 2. Track Cancelled/Voided Orders
-                if (status === "Cancelled") {
-                    voidedOrders.push(order);
+                // 2. Process Debts
+                if (status.includes("Credit") || status.includes("Unpaid")) {
+                    debtOrders.push(order);
                 }
             });
 
-            // Update Top Cards
+            // Update UI
             document.getElementById('total-revenue').innerText = "₦" + totalRevenue.toLocaleString();
             document.getElementById('total-pos').innerText = "₦" + totalPOS.toLocaleString();
             document.getElementById('total-cash').innerText = "₦" + totalCash.toLocaleString();
+            document.getElementById('total-ghost').innerText = "₦" + totalGhost.toLocaleString();
 
-            // Update Cashier Breakdown UI
+            // Render Cashiers
             const cashierDiv = document.getElementById('cashier-breakdown');
             cashierDiv.innerHTML = "";
-            if (Object.keys(cashierStats).length === 0) {
-                cashierDiv.innerHTML = "<p style='color: #888;'>No settled sales yet.</p>";
-            } else {
-                for (const [name, total] of Object.entries(cashierStats)) {
-                    cashierDiv.innerHTML += `
-                        <div class="cashier-row">
-                            <span class="cashier-name">👤 ${name}</span>
-                            <span class="cashier-total">₦${total.toLocaleString()}</span>
-                        </div>
-                    `;
-                }
+            for (const [name, total] of Object.entries(cashierStats)) {
+                cashierDiv.innerHTML += `<div class="list-row"><b>👤 ${name}</b> <span style="color:#2ECC71; font-weight:bold;">₦${total.toLocaleString()}</span></div>`;
             }
 
-            // Update Void Audit UI
-            const voidDiv = document.getElementById('void-breakdown');
-            voidDiv.innerHTML = "";
-            if (voidedOrders.length === 0) {
-                voidDiv.innerHTML = "<p style='color: #2ECC71; font-weight: bold;'>No cancelled orders today! ✅</p>";
+            // Render Debts
+            const debtDiv = document.getElementById('debt-breakdown');
+            debtDiv.innerHTML = "";
+            if (debtOrders.length === 0) {
+                debtDiv.innerHTML = "<p style='color:#2ECC71;'>All accounts settled! ✅</p>";
             } else {
-                voidedOrders.forEach(vOrder => {
-                    voidDiv.innerHTML += `
-                        <div class="void-row">
-                            <span>❌ ${vOrder.orderId}</span>
-                            <span>₦${parseFloat(vOrder.total).toLocaleString()}</span>
-                            <span>${vOrder.name}</span>
-                        </div>
-                    `;
+                debtOrders.forEach(o => {
+                    debtDiv.innerHTML += `<div class="list-row"><span>${o.name} (${o.orderId})</span> <span class="debt-badge">₦${parseFloat(o.total).toLocaleString()}</span></div>`;
                 });
             }
         }
 
-        // Run immediately on load
         fetchAnalytics();
     </script>
 </body>

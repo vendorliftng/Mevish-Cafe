@@ -407,9 +407,12 @@
             const notes = document.getElementById('cust-notes') ? document.getElementById('cust-notes').value : 'None';
             const btn = document.getElementById('submit-btn');
 
-            if (!name) { 
-                showToast("⚠️ Please enter your name to complete the order."); 
-                return; 
+            let name = document.getElementById('cust-name').value;
+            
+            // THE FIX: If the cashier leaves the name blank, auto-generate a Guest name!
+            if (!name || name.trim() === '') { 
+                const randomNum = Math.floor(100 + Math.random() * 900);
+                name = "Guest-" + randomNum;
             }
             
             btn.disabled = true; 
