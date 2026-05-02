@@ -17,7 +17,7 @@
         .logo { font-family: 'Montserrat', sans-serif; font-size: 24px; color: var(--primary); }
         
         .controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-        select, .btn { padding: 10px 15px; border-radius: 8px; font-weight: bold; border: none; cursor: pointer; outline: none; transition: 0.2s; }
+        input[type="date"], .btn { padding: 10px 15px; border-radius: 8px; font-weight: bold; border: none; cursor: pointer; outline: none; transition: 0.2s; }
         .btn-gold { background: var(--gold); color: white; }
         .btn-pdf { background: white; color: var(--dark); }
         .btn:active { transform: scale(0.95); }
@@ -29,8 +29,9 @@
         .stat-card.green { border-bottom-color: var(--green); }
         .stat-card.blue { border-bottom-color: var(--blue); }
 
-        .split-layout { display: grid; grid-template-columns: 1fr 2fr 1fr; gap: 20px; }
-        @media (max-width: 1024px) { .split-layout { grid-template-columns: 1fr; } }
+        /* Perfect 2x2 Grid for the 4 Panels */
+        .split-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 768px) { .split-layout { grid-template-columns: 1fr; } }
         
         .panel { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
         .panel h2 { font-family: 'Montserrat', sans-serif; margin-bottom: 20px; border-bottom: 2px solid #F4F6F8; padding-bottom: 10px; font-size: 18px; }
@@ -42,10 +43,9 @@
         .debt-badge { background: var(--primary); color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
         .backdate-flag { background: #FFF3CD; color: #856404; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; margin-top: 5px; display: inline-block; }
 
-        /* THE 1-CLICK PRINT MAGIC */
         @media print {
             body { background: white; padding: 0; }
-            header .controls { display: none; } /* Hide buttons when printing */
+            header .controls { display: none; } 
             .panel { box-shadow: none; border: 1px solid #EEE; page-break-inside: avoid; }
             .stat-card { box-shadow: none; border: 1px solid #EEE; }
             .split-layout { grid-template-columns: 1fr; gap: 10px; }
@@ -57,13 +57,12 @@
     <header>
         <div class="logo">EXECUTIVE ANALYTICS</div>
         <div class="controls">
-            <span style="font-size: 14px;">Interval:</span>
-           <span style="font-size: 14px;">From:</span>
-            <input type="date" id="start-date" style="padding: 10px; border-radius: 8px; border: 1px solid #CCC; outline: none;" onchange="processData()">
+            <span style="font-size: 14px;">From:</span>
+            <input type="date" id="start-date" onchange="processData()">
             
             <span style="font-size: 14px;">To:</span>
-            <input type="date" id="end-date" style="padding: 10px; border-radius: 8px; border: 1px solid #CCC; outline: none;" onchange="processData()">
-            </select>
+            <input type="date" id="end-date" onchange="processData()">
+            
             <button class="btn btn-gold" onclick="fetchAnalytics()" id="refresh-btn">🔄 Sync Live</button>
             <button class="btn btn-pdf" onclick="window.print()">🖨️ Export PDF</button>
         </div>
@@ -85,7 +84,7 @@
     </div>
 
     <div class="split-layout">
-        <!-- Interactive Chart -->
+        <!-- Panel 1: Interactive Chart -->
         <div class="panel" style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
             <h2 style="width: 100%; text-align: left;">Revenue Split</h2>
             <div style="position: relative; height: 200px; width: 100%;">
@@ -93,32 +92,32 @@
             </div>
         </div>
 
-        <!-- The Exact Cashier Audit -->
+        <!-- Panel 2: The Exact Cashier Audit -->
         <div class="panel">
             <h2>Cashier Audit log</h2>
             <div id="cashier-breakdown">Loading data...</div>
         </div>
 
-        <!-- Reconciliation Flags (Debts & Backdates) -->
+        <!-- Panel 3: Reconciliation Flags (Debts & Backdates) -->
         <div class="panel">
             <h2>Reconciliation Alerts</h2>
             <div id="debt-breakdown">Loading data...</div>
         </div>
-    </div>
-    <!-- Live Inventory Status -->
+        
+        <!-- Panel 4: Live Inventory (NOW SAFELY INSIDE THE GRID!) -->
         <div class="panel">
             <h2>Live Stock Room Alerts</h2>
             <div id="inventory-breakdown">Loading stock data...</div>
         </div>
+    </div>
 
     <script>
         // ⚠️ PASTE YOUR REAL APP SCRIPT URL HERE:
         const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxEpm1qIgup5q6DBF4F9PEzQD3XEZv0Sqz0otqGdzrbXB079afSjD8P_lpZj1_xpMXy1A/exec";
 
         let allOrdersData = [];
-        let revChart = null; // Holds the Chart.js instance
+        let revChart = null;
 
-        // 1. Initialize the Chart
         function initChart() {
             const ctx = document.getElementById('revenueChart').getContext('2d');
             revChart = new Chart(ctx, {
@@ -139,20 +138,24 @@
                 if (result.status === "success") {
                     allOrdersData = result.data;
                     processData(); 
+                } else {
+                    console.error("Backend returned an error:", result);
+                    alert("Backend returned an error. Check console.");
                 }
             } catch (error) {
-                alert("Failed to sync database.");
+                console.error("Fetch failed:", error);
+                alert("Failed to sync orders. Check internet connection.");
             }
             document.getElementById('refresh-btn').innerText = "🔄 Sync Live";
         }
-
+        
         async function fetchInventory() {
             try {
                 const response = await fetch(APPS_SCRIPT_URL + "?type=inventory&t=" + new Date().getTime());
                 const result = await response.json();
                 
+                const invDiv = document.getElementById('inventory-breakdown');
                 if (result.status === "success") {
-                    const invDiv = document.getElementById('inventory-breakdown');
                     invDiv.innerHTML = "";
                     let lowStockCount = 0;
                     
@@ -160,7 +163,6 @@
                         let stock = parseFloat(item.currentStock);
                         let threshold = parseFloat(item.alertThreshold);
                         
-                        // Only show items that are running low, OR show a green "All Good" message
                         if (stock <= threshold) {
                             lowStockCount++;
                             invDiv.innerHTML += `
@@ -174,36 +176,29 @@
                     if (lowStockCount === 0) {
                         invDiv.innerHTML = "<p style='color:var(--green); font-weight:bold;'>All stock levels are healthy! ✅</p>";
                     }
+                } else {
+                    invDiv.innerHTML = "<p style='color:#666;'>No inventory data configured yet.</p>";
                 }
             } catch (error) {
-                document.getElementById('inventory-breakdown').innerHTML = "Failed to load inventory.";
+                document.getElementById('inventory-breakdown').innerHTML = "<p style='color:red;'>Failed to load inventory.</p>";
             }
         }
 
-        // 2. The Smart Date Filter & Math Engine
         function processData() {
-            const filterValue = document.getElementById('time-filter').value;
-            const now = new Date();
+            const startDateVal = document.getElementById('start-date').value;
+            const endDateVal = document.getElementById('end-date').value;
             
             let totalRevenue = 0, totalPOS = 0, totalCash = 0;
-            let cashierStats = {}; // Will hold: { "Jamila": { pos: 100, cash: 50 } }
+            let cashierStats = {}; 
             let alertOrders = [];
 
             allOrdersData.forEach(order => {
-                let amount = parseFloat(order.total) || 0;
-                let status = order.status || "";
-                let itemsStr = order.items || "";
-                
-                // --- ACTUAL DATE FILTER LOGIC ---
-                // --- CALENDAR FILTER LOGIC ---
                 let passFilter = true;
                 
-                const startDateVal = document.getElementById('start-date').value;
-                const endDateVal = document.getElementById('end-date').value;
-                
+                // CALENDAR LOGIC
                 if (order.timestamp) {
                     const orderDate = new Date(order.timestamp);
-                    orderDate.setHours(0,0,0,0); // Normalize time for accurate day comparison
+                    orderDate.setHours(0,0,0,0);
                     
                     if (startDateVal) {
                         const startDate = new Date(startDateVal);
@@ -217,22 +212,22 @@
                         if (orderDate > endDate) passFilter = false;
                     }
                 } else {
-                    // If the order has no timestamp, hide it if the manager is searching specific dates
                     if (startDateVal || endDateVal) passFilter = false;
                 }
                 
-                if (!passFilter) return; // Skip to the next order
-                
-                // --- CASHIER SPLIT MATH ---
+                if (!passFilter) return; 
+
+                let amount = parseFloat(order.total) || 0;
+                let status = order.status || "";
+                let itemsStr = order.items || "";
+
                 if (status.includes("Paid")) {
                     totalRevenue += amount;
 
-                    // Extract Cashier Name
                     let match = status.match(/\(([^)]+)\)/);
                     let cashierName = match ? match[1] : "Unknown";
                     
                     if (!cashierStats[cashierName]) cashierStats[cashierName] = { pos: 0, cash: 0, total: 0 };
-                    
                     cashierStats[cashierName].total += amount;
 
                     if (status.includes("POS")) {
@@ -244,7 +239,6 @@
                     }
                 }
 
-                // --- RECONCILIATION FLAGS ---
                 let isAlert = false;
                 let alertReason = "";
 
@@ -253,25 +247,22 @@
                 }
                 if (itemsStr.includes("⚠️ BACKDATED TO:")) {
                     isAlert = true; 
-                    alertReason = itemsStr.split("⚠️ ")[1].split(" |")[0]; // Extract the warning
+                    alertReason = itemsStr.split("⚠️ ")[1].split(" |")[0]; 
                 }
 
                 if (isAlert) alertOrders.push({ ...order, alertReason });
             });
 
-            // Update Big Numbers
             document.getElementById('total-revenue').innerText = "₦" + totalRevenue.toLocaleString();
             document.getElementById('total-pos').innerText = "₦" + totalPOS.toLocaleString();
             document.getElementById('total-cash').innerText = "₦" + totalCash.toLocaleString();
 
-            // Update Chart
             revChart.data.datasets[0].data = [totalPOS, totalCash];
             revChart.update();
 
-            // Update Cashier Audit
             const cashierDiv = document.getElementById('cashier-breakdown');
             cashierDiv.innerHTML = "";
-            if (Object.keys(cashierStats).length === 0) cashierDiv.innerHTML = "<p style='color:#666;'>No sales in this interval.</p>";
+            if (Object.keys(cashierStats).length === 0) cashierDiv.innerHTML = "<p style='color:#666;'>No sales in this timeframe.</p>";
             
             for (const [name, stats] of Object.entries(cashierStats)) {
                 cashierDiv.innerHTML += `
@@ -285,7 +276,6 @@
                     </div>`;
             }
 
-            // Update Alerts
             const debtDiv = document.getElementById('debt-breakdown');
             debtDiv.innerHTML = "";
             if (alertOrders.length === 0) {
