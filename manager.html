@@ -58,11 +58,11 @@
         <div class="logo">EXECUTIVE ANALYTICS</div>
         <div class="controls">
             <span style="font-size: 14px;">Interval:</span>
-            <select id="time-filter" onchange="processData()">
-                <option value="today">Today</option>
-                <option value="week">This Week</option>
-                <option value="month">This Month</option>
-                <option value="all">All Time</option>
+           <span style="font-size: 14px;">From:</span>
+            <input type="date" id="start-date" style="padding: 10px; border-radius: 8px; border: 1px solid #CCC; outline: none;" onchange="processData()">
+            
+            <span style="font-size: 14px;">To:</span>
+            <input type="date" id="end-date" style="padding: 10px; border-radius: 8px; border: 1px solid #CCC; outline: none;" onchange="processData()">
             </select>
             <button class="btn btn-gold" onclick="fetchAnalytics()" id="refresh-btn">🔄 Sync Live</button>
             <button class="btn btn-pdf" onclick="window.print()">🖨️ Export PDF</button>
@@ -156,32 +156,33 @@
                 let itemsStr = order.items || "";
                 
                 // --- ACTUAL DATE FILTER LOGIC ---
+                // --- CALENDAR FILTER LOGIC ---
                 let passFilter = true;
                 
-                // Only filter if they didn't select "All Time" and the order has a valid date
-                if (filterValue !== 'all' && order.timestamp) {
+                const startDateVal = document.getElementById('start-date').value;
+                const endDateVal = document.getElementById('end-date').value;
+                
+                if (order.timestamp) {
                     const orderDate = new Date(order.timestamp);
-                    const today = new Date();
+                    orderDate.setHours(0,0,0,0); // Normalize time for accurate day comparison
                     
-                    if (filterValue === 'today') {
-                        // Check if the order's Day, Month, and Year match exactly today
-                        if (orderDate.toDateString() !== today.toDateString()) passFilter = false;
-                        
-                    } else if (filterValue === 'week') {
-                        // Check if the order is within the last 7 days
-                        const oneWeekAgo = new Date();
-                        oneWeekAgo.setDate(today.getDate() - 7);
-                        if (orderDate < oneWeekAgo || orderDate > today) passFilter = false;
-                        
-                    } else if (filterValue === 'month') {
-                        // Check if the order matches the current Month and Year
-                        if (orderDate.getMonth() !== today.getMonth() || orderDate.getFullYear() !== today.getFullYear()) passFilter = false;
+                    if (startDateVal) {
+                        const startDate = new Date(startDateVal);
+                        startDate.setHours(0,0,0,0);
+                        if (orderDate < startDate) passFilter = false;
                     }
+                    
+                    if (endDateVal) {
+                        const endDate = new Date(endDateVal);
+                        endDate.setHours(0,0,0,0);
+                        if (orderDate > endDate) passFilter = false;
+                    }
+                } else {
+                    // If the order has no timestamp, hide it if the manager is searching specific dates
+                    if (startDateVal || endDateVal) passFilter = false;
                 }
                 
-                // If the order didn't pass the date check, skip to the next order immediately
-                if (!passFilter) return;
-
+                if (!passFilter) return; // Skip to the next order
                 
                 // --- CASHIER SPLIT MATH ---
                 if (status.includes("Paid")) {
