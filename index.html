@@ -85,7 +85,8 @@
         .input-group input:focus, .input-group select:focus, .input-group textarea:focus { border-color: var(--accent-gold); }
 
         .submit-btn { width: 100%; background: var(--accent-gold); color: #FFF; border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 700; margin-top: 10px; cursor: pointer; }
-    /* Footer & WhatsApp Bubble (NEW) */
+        
+        /* Footer & WhatsApp Bubble */
         footer { background: #1D1D1D; color: #FFF; padding: 40px 20px; text-align: center; margin-top: 40px; border-top-left-radius: 24px; border-top-right-radius: 24px; }
         .footer-content p { margin-bottom: 8px; font-size: 14px; color: #CCC; }
         .footer-links { margin-top: 20px; display: flex; justify-content: center; gap: 20px; }
@@ -93,7 +94,6 @@
         
         .whatsapp-bubble { position: fixed; bottom: 100px; right: 20px; background: #25D366; color: white; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); z-index: 999; text-decoration: none; transition: 0.3s; }
         .whatsapp-bubble:active { transform: scale(0.9); }
-    
     </style>
 </head>
 <body>
@@ -143,8 +143,10 @@
             </div>
             <div id="cart-items-list"></div>
             <div class="cart-total-row"><span>Total:</span><span>₦<span id="cart-total-modal">0</span></span></div>
+            
             <div class="input-group"><label>Your Name</label><input type="text" id="cust-name" placeholder="E.g., John Doe" required></div>
             <div class="input-group"><label>Special Instructions (Optional)</label><textarea id="cust-notes" rows="2" placeholder="E.g., No onions, extra spicy..."></textarea></div>
+            
             <div class="input-group">
                 <label>Order Type</label>
                 <select id="order-type" onchange="toggleLocationInput()">
@@ -154,6 +156,14 @@
                 </select>
             </div>
             <div class="input-group" id="location-group"><label id="location-label">Table Number</label><input type="text" id="cust-location" placeholder="E.g., Table 4"></div>
+            
+            <!-- THE SECRET CASHIER BACKDATE TOOL (Hidden by default) -->
+            <div class="input-group" id="backdate-group" style="display: none; background: #FFF3CD; padding: 15px; border-radius: 8px; border-left: 4px solid #856404;">
+                <p style="font-size: 12px; color: #856404; margin-bottom: 5px; font-weight: bold;">⚠️ CASHIER ONLY: FORGOTTEN LOG</p>
+                <label style="font-size: 14px; color: #1d1d1d;">Did you forget to log this yesterday? Select the correct date:</label>
+                <input type="date" id="backdate-input" style="width: 100%; padding: 10px; margin-top: 5px; border-radius: 6px; border: 1px solid #CCC; outline: none;">
+            </div>
+
             <button class="submit-btn" id="submit-btn" onclick="processOrder()">Send Order via WhatsApp</button>
         </div>
     </div>
@@ -196,12 +206,12 @@
         function init() {
             setTimeContext();
             startCarousel();
-            detectQRCodeTable(); // <--- Tell the app to look for a table number!
+            detectQRCodeTable(); 
             fetchMenuFromSheet();
             updateCartUI();
         }
 
-        // --- 📸 SMART QR CODE DETECTION ---
+        // --- 📸 SMART QR CODE & CASHIER DETECTION ---
         function detectQRCodeTable() {
             const urlParams = new URLSearchParams(window.location.search);
             const tableNum = urlParams.get('table');
@@ -209,26 +219,24 @@
             if (tableNum) {
                 detectedTable = "Table " + tableNum;
                 
-                // Pre-fill and lock the inputs in the checkout modal
                 const typeSelect = document.getElementById('order-type');
                 const locationInput = document.getElementById('cust-location');
                 const locationGroup = document.getElementById('location-group');
+                const backdateGroup = document.getElementById('backdate-group');
+                
+                // If it's the cashier, unhide the secret backdate tool!
+                if (tableNum === 'Counter') {
+                    backdateGroup.style.display = 'block';
+                }
                 
                 typeSelect.value = "Dine-In";
-                typeSelect.disabled = true; // Lock it so they can't change it
+                typeSelect.disabled = true; 
                 
                 locationGroup.style.display = 'block';
                 document.getElementById('location-label').innerText = 'Table Number';
                 locationInput.value = detectedTable;
-                locationInput.disabled = true; // Lock it
+                locationInput.disabled = true; 
             }
-        }
-
-        function init() {
-            setTimeContext();
-            startCarousel();
-            fetchMenuFromSheet();
-            updateCartUI();
         }
 
         // --- 🎠 CAROUSEL LOGIC ---
@@ -252,34 +260,25 @@
 
         async function fetchMenuFromSheet() {
             const container = document.getElementById('menu-container');
-            
-            // 1. THE SPEED UPGRADE: Check if we already have the menu memorized
             const cachedMenu = localStorage.getItem('mevish_menu_cache');
             
             if (cachedMenu) {
-                // If we have it, load it INSTANTLY. No waiting!
                 menuData = JSON.parse(cachedMenu);
                 renderMenu();
             } else {
-                // Only show the loading text if it is their very first time visiting
                 container.innerHTML = "<p style='text-align:center; padding: 20px;'>Loading delicious menu...</p>";
             }
 
-            // 2. THE BACKGROUND SYNC: Silently ask Google Sheets for the freshest data
             try {
                 const response = await fetch(APPS_SCRIPT_URL);
                 const result = await response.json();
                 
                 if (result.status === "success") {
-                    // Update our memory with the newest prices/items from the owner
                     localStorage.setItem('mevish_menu_cache', JSON.stringify(result.data));
-                    
-                    // Update the screen with the fresh data
                     menuData = result.data; 
                     renderMenu(); 
                 }
             } catch (error) {
-                // If the internet drops but we have the cache, do nothing! The user won't even notice.
                 if (!cachedMenu) {
                     container.innerHTML = "<p style='text-align:center; color: red;'>Could not load menu. Please check your internet.</p>";
                 }
@@ -287,9 +286,7 @@
         }
 
         // --- 🔍 SEARCH & RENDER LOGIC ---
-        function handleSearch() {
-            renderMenu();
-        }
+        function handleSearch() { renderMenu(); }
 
         function filterMenu(category, btnElement) {
             document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
@@ -387,8 +384,7 @@
             document.getElementById('checkout-modal').classList.add('active');
         }
         function closeCheckout() { document.getElementById('checkout-modal').classList.remove('active'); }
-       function toggleLocationInput() {
-            // Only allow toggling if a QR code didn't lock the table
+        function toggleLocationInput() {
             if (!detectedTable) {
                 const type = document.getElementById('order-type').value; 
                 const group = document.getElementById('location-group');
@@ -402,17 +398,21 @@
             }
         }
 
-       async function processOrder() {
-            const name = document.getElementById('cust-name').value;
-            const notes = document.getElementById('cust-notes') ? document.getElementById('cust-notes').value : 'None';
+        async function processOrder() {
+            let name = document.getElementById('cust-name').value;
+            let notes = document.getElementById('cust-notes') ? document.getElementById('cust-notes').value : 'None';
             const btn = document.getElementById('submit-btn');
 
-            let name = document.getElementById('cust-name').value;
-            
             // THE FIX: If the cashier leaves the name blank, auto-generate a Guest name!
             if (!name || name.trim() === '') { 
                 const randomNum = Math.floor(100 + Math.random() * 900);
                 name = "Guest-" + randomNum;
+            }
+
+            // --- THE BACKDATE AUDIT FLAG ---
+            const backdateInput = document.getElementById('backdate-input');
+            if (backdateInput && backdateInput.value) {
+                notes = `⚠️ BACKDATED TO: ${backdateInput.value} (Late Entry) | ` + notes;
             }
             
             btn.disabled = true; 
@@ -425,7 +425,6 @@
             
             const type = document.getElementById('order-type').value;
             
-            // FLAW 1 FIX: Auto-Detect Table Number from QR Code!
             let location = document.getElementById('cust-location') ? document.getElementById('cust-location').value : '';
             if (!location || location.trim() === '') {
                 const urlParams = new URLSearchParams(window.location.search);
@@ -451,18 +450,15 @@
             waMessage += `-------------------%0A*Total: ₦${totalPrice.toLocaleString()}*`;
 
             try {
-                // 1. Send data to Google
                 await fetch(APPS_SCRIPT_URL, {
                     method: 'POST',
                     body: JSON.stringify(payload)
                 });
 
-                // 2. Clear the cart
                 cart = []; 
                 localStorage.removeItem('mevish_cart'); 
                 updateCartUI(); 
                 
-                // 3. THE BULLETPROOF FIX: Generate a Full-Screen Overlay
                 const successOverlay = document.createElement('div');
                 successOverlay.style.cssText = "position:fixed; top:0; left:0; width:100%; height:100%; background:#FDFCFB; z-index:99999; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; text-align:center;";
                 successOverlay.innerHTML = `
@@ -477,7 +473,6 @@
                 document.body.appendChild(successOverlay);
 
             } catch (error) {
-                // If internet fails before reaching Google
                 showToast("⚠️ Issue processing order. Please check your connection.");
                 btn.disabled = false; 
                 btn.innerText = "Checkout";
