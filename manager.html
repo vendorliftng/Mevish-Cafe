@@ -105,6 +105,11 @@
             <div id="debt-breakdown">Loading data...</div>
         </div>
     </div>
+    <!-- Live Inventory Status -->
+        <div class="panel">
+            <h2>Live Stock Room Alerts</h2>
+            <div id="inventory-breakdown">Loading stock data...</div>
+        </div>
 
     <script>
         // ⚠️ PASTE YOUR REAL APP SCRIPT URL HERE:
@@ -139,6 +144,40 @@
                 alert("Failed to sync database.");
             }
             document.getElementById('refresh-btn').innerText = "🔄 Sync Live";
+        }
+
+        async function fetchInventory() {
+            try {
+                const response = await fetch(APPS_SCRIPT_URL + "?type=inventory&t=" + new Date().getTime());
+                const result = await response.json();
+                
+                if (result.status === "success") {
+                    const invDiv = document.getElementById('inventory-breakdown');
+                    invDiv.innerHTML = "";
+                    let lowStockCount = 0;
+                    
+                    result.data.forEach(item => {
+                        let stock = parseFloat(item.currentStock);
+                        let threshold = parseFloat(item.alertThreshold);
+                        
+                        // Only show items that are running low, OR show a green "All Good" message
+                        if (stock <= threshold) {
+                            lowStockCount++;
+                            invDiv.innerHTML += `
+                                <div class="list-row">
+                                    <span>⚠️ <b>${item.name}</b></span> 
+                                    <span style="color:var(--primary); font-weight:bold;">${stock} left</span>
+                                </div>`;
+                        }
+                    });
+                    
+                    if (lowStockCount === 0) {
+                        invDiv.innerHTML = "<p style='color:var(--green); font-weight:bold;'>All stock levels are healthy! ✅</p>";
+                    }
+                }
+            } catch (error) {
+                document.getElementById('inventory-breakdown').innerHTML = "Failed to load inventory.";
+            }
         }
 
         // 2. The Smart Date Filter & Math Engine
@@ -268,6 +307,7 @@
         window.onload = function() {
             initChart();
             fetchAnalytics();
+            fetchInventory();
         };
     </script>
 </body>
