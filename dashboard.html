@@ -3,20 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mevish | Live Dashboard</title>
+    <title>Mevish | Command Center</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Roboto', sans-serif; }
-        body { background: #F4F6F8; color: #1D1D1D; padding: 20px; }
+        body { background: #F4F6F8; color: #1D1D1D; padding: 20px; padding-top: 40px; }
+        
+        /* THE OFFLINE BANNER */
+        #network-status { display: none; background: #E63946; color: white; text-align: center; padding: 10px; font-weight: bold; position: fixed; top: 0; left: 0; width: 100%; z-index: 9999; box-shadow: 0 4px 10px rgba(230, 57, 70, 0.3); }
+
         header { background: #1D1D1D; color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
         .logo { font-family: 'Montserrat', sans-serif; font-size: 24px; color: #E63946; }
         
-        .header-controls { display: flex; gap: 15px; align-items: center; }
+        .header-controls { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
+        
+        /* LIVE SEARCH BAR */
+        .search-box { padding: 10px 15px; border-radius: 8px; border: none; outline: none; font-size: 14px; width: 200px; transition: 0.3s; }
+        .search-box:focus { box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.5); }
+        
         select { padding: 10px; border-radius: 8px; font-weight: bold; border: none; outline: none; cursor: pointer; }
-        .refresh-btn { background: #D4AF37; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .refresh-btn { background: #D4AF37; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .refresh-btn:active { transform: scale(0.95); }
         
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
-        .order-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); border-top: 4px solid #E63946; }
+        .order-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); border-top: 4px solid #E63946; transition: 0.3s; }
         .order-card.paid { border-top-color: #2ECC71; opacity: 0.8; }
         
         .header-row { display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid #EEE; padding-bottom: 10px; }
@@ -30,21 +40,27 @@
         .total { font-size: 18px; font-weight: 900; color: #E63946; margin-bottom: 15px; }
         
         .action-row { display: flex; gap: 8px; flex-wrap: wrap; }
-        .btn-paid { flex: 1; background: #2ECC71; color: white; border: none; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; min-width: 60px;}
-        .btn-paid:disabled { background: #CCC; cursor: not-allowed; }
+        .btn-action { flex: 1; color: white; border: none; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; min-width: 60px; transition: 0.2s; }
+        .btn-action:disabled { background: #CCC !important; cursor: not-allowed; }
         
         #toast { visibility: hidden; min-width: 250px; background-color: #1D1D1D; color: #fff; text-align: center; border-radius: 8px; padding: 16px; position: fixed; z-index: 1000; left: 50%; bottom: 30px; transform: translateX(-50%); box-shadow: 0 4px 15px rgba(0,0,0,0.2); transition: opacity 0.4s; opacity: 0; font-weight: bold; border-bottom: 4px solid #E63946; }
     </style>
 </head>
 <body>
 
+    <!-- OFFLINE TRACKER -->
+    <div id="network-status">⚠️ NO INTERNET CONNECTION. Waiting to reconnect...</div>
+
     <header>
-        <div class="logo">MEVISH DASHBOARD</div>
+        <div class="logo">COMMAND CENTER</div>
         <div class="header-controls">
-            <a href="index.html?table=Counter" target="_blank" style="background: #2ECC71; color: white; padding: 10px 15px; border-radius: 8px; text-decoration: none; font-weight: bold;">+ New Order</a>
+            <!-- NEW LIVE SEARCH -->
+            <input type="text" id="search-bar" class="search-box" placeholder="🔍 Search Order ID or Name..." onkeyup="filterLiveOrders()">
+            
+            <a href="index.html?table=Counter" target="_blank" style="background: #2ECC71; color: white; padding: 10px 15px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px;">+ Walk-In</a>
             
             <select id="cashier-select">
-                <option value="">👤 Select Cashier...</option>
+                <option value="">👤 Cashier...</option>
             </select>
             <button class="refresh-btn" onclick="fetchOrders()">🔄 Refresh</button>
         </div>
@@ -60,52 +76,62 @@
         // ⚠️ PASTE YOUR REAL GOOGLE SCRIPT URL HERE:
         const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxEpm1qIgup5q6DBF4F9PEzQD3XEZv0Sqz0otqGdzrbXB079afSjD8P_lpZj1_xpMXy1A/exec";
 
+        // --- OFFLINE AWARENESS LISTENER ---
+        window.addEventListener('offline', () => { document.getElementById('network-status').style.display = 'block'; });
+        window.addEventListener('online', () => { 
+            document.getElementById('network-status').style.background = '#2ECC71';
+            document.getElementById('network-status').innerText = '✅ Connection Restored!';
+            setTimeout(() => {
+                document.getElementById('network-status').style.display = 'none';
+                document.getElementById('network-status').style.background = '#E63946';
+                document.getElementById('network-status').innerText = '⚠️ NO INTERNET CONNECTION. Waiting to reconnect...';
+                fetchOrders(); // Auto-refresh when internet comes back!
+            }, 3000);
+        });
+
         function showToast(message) {
             const toast = document.getElementById("toast");
             document.getElementById("toast-msg").innerText = message;
             toast.style.visibility = "visible";
             toast.style.opacity = "1";
-            setTimeout(() => { 
-                toast.style.opacity = "0"; 
-                setTimeout(() => toast.style.visibility = "hidden", 400);
-            }, 3000);
+            setTimeout(() => { toast.style.opacity = "0"; setTimeout(() => toast.style.visibility = "hidden", 400); }, 3000);
+        }
+
+        // --- LIVE SEARCH LOGIC ---
+        function filterLiveOrders() {
+            const query = document.getElementById('search-bar').value.toLowerCase();
+            const cards = document.querySelectorAll('.order-card');
+            cards.forEach(card => {
+                // Search inside the whole card text (finds names, IDs, or even food items)
+                const text = card.innerText.toLowerCase();
+                card.style.display = text.includes(query) ? "block" : "none";
+            });
         }
 
         async function fetchCashiers() {
             try {
-                const cacheBuster = new Date().getTime();
-                const response = await fetch(APPS_SCRIPT_URL + "?type=cashiers&t=" + cacheBuster);
+                const response = await fetch(APPS_SCRIPT_URL + "?type=cashiers&t=" + new Date().getTime());
                 const result = await response.json();
                 if (result.status === "success") {
                     const select = document.getElementById('cashier-select');
-                    select.innerHTML = '<option value="">👤 Select Cashier...</option>';
-                    result.data.forEach(name => {
-                        select.innerHTML += `<option value="${name}">${name}</option>`;
-                    });
+                    select.innerHTML = '<option value="">👤 Cashier...</option>';
+                    result.data.forEach(name => { select.innerHTML += `<option value="${name}">${name}</option>`; });
                 }
-            } catch (error) {
-                console.log("Failed to load cashiers.");
-            }
+            } catch (error) { console.log("Failed to load cashiers."); }
         }
 
         async function fetchOrders() {
+            if(!navigator.onLine) return; // Don't try to fetch if offline
             try {
-                const cacheBuster = new Date().getTime() + Math.floor(Math.random() * 1000);
-                const response = await fetch(APPS_SCRIPT_URL + "?type=orders&t=" + cacheBuster);
+                const response = await fetch(APPS_SCRIPT_URL + "?type=orders&t=" + new Date().getTime());
                 const result = await response.json();
-                
-                if (result.status === "success") {
-                    renderOrders(result.data);
-                }
-            } catch (error) {
-                console.log("Background refresh skipped.");
-            }
+                if (result.status === "success") { renderOrders(result.data); filterLiveOrders(); }
+            } catch (error) { console.log("Background refresh skipped."); }
         }
 
         function renderOrders(orders) {
             const container = document.getElementById('orders-container');
             container.innerHTML = '';
-
             const activeOrders = orders.filter(order => order.status !== "Cancelled").slice(0, 30); 
 
             activeOrders.forEach(order => {
@@ -133,26 +159,52 @@
                             ${!isPrep ? `
                                 <p style="font-size: 12px; margin-bottom: 5px; color: #666;">Set Prep Time:</p>
                                 <div class="action-row" style="margin-bottom: 15px;">
-                                    <button class="btn-paid" style="background:#E63946;" onclick="updateStatus('${order.orderId}', 'Preparing - 5', this)">5m</button>
-                                    <button class="btn-paid" style="background:#E63946;" onclick="updateStatus('${order.orderId}', 'Preparing - 10', this)">10m</button>
-                                    <button class="btn-paid" style="background:#E63946;" onclick="updateStatus('${order.orderId}', 'Preparing - 15', this)">15m</button>
-                                    <button class="btn-paid" style="background:#E63946;" onclick="updateStatus('${order.orderId}', 'Preparing - 30', this)">30m</button>
+                                    <button class="btn-action" style="background:#E63946;" onclick="updateStatus('${order.orderId}', 'Preparing - 5', this)">5m</button>
+                                    <button class="btn-action" style="background:#E63946;" onclick="updateStatus('${order.orderId}', 'Preparing - 10', this)">10m</button>
+                                    <button class="btn-action" style="background:#E63946;" onclick="updateStatus('${order.orderId}', 'Preparing - 15', this)">15m</button>
+                                    <button class="btn-action" style="background:#E63946;" onclick="updateStatus('${order.orderId}', 'Preparing - 30', this)">30m</button>
                                 </div>
                             ` : `
                                 <div class="action-row" style="margin-bottom: 15px;">
-                                    <button class="btn-paid" style="background:#D4AF37; width: 100%;" onclick="updateStatus('${order.orderId}', 'Ready for Pickup', this)">Mark as Ready</button>
+                                    <button class="btn-action" style="background:#D4AF37; width: 100%;" onclick="updateStatus('${order.orderId}', 'Ready for Pickup', this)">Mark as Ready</button>
                                 </div>
                             `}
                             
                             <div class="action-row">
-                                <button class="btn-paid" onclick="processPayment('${order.orderId}', 'Paid - POS', this)">POS</button>
-                                <button class="btn-paid" style="background:#3498DB;" onclick="processPayment('${order.orderId}', 'Paid - Cash', this)">Cash</button>
-                                <button class="btn-paid" style="background:#1D1D1D; flex: 0.5;" onclick="updateStatus('${order.orderId}', 'Cancelled', this)" title="Void this order">❌</button>
+                                <button class="btn-action" style="background:#2ECC71;" onclick="processPayment('${order.orderId}', 'Paid - POS', this)">POS</button>
+                                <button class="btn-action" style="background:#3498DB;" onclick="processPayment('${order.orderId}', 'Paid - Cash', this)">Cash</button>
+                                <!-- THE NEW DESTRUCTIVE SHIELD VOID BUTTON -->
+                                <button class="btn-action" style="background:#1D1D1D; flex: 0.5;" onclick="confirmVoid('${order.orderId}', this)" title="Void this order">❌</button>
                             </div>
                         ` : '<p style="text-align:center; color:#2ECC71; font-weight:bold; margin-top: 15px;">Order Complete ✅</p>'}
                     </div>
                 `;
             });
+        }
+
+        // --- DOUBLE TAP VOID LOGIC ---
+        function confirmVoid(orderId, btnElement) {
+            if (btnElement.dataset.confirming === "true") {
+                // They clicked it twice! Actually delete it.
+                updateStatus(orderId, 'Cancelled', btnElement);
+            } else {
+                // First click: Show warning shield
+                const originalText = btnElement.innerHTML;
+                const originalBg = btnElement.style.background;
+                
+                btnElement.dataset.confirming = "true";
+                btnElement.innerHTML = "Sure?";
+                btnElement.style.background = "#E63946";
+                
+                // Reset back to normal if they don't click again in 3 seconds
+                setTimeout(() => {
+                    if (btnElement.innerText !== "...") { // Don't reset if it's already processing
+                        btnElement.dataset.confirming = "false";
+                        btnElement.innerHTML = originalText;
+                        btnElement.style.background = originalBg;
+                    }
+                }, 3000);
+            }
         }
 
         function processPayment(orderId, baseStatus, btnElement) {
@@ -166,6 +218,11 @@
         }
 
         async function updateStatus(orderId, newStatus, btnElement) {
+            if(!navigator.onLine) {
+                showToast("⚠️ Cannot update. No internet connection.");
+                return;
+            }
+
             const originalText = btnElement.innerText;
             btnElement.innerText = "...";
             btnElement.disabled = true;
