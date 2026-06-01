@@ -42,6 +42,142 @@
 
     /* ── Google font via @import (fallback-safe) ── */
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap');
+
+    /* ═══════════════════════════════════════════
+       LIGHT THEME OVERRIDES
+    ══════════════════════════════════════════ */
+    [data-theme="light"] {
+      --gold:        #c8960a;
+      --gold-light:  #d4a017;
+      --gold-dim:    rgba(212,160,23,.12);
+      --green:       #16a34a;
+      --green-dim:   rgba(22,163,74,.12);
+      --surface:     #f8f5ef;
+      --surface-2:   #ffffff;
+      --surface-3:   #f0ece4;
+      --border:      rgba(0,0,0,0.09);
+      --text:        #1a1208;
+      --text-muted:  #6b5c3e;
+      background:    #f8f5ef;
+    }
+
+    [data-theme="light"] .page-header {
+      background: rgba(255,255,255,0.95);
+      border-bottom: 1px solid rgba(0,0,0,0.07);
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
+
+    [data-theme="light"] .cart-sidebar {
+      background: #ffffff;
+      border-left: 1px solid rgba(0,0,0,0.07);
+    }
+
+    [data-theme="light"] .menu-card {
+      background: #ffffff;
+      border-color: rgba(0,0,0,0.07);
+    }
+
+    [data-theme="light"] .menu-card:hover {
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+
+    [data-theme="light"] .tab-btn {
+      background: #ffffff;
+      border-color: rgba(0,0,0,0.08);
+      color: #6b5c3e;
+    }
+
+    [data-theme="light"] .tab-btn:hover {
+      background: var(--gold-dim);
+      border-color: var(--gold);
+    }
+
+    [data-theme="light"] .tab-btn.active {
+      color: #fff;
+    }
+
+    [data-theme="light"] .form-control {
+      background: #ffffff;
+      border-color: rgba(0,0,0,0.1);
+      color: #1a1208;
+    }
+
+    [data-theme="light"] .modal {
+      background: #ffffff;
+      border-color: rgba(0,0,0,0.1);
+    }
+
+    [data-theme="light"] .modal-header,
+    [data-theme="light"] .modal-footer,
+    [data-theme="light"] .cart-header,
+    [data-theme="light"] .cart-footer {
+      border-color: rgba(0,0,0,0.07);
+    }
+
+    [data-theme="light"] .cart-item {
+      border-bottom-color: rgba(0,0,0,0.06);
+    }
+
+    [data-theme="light"] .cart-sheet {
+      background: #ffffff;
+      border-top-color: rgba(0,0,0,0.08);
+    }
+
+    [data-theme="light"] .success-screen {
+      background: #f8f5ef;
+    }
+
+    [data-theme="light"] .menu-card-image {
+      background: #f0ece4;
+    }
+
+    [data-theme="light"] .qty-control {
+      background: #f0ece4;
+      border-color: rgba(0,0,0,0.08);
+    }
+
+    [data-theme="light"] .qty-display {
+      border-color: rgba(0,0,0,0.08);
+    }
+
+    [data-theme="light"] select.form-control option {
+      background: #ffffff;
+      color: #1a1208;
+    }
+
+    [data-theme="light"] .backdate-section-inner {
+      background: #fff8e6;
+      border-color: #d4a017;
+    }
+
+    [data-theme="light"] .toast {
+      background: #ffffff;
+      border: 1px solid rgba(0,0,0,0.08);
+      color: #1a1208;
+    }
+
+    /* Theme toggle */
+    .theme-toggle-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all .22s ease;
+      flex-shrink: 0;
+    }
+    .theme-toggle-btn:hover { transform: scale(1.1) rotate(15deg); }
+    [data-theme="light"] .theme-toggle-btn {
+      background: #fff3cc;
+      border-color: rgba(212,160,23,.3);
+    }
 
     /* ══════════════════════════════════════════
        PAGE HEADER
@@ -1167,23 +1303,130 @@
     @keyframes rippleAnim {
       to { transform: scale(4); opacity: 0; }
     }
+
+    /* ═══════════════════════════════════════════
+       HERO CAROUSEL
+    ══════════════════════════════════════════ */
+    .hero-carousel {
+      position: relative;
+      width: 100%;
+      height: 200px;
+      overflow: hidden;
+      background: #111;
+      flex-shrink: 0;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      background-size: cover;
+      background-position: center;
+      opacity: 0;
+      transition: opacity 1.2s ease-in-out;
+      transform: scale(1.04);
+    }
+
+    .slide.active {
+      opacity: 1;
+      z-index: 1;
+      animation: heroZoom 6s ease-out forwards;
+    }
+
+    @keyframes heroZoom {
+      from { transform: scale(1.06); }
+      to   { transform: scale(1.0); }
+    }
+
+    .hero-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.7) 100%);
+      z-index: 2;
+    }
+
+    .hero-text {
+      position: absolute;
+      bottom: 20px;
+      left: 22px;
+      z-index: 3;
+      color: #fff;
+    }
+
+    .hero-text h1 {
+      font-family: 'Montserrat', 'Inter', sans-serif;
+      font-size: 1.35rem;
+      font-weight: 900;
+      margin-bottom: 4px;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+      letter-spacing: -.2px;
+    }
+
+    .hero-text p {
+      font-size: 0.85rem;
+      font-weight: 300;
+      opacity: 0.88;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+    }
+
+    .hero-dots {
+      position: absolute;
+      bottom: 12px;
+      right: 18px;
+      z-index: 3;
+      display: flex;
+      gap: 5px;
+    }
+
+    .hero-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.4);
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .hero-dot.active {
+      background: var(--gold-light);
+      width: 18px;
+      border-radius: 3px;
+    }
+
+    /* Hide hero on desktop (it’s a mobile-forward ordering portal) */
+    @media (min-width: 1024px) {
+      .hero-carousel { height: 220px; }
+    }
   </style>
 </head>
 <body>
 
-  <!-- ══ PAGE HEADER ══ -->
   <header class="page-header">
     <a href="index.html" class="logo" id="site-logo">
       <span class="logo-icon">🍽️</span>
       <span class="logo-text">Mevish Eatery</span>
     </a>
     <div class="header-right">
+      <button class="theme-toggle-btn" id="themeToggleBtn" onclick="toggleTheme()" title="Switch light/dark mode">🌙</button>
       <span class="table-badge" id="table-badge">
         <span id="table-badge-icon">🏠</span>
         <span id="table-badge-text">Counter</span>
       </span>
     </div>
   </header>
+
+  <!-- ══ HERO CAROUSEL ══ -->
+  <div class="hero-carousel" id="heroCarousel">
+    <div class="slide active" style="background-image:url('https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=900&q=80');"></div>
+    <div class="slide" style="background-image:url('https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=900&q=80');"></div>
+    <div class="slide" style="background-image:url('https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=900&q=80');"></div>
+    <div class="slide" style="background-image:url('https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?auto=format&fit=crop&w=900&q=80');"></div>
+    <div class="hero-overlay"></div>
+    <div class="hero-text">
+      <h1 id="hero-greeting">Welcome to Mevish! 🍽️</h1>
+      <p id="hero-sub">Freshly prepared, just for you.</p>
+    </div>
+    <div class="hero-dots" id="heroDots"></div>
+  </div>
 
   <!-- ══ APP LAYOUT ══ -->
   <div class="app-layout">
@@ -1980,6 +2223,55 @@
       }
     });
 
+    /* ═══════════════════════════════════════════
+       THEME
+    ══════════════════════════════════════════ */
+    function applyTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      localStorage.setItem('mevish_theme', theme);
+      const btn = document.getElementById('themeToggleBtn');
+      if (btn) btn.textContent = theme === 'light' ? '🌙' : '☀️';
+    }
+
+    window.toggleTheme = function() {
+      const current = document.documentElement.getAttribute('data-theme') || 'dark';
+      const next    = current === 'dark' ? 'light' : 'dark';
+      applyTheme(next);
+      showToast(next === 'light' ? '☀️ Switched to Light mode' : '🌙 Switched to Dark mode', 'info');
+    };
+
+    /* ═══════════════════════════════════════════
+       HERO CAROUSEL
+    ══════════════════════════════════════════ */
+    function initHero() {
+      const hour    = new Date().getHours();
+      const greetEl = document.getElementById('hero-greeting');
+      const subEl   = document.getElementById('hero-sub');
+      if (greetEl) {
+        if      (hour < 12) { greetEl.textContent = 'Good Morning! ☀️'; if (subEl) subEl.textContent = 'Start your day with something delicious.'; }
+        else if (hour < 17) { greetEl.textContent = 'Good Afternoon! 🍽️'; if (subEl) subEl.textContent = 'What are you craving for lunch?'; }
+        else                { greetEl.textContent = 'Good Evening! 🌙'; if (subEl) subEl.textContent = 'Treat yourself to a great dinner.'; }
+      }
+      const slides = document.querySelectorAll('.hero-carousel .slide');
+      const dotsEl = document.getElementById('heroDots');
+      if (!slides.length || !dotsEl) return;
+      slides.forEach((_, i) => {
+        const dot = document.createElement('div');
+        dot.className = 'hero-dot' + (i === 0 ? ' active' : '');
+        dot.onclick = () => goToSlide(i);
+        dotsEl.appendChild(dot);
+      });
+      let current = 0;
+      function goToSlide(n) {
+        slides[current].classList.remove('active');
+        dotsEl.children[current].classList.remove('active');
+        current = n;
+        slides[current].classList.add('active');
+        dotsEl.children[current].classList.add('active');
+      }
+      setInterval(() => goToSlide((current + 1) % slides.length), 4500);
+    }
+
     /* ══════════════════════════════════════════
        ORDER SUBMISSION
     ══════════════════════════════════════════ */
@@ -2044,8 +2336,9 @@
       try {
         if (apiUrl) {
           await fetch(apiUrl, {
-            method: 'POST',
-            body: JSON.stringify(payload)
+            method:   'POST',
+            redirect: 'follow',
+            body:     JSON.stringify(payload)
           });
         } else {
           // Simulate API call in demo mode
@@ -2120,7 +2413,9 @@
     /* ══════════════════════════════════════════
        INIT
     ══════════════════════════════════════════ */
+    applyTheme(localStorage.getItem('mevish_theme') || 'dark');
     renderCartUI();
+    initHero();
     initMenu();
 
   })();

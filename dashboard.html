@@ -10,6 +10,143 @@
   <style>
     /* ─── Dashboard-specific overrides & additions ─── */
 
+    /* ═══ LIGHT THEME ════════════════════════════════════ */
+    [data-theme="light"] {
+      --surface:       #f4f6fb;
+      --surface-alt:   #eaecf3;
+      --border:        rgba(0,0,0,0.09);
+      --text-primary:  #111827;
+      --text-secondary:#374151;
+      --text-muted:    #6b7280;
+      --primary:       #4f46e5;
+      --success:       #16a34a;
+      background:      #f4f6fb;
+    }
+
+    [data-theme="light"] .page-header {
+      background: #ffffff;
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
+
+    [data-theme="light"] .controls-bar {
+      background: #eaecf3;
+      border-bottom: 1px solid rgba(0,0,0,0.07);
+    }
+
+    [data-theme="light"] .order-card {
+      background: #ffffff;
+      border: 1px solid rgba(0,0,0,0.08);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+
+    [data-theme="light"] .order-card:hover {
+      box-shadow: 0 8px 28px rgba(0,0,0,0.12);
+    }
+
+    [data-theme="light"] .order-card-header,
+    [data-theme="light"] .order-card-footer,
+    [data-theme="light"] .order-items,
+    [data-theme="light"] .order-card-header {
+      border-color: rgba(0,0,0,0.07);
+    }
+
+    [data-theme="light"] .modal {
+      background: #ffffff;
+      border: 1px solid rgba(0,0,0,0.1);
+    }
+
+    [data-theme="light"] .modal-header,
+    [data-theme="light"] .modal-footer {
+      border-color: rgba(0,0,0,0.07);
+    }
+
+    [data-theme="light"] .form-control {
+      background: #ffffff;
+      border: 1px solid rgba(0,0,0,0.12);
+      color: #111827;
+    }
+
+    [data-theme="light"] .form-control option {
+      background: #ffffff;
+      color: #111827;
+    }
+
+    [data-theme="light"] .tab-bar {
+      background: #ffffff;
+      border: 1px solid rgba(0,0,0,0.08);
+    }
+
+    [data-theme="light"] .btn-ghost {
+      background: rgba(0,0,0,0.04);
+      color: #374151;
+      border-color: rgba(0,0,0,0.1) !important;
+    }
+
+    [data-theme="light"] .btn-ghost:hover {
+      background: rgba(0,0,0,0.08);
+      color: #111827;
+    }
+
+    [data-theme="light"] .prep-btn {
+      background: rgba(0,0,0,0.04);
+      border: 1px solid rgba(0,0,0,0.1);
+      color: #374151;
+    }
+
+    [data-theme="light"] .toast {
+      background: #ffffff;
+      border: 1px solid rgba(0,0,0,0.1);
+      color: #111827;
+    }
+
+    [data-theme="light"] .card {
+      background: #ffffff;
+      border: 1px solid rgba(0,0,0,0.08);
+    }
+
+    [data-theme="light"] #pageHeader .header-brand h1 { color: #111827; }
+    [data-theme="light"] #pageHeader .header-brand p  { color: #6b7280; }
+    [data-theme="light"] #lastUpdated                 { color: #6b7280; }
+    [data-theme="light"] .order-customer              { color: #111827; }
+    [data-theme="light"] .order-items                 { color: #374151; border-left-color: rgba(0,0,0,0.15); }
+    [data-theme="light"] .order-total                 { color: #111827; }
+    [data-theme="light"] .order-location              { color: #6b7280; }
+    [data-theme="light"] .order-timestamp             { color: #6b7280; }
+    [data-theme="light"] .detail-label               { color: #6b7280; }
+    [data-theme="light"] .detail-value               { color: #111827; }
+    [data-theme="light"] .detail-total               { color: #111827; }
+    [data-theme="light"] .section-meta               { color: #6b7280; }
+    [data-theme="light"] .modal-title                { color: #111827; }
+    [data-theme="light"] .modal-close                { background: rgba(0,0,0,0.05); color: #6b7280; }
+    [data-theme="light"] .header-center              { color: #374151; }
+
+    /* Theme toggle button */
+    .theme-toggle {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      border: 1px solid var(--border, rgba(255,255,255,0.1));
+      background: rgba(255,255,255,0.06);
+      color: var(--text-secondary, #aaa);
+      cursor: pointer;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.18s ease;
+      flex-shrink: 0;
+    }
+    .theme-toggle:hover {
+      background: rgba(255,255,255,0.12);
+      transform: scale(1.08);
+    }
+    [data-theme="light"] .theme-toggle {
+      background: rgba(0,0,0,0.05);
+      border-color: rgba(0,0,0,0.1);
+      color: #374151;
+    }
+
     /* === HEADER === */
     .page-header {
       position: sticky;
@@ -897,6 +1034,7 @@
 
     <div class="header-right">
       <span id="lastUpdated">—</span>
+      <button class="theme-toggle" id="themeToggleBtn" onclick="toggleTheme()" title="Switch light/dark mode">🌙</button>
       <button class="btn btn-ghost btn-sm" id="manualRefreshBtn"
               onclick="manualRefresh()"
               style="padding:0.4rem 0.85rem;font-size:0.78rem;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.06);color:var(--text-secondary,#ccc);cursor:pointer;font-weight:600;transition:all .15s;white-space:nowrap;">
@@ -1016,6 +1154,24 @@
   <!-- ═══════════════════════════════════════════════ -->
   <script>
   'use strict';
+
+  // ──────────────────────────────────────────────────
+  // THEME MANAGEMENT
+  // ──────────────────────────────────────────────────
+  (function initTheme() {
+    const saved = localStorage.getItem('mevish_theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', saved);
+    document.getElementById('themeToggleBtn').textContent = saved === 'light' ? '🌙' : '☀️';
+  })();
+
+  function toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme') || 'dark';
+    const next    = current === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('mevish_theme', next);
+    document.getElementById('themeToggleBtn').textContent = next === 'light' ? '🌙' : '☀️';
+    showToast(next === 'light' ? '☀️ Light mode on' : '🌙 Dark mode on', 'info');
+  }
 
   // ──────────────────────────────────────────────────
   // STATE
@@ -1404,16 +1560,35 @@
   // ──────────────────────────────────────────────────
   async function updateStatus(orderId, newStatus) {
     try {
+      // ── GAS POST FIX ────────────────────────────────────────────────
+      // GAS web apps respond with a 302 redirect to script.googleusercontent.com.
+      // Sending Content-Type: application/json triggers a CORS preflight (OPTIONS)
+      // which GAS does NOT support — causing "Network error" every time.
+      // Fix: omit the Content-Type header (GAS reads body as text anyway),
+      // and set redirect:'follow' so fetch follows the redirect automatically.
+      // We then treat ANY completed response (even opaque) as success.
+      // ────────────────────────────────────────────────────────────────
       const res = await fetch(CONFIG.API_URL, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ action: 'updateStatus', orderId, newStatus }),
+        method:   'POST',
+        redirect: 'follow',
+        body:     JSON.stringify({ action: 'updateStatus', orderId, newStatus }),
       });
-      const data = await res.json();
-      if (!res.ok || data.error) {
-        showToast('❌ Failed to update order status', 'error');
+
+      // GAS may return an opaque response — just check it didn't throw
+      if (!res.ok && res.status !== 0) {
+        showToast('❌ Server rejected the update (HTTP ' + res.status + ')', 'error');
         return false;
       }
+
+      // Optimistically try to parse JSON, but don't fail if we can't
+      try {
+        const data = await res.json();
+        if (data && data.status === 'error') {
+          showToast('❌ ' + (data.message || 'Failed to update order'), 'error');
+          return false;
+        }
+      } catch (_) { /* opaque response — treat as success */ }
+
       return true;
     } catch (err) {
       showToast('❌ Network error — could not update order', 'error');
