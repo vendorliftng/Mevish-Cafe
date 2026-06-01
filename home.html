@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- SEO -->
+  <title>Mevish Eatery — Premium Restaurant in Yola, Adamawa | Order Online</title>
+  <meta name="description" content="Mevish Eatery is Yola's premium dining destination. Enjoy Mandi Rice, Shawarma, Pizza, Swallows, and more. Order online for dine-in or counter service.">
+  <meta name="keywords" content="Mevish Eatery, restaurant Yola, Adamawa restaurant, Mandi Rice, Shawarma Yola, Pizza Yola, Nigerian food Yola, order food online Yola">
+  <meta name="robots" content="index, follow">
+  <meta name="author" content="Mevish Eatery">
+  <link rel="canonical" href="./home.html">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Mevish Eatery — Yola's Finest">
+  <meta property="og:description" content="Premium food, fast service, real flavour. Dine in or order online at Mevish Eatery, Yola.">
+  <meta property="og:type" content="restaurant">
+  <meta property="og:url" content="./home.html">
+  <meta property="og:site_name" content="Mevish Eatery">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Mevish Eatery — Yola's Finest">
+  <meta name="twitter:description" content="Premium food, fast service, real flavour. Dine in or order online at Mevish Eatery, Yola.">
+
+  <!-- Schema.org JSON-LD -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Restaurant",
+    "name": "Mevish Eatery",
+    "description": "Premium restaurant in Yola, Adamawa offering Rice dishes, Swallows, Shawarma, Pizza, Burgers and Nigerian drinks",
+    "address": { "@type": "PostalAddress", "addressLocality": "Yola", "addressRegion": "Adamawa", "addressCountry": "NG" },
+    "servesCuisine": ["Nigerian", "Continental", "Fast Food"],
+    "priceRange": "₦₦",
+    "openingHours": "Mo-Su 08:00-22:00",
+    "hasMenu": "./index.html",
+    "url": "./home.html"
+  }
+  </script>
+
+  <link rel="stylesheet" href="style.css">
+  <script src="config.js"></script>
+
+  <style>
+    /* ── Extra home-page only styles ── */
+
+    /* Floating food emojis */
+    .food-float {
+      position: absolute;
+      font-size: 2.4rem;
+      opacity: 0.18;
+      pointer-events: none;
+      user-select: none;
+      animation: floatRandom var(--dur, 8s) ease-in-out infinite;
+      animation-delay: var(--delay, 0s);
+    }
+    @keyframes floatRandom {
+      0%   { transform: translate(0, 0) rotate(0deg); }
+      25%  { transform: translate(var(--dx1, 12px), var(--dy1, -18px)) rotate(5deg); }
+      50%  { transform: translate(var(--dx2, -8px), var(--dy2, -30px)) rotate(-4deg); }
+      75%  { transform: translate(var(--dx3, 16px), var(--dy3, -14px)) rotate(3deg); }
+      100% { transform: translate(0, 0) rotate(0deg); }
+    }
+
+    /* Hero decorative emoji */
+    .hero-deco {
+      position: absolute;
+      right: 6%;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: clamp(7rem, 14vw, 12rem);
+      opacity: 0.12;
+      pointer-events: none;
+      animation: float 4s ease-in-out infinite;
+      z-index: 0;
+    }
+
+    /* Mobile nav drawer */
+    .navbar-nav.mobile-open { display: flex !important; flex-direction: column; align-items: flex-start; position: absolute; top: 100%; left: 0; right: 0; background: rgba(13,16,23,0.98); border-bottom: 1px solid var(--border); padding: var(--sp-lg); gap: var(--sp-md); z-index: 200; }
+
+    /* Menu featured card tweaks for home page */
+    .menu-card-featured { cursor: default; }
+    .menu-card-featured .menu-card-image { height: 160px; }
+    .menu-card-featured .menu-card-desc { font-size: var(--fs-xs); color: var(--text-muted); margin-top: var(--sp-xs); }
+    .menu-card-featured-price { font-size: var(--fs-xl); font-weight: 900; color: var(--gold); }
+
+    /* About section */
+    .about-col-deco { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--sp-md); }
+    .about-emoji-ring { font-size: 5rem; width: 160px; height: 160px; border-radius: 50%; background: var(--gold-dim); border: 2px solid var(--border-accent); display: flex; align-items: center; justify-content: center; animation: float 5s ease-in-out infinite; }
+    .about-check { display: flex; align-items: center; gap: var(--sp-sm); margin-top: var(--sp-sm); }
+    .about-check-icon { width: 28px; height: 28px; border-radius: 50%; background: var(--success-dim); border: 1px solid var(--success-border); display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+    .about-check-text { font-size: var(--fs-sm); color: var(--text-secondary); }
+
+    /* Blog gradient placeholders */
+    .blog-placeholder-1 { background: linear-gradient(135deg, #1a0a00, #3d2000); }
+    .blog-placeholder-2 { background: linear-gradient(135deg, #000d1a, #001f3d); }
+    .blog-placeholder-3 { background: linear-gradient(135deg, #0a001a, #200040); }
+    .blog-placeholder-inner { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 3.5rem; }
+
+    /* Contact CTA */
+    .contact-cta-box { background: linear-gradient(135deg, var(--gold-dim), rgba(232,93,58,0.08)); border: 1px solid var(--border-accent); border-radius: var(--r-xl); padding: var(--sp-2xl); text-align: center; }
+
+    /* Social links */
+    .social-link { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: var(--r-sm); background: var(--glass-bg); border: 1px solid var(--border); color: var(--text-muted); font-size: 16px; transition: all var(--ease); text-decoration: none; }
+    .social-link:hover { background: var(--gold-dim); border-color: var(--border-accent); color: var(--gold); }
+
+    /* Section bg variants */
+    .section-alt { background: var(--bg-secondary); }
+    .section-dark { background: var(--bg-deep); }
+
+    /* Scroll reveal */
+    .reveal { opacity: 0; transform: translateY(28px); transition: opacity 0.6s ease, transform 0.6s ease; }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+    .reveal-delay-1 { transition-delay: 0.1s; }
+    .reveal-delay-2 { transition-delay: 0.2s; }
+    .reveal-delay-3 { transition-delay: 0.3s; }
+    .reveal-delay-4 { transition-delay: 0.4s; }
+    .reveal-delay-5 { transition-delay: 0.5s; }
+
+    /* Responsive hero image area */
+    @media (max-width: 768px) {
+      .hero-deco { display: none; }
+      .about-section-grid { grid-template-columns: 1fr !important; }
+      .about-col-deco { display: none; }
+      .contact-section-grid { grid-template-columns: 1fr !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- A. NAVIGATION                          -->
+  <!-- ═══════════════════════════════════════ -->
+  <nav class="navbar" id="mainNav">
+    <div class="container">
+      <a href="home.html" class="navbar-brand" id="navLogo">
+        <div class="brand-icon">🍽️</div>
+        Mevish <span class="brand-accent">Eatery</span>
+      </a>
+
+      <ul class="navbar-nav" id="navLinks">
+        <li><a href="#featured" class="nav-link" id="navMenu">Menu</a></li>
+        <li><a href="#about" class="nav-link" id="navAbout">About</a></li>
+        <li><a href="#blog" class="nav-link" id="navBlog">Blog</a></li>
+        <li><a href="#contact" class="nav-link" id="navContact">Contact</a></li>
+        <li><a href="index.html?table=Counter" class="btn btn-primary btn-sm" id="navOrderNow">Order Now</a></li>
+      </ul>
+
+      <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- B. HERO SECTION                        -->
+  <!-- ═══════════════════════════════════════ -->
+  <section class="hero" id="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-grid"></div>
+
+    <!-- Floating food emojis -->
+    <span class="food-float" style="left:8%;top:20%;--dur:9s;--delay:0s;--dx1:14px;--dy1:-20px;--dx2:-10px;--dy2:-35px;--dx3:18px;--dy3:-15px">🍕</span>
+    <span class="food-float" style="left:20%;top:65%;--dur:11s;--delay:1.5s;--dx1:-12px;--dy1:-18px;--dx2:8px;--dy2:-28px;--dx3:-14px;--dy3:-10px">🥗</span>
+    <span class="food-float" style="left:78%;top:15%;--dur:8s;--delay:3s;--dx1:10px;--dy1:-22px;--dx2:-16px;--dy2:-32px;--dx3:12px;--dy3:-18px">🌮</span>
+    <span class="food-float" style="left:85%;top:72%;--dur:12s;--delay:0.8s;--dx1:-8px;--dy1:-16px;--dx2:14px;--dy2:-24px;--dx3:-10px;--dy3:-12px">🍔</span>
+    <span class="food-float" style="left:55%;top:80%;--dur:10s;--delay:2s;--dx1:16px;--dy1:-14px;--dx2:-12px;--dy2:-28px;--dx3:8px;--dy3:-10px">🍖</span>
+    <span class="food-float" style="left:3%;top:55%;--dur:13s;--delay:4s;--dx1:-10px;--dy1:-20px;--dx2:14px;--dy2:-30px;--dx3:-8px;--dy3:-16px">🥘</span>
+
+    <!-- Decorative large emoji -->
+    <span class="hero-deco" aria-hidden="true">🍽️</span>
+
+    <div class="container">
+      <div class="hero-content">
+        <div class="hero-eyebrow" id="heroEyebrow">⭐ Yola's #1 Premium Eatery</div>
+        <h1 class="hero-title text-gradient" id="heroTitle">Where Every Bite<br>Tells a Story</h1>
+        <p class="hero-subtitle" id="heroSubtitle">From sizzling Shawarma to aromatic Mandi Rice — experience premium Nigerian and Continental cuisine in the heart of Yola, Adamawa.</p>
+        <div class="hero-actions">
+          <a href="index.html?table=Counter" class="btn btn-primary btn-lg" id="heroOrderBtn">Order Now →</a>
+          <a href="#featured" class="btn btn-secondary btn-lg" id="heroMenuBtn">View Full Menu</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- C. STATS BAR                           -->
+  <!-- ═══════════════════════════════════════ -->
+  <div class="stats-bar" id="statsBar">
+    <div class="container">
+      <div class="grid grid-4">
+        <div class="stat-item reveal">
+          <div class="stat-item-value">15+</div>
+          <div class="stat-item-label">Tables Available</div>
+        </div>
+        <div class="stat-item reveal reveal-delay-1">
+          <div class="stat-item-value">68+</div>
+          <div class="stat-item-label">Menu Items</div>
+        </div>
+        <div class="stat-item reveal reveal-delay-2">
+          <div class="stat-item-value">₦500</div>
+          <div class="stat-item-label">Starts From</div>
+        </div>
+        <div class="stat-item reveal reveal-delay-3">
+          <div class="stat-item-value">7 Days</div>
+          <div class="stat-item-label">We're Open</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- D. FEATURED MENU                       -->
+  <!-- ═══════════════════════════════════════ -->
+  <section class="section" id="featured">
+    <div class="container">
+      <div class="section-header reveal">
+        <p class="section-eyebrow">Fan Favourites</p>
+        <h2 class="section-title">Our Fan Favourites</h2>
+        <p class="section-subtitle">Handpicked dishes that keep our guests coming back, time and time again.</p>
+      </div>
+
+      <div class="grid grid-3" id="featuredGrid">
+
+        <!-- Card 1 -->
+        <div class="menu-card menu-card-featured reveal reveal-delay-1">
+          <div class="menu-card-image">🍕</div>
+          <div class="menu-card-body">
+            <div class="menu-card-category">Pastries</div>
+            <div class="menu-card-name">Mevish Pizza (Pineapple / Sausage / Chicken)</div>
+            <div class="menu-card-desc">Our signature masterpiece — loaded toppings on a golden crust.</div>
+            <div class="menu-card-controls">
+              <span class="menu-card-featured-price">₦15,000</span>
+              <a href="index.html?table=Counter" class="btn btn-primary btn-sm" id="orderPizza">Order →</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="menu-card menu-card-featured reveal reveal-delay-2">
+          <div class="menu-card-image">🍖</div>
+          <div class="menu-card-body">
+            <div class="menu-card-category">Foods</div>
+            <div class="menu-card-name">Mandi Rice &amp; Chicken</div>
+            <div class="menu-card-desc">Slow-cooked Arabian perfection with fragrant spiced rice.</div>
+            <div class="menu-card-controls">
+              <span class="menu-card-featured-price">₦7,000</span>
+              <a href="index.html?table=Counter" class="btn btn-primary btn-sm" id="orderMandi">Order →</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="menu-card menu-card-featured reveal reveal-delay-3">
+          <div class="menu-card-image">🌯</div>
+          <div class="menu-card-body">
+            <div class="menu-card-category">Pastries</div>
+            <div class="menu-card-name">Shawarma Double Sausage</div>
+            <div class="menu-card-desc">The crowd favourite — double-filled, toasted to perfection.</div>
+            <div class="menu-card-controls">
+              <span class="menu-card-featured-price">₦4,500</span>
+              <a href="index.html?table=Counter" class="btn btn-primary btn-sm" id="orderShawarma">Order →</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 4 -->
+        <div class="menu-card menu-card-featured reveal reveal-delay-1">
+          <div class="menu-card-image">🥘</div>
+          <div class="menu-card-body">
+            <div class="menu-card-category">Swallows</div>
+            <div class="menu-card-name">Swallow &amp; Soup with Chicken</div>
+            <div class="menu-card-desc">Authentic Nigerian comfort — rich soup, smooth swallow.</div>
+            <div class="menu-card-controls">
+              <span class="menu-card-featured-price">₦5,500</span>
+              <a href="index.html?table=Counter" class="btn btn-primary btn-sm" id="orderSwallow">Order →</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 5 -->
+        <div class="menu-card menu-card-featured reveal reveal-delay-2">
+          <div class="menu-card-image">🍔</div>
+          <div class="menu-card-body">
+            <div class="menu-card-category">Pastries</div>
+            <div class="menu-card-name">Burger with Cheese &amp; Fries</div>
+            <div class="menu-card-desc">Western-style satisfaction with crispy fries on the side.</div>
+            <div class="menu-card-controls">
+              <span class="menu-card-featured-price">₦4,500</span>
+              <a href="index.html?table=Counter" class="btn btn-primary btn-sm" id="orderBurger">Order →</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 6 -->
+        <div class="menu-card menu-card-featured reveal reveal-delay-3">
+          <div class="menu-card-image">🥤</div>
+          <div class="menu-card-body">
+            <div class="menu-card-category">Drinks</div>
+            <div class="menu-card-name">Yoghurt Parfait</div>
+            <div class="menu-card-desc">A refreshing delight — creamy, sweet, and perfectly layered.</div>
+            <div class="menu-card-controls">
+              <span class="menu-card-featured-price">₦3,000</span>
+              <a href="index.html?table=Counter" class="btn btn-primary btn-sm" id="orderYoghurt">Order →</a>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /grid -->
+
+      <div class="text-center" style="margin-top: var(--sp-2xl);">
+        <a href="index.html?table=Counter" class="btn btn-secondary btn-lg" id="viewFullMenu">Browse Full Menu →</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- E. ABOUT / PHILOSOPHY                  -->
+  <!-- ═══════════════════════════════════════ -->
+  <section class="section section-alt" id="about">
+    <div class="container">
+      <div class="grid grid-2 about-section-grid" style="gap: var(--sp-3xl); align-items: center;">
+
+        <!-- Text Left -->
+        <div class="reveal">
+          <p class="section-eyebrow">Our Philosophy</p>
+          <h2 class="section-title" style="text-align:left;">More Than<br>Just a Meal</h2>
+          <p style="color: var(--text-secondary); line-height: 1.8; margin-bottom: var(--sp-lg);">
+            At Mevish Eatery, every dish is a labour of love. We believe that great food starts with great ingredients, 
+            made with care and served with pride. Whether you're grabbing a quick shawarma or sitting down for a full 
+            Mandi Rice experience, you deserve the absolute best.
+          </p>
+          <p style="color: var(--text-secondary); line-height: 1.8; margin-bottom: var(--sp-xl);">
+            Located in the heart of Yola, Adamawa State, we bring together the finest Nigerian and Continental flavours 
+            under one roof — fast, fresh, and authentically flavoured.
+          </p>
+
+          <div class="about-check">
+            <div class="about-check-icon">✓</div>
+            <div>
+              <div class="about-check-text" style="font-weight:600; color: var(--text-primary);">Fresh Ingredients Daily</div>
+              <div class="about-check-text">Sourced and prepped every single morning, no shortcuts.</div>
+            </div>
+          </div>
+          <div class="about-check" style="margin-top: var(--sp-md);">
+            <div class="about-check-icon">✓</div>
+            <div>
+              <div class="about-check-text" style="font-weight:600; color: var(--text-primary);">15-Table Dining Space</div>
+              <div class="about-check-text">Comfortable, welcoming dining for families, friends and colleagues.</div>
+            </div>
+          </div>
+          <div class="about-check" style="margin-top: var(--sp-md);">
+            <div class="about-check-icon">✓</div>
+            <div>
+              <div class="about-check-text" style="font-weight:600; color: var(--text-primary);">Dine-In &amp; Counter Service</div>
+              <div class="about-check-text">Order at the counter or scan your table QR code — your choice.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Deco Right -->
+        <div class="about-col-deco reveal reveal-delay-2">
+          <div class="about-emoji-ring">🍽️</div>
+          <div style="display:flex; gap: var(--sp-md); margin-top: var(--sp-lg); flex-wrap: wrap; justify-content: center;">
+            <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--sp-md) var(--sp-lg); text-align: center;">
+              <div style="font-size: 2rem;">🌯</div>
+              <div style="font-size: var(--fs-xs); color: var(--text-muted); margin-top: 4px;">Shawarma</div>
+            </div>
+            <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--sp-md) var(--sp-lg); text-align: center; animation: float 4s 1s ease-in-out infinite;">
+              <div style="font-size: 2rem;">🍖</div>
+              <div style="font-size: var(--fs-xs); color: var(--text-muted); margin-top: 4px;">Mandi Rice</div>
+            </div>
+            <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--sp-md) var(--sp-lg); text-align: center; animation: float 5s 2s ease-in-out infinite;">
+              <div style="font-size: 2rem;">🥤</div>
+              <div style="font-size: var(--fs-xs); color: var(--text-muted); margin-top: 4px;">Fura Drinks</div>
+            </div>
+            <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--sp-md) var(--sp-lg); text-align: center; animation: float 6s 0.5s ease-in-out infinite;">
+              <div style="font-size: 2rem;">🥘</div>
+              <div style="font-size: var(--fs-xs); color: var(--text-muted); margin-top: 4px;">Swallows</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- F. FEATURES / WHY MEVISH               -->
+  <!-- ═══════════════════════════════════════ -->
+  <section class="section section-dark" id="features">
+    <div class="container">
+      <div class="section-header reveal">
+        <p class="section-eyebrow">Why Mevish</p>
+        <h2 class="section-title">The Mevish Difference</h2>
+        <p class="section-subtitle">Premium Food. Fast Service. Real Flavour. — and so much more.</p>
+      </div>
+
+      <div class="grid grid-3">
+        <div class="feature-card reveal reveal-delay-1">
+          <div class="feature-icon">🍽️</div>
+          <h3 class="feature-title">Diverse Menu</h3>
+          <p class="feature-text">68+ dishes spanning Foods, Swallows, Pastries, and Drinks — something for everyone at every table.</p>
+        </div>
+        <div class="feature-card reveal reveal-delay-2">
+          <div class="feature-icon">⚡</div>
+          <h3 class="feature-title">Fast Service</h3>
+          <p class="feature-text">Order online via QR code and your food is ready when you need it. No long waits, just great food.</p>
+        </div>
+        <div class="feature-card reveal reveal-delay-3">
+          <div class="feature-icon">🌿</div>
+          <h3 class="feature-title">Fresh Daily</h3>
+          <p class="feature-text">Ingredients sourced and prepped every morning. We never compromise on freshness or quality.</p>
+        </div>
+        <div class="feature-card reveal reveal-delay-1">
+          <div class="feature-icon">📱</div>
+          <h3 class="feature-title">Order Online</h3>
+          <p class="feature-text">Scan your table's QR code and order directly from your phone — no waitstaff needed.</p>
+        </div>
+        <div class="feature-card reveal reveal-delay-2">
+          <div class="feature-icon">🥤</div>
+          <h3 class="feature-title">Nigerian Drinks</h3>
+          <p class="feature-text">Authentic Fura, Zobo, Tamarind, Coconut Fura, Kunan Aya and more — a taste of home.</p>
+        </div>
+        <div class="feature-card reveal reveal-delay-3">
+          <div class="feature-icon">🎂</div>
+          <h3 class="feature-title">Pastries &amp; Desserts</h3>
+          <p class="feature-text">Banana Bread, Cakes, Ice Cream, Shawarma, Spring Rolls — treats for every craving.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- G. BLOG PREVIEW                        -->
+  <!-- ═══════════════════════════════════════ -->
+  <section class="section" id="blog">
+    <div class="container">
+      <div class="section-header reveal">
+        <p class="section-eyebrow">Kitchen Stories</p>
+        <h2 class="section-title">From Our Kitchen</h2>
+        <p class="section-subtitle">Insights, stories, and updates from the heart of Mevish Eatery.</p>
+      </div>
+
+      <div class="grid grid-blog">
+
+        <!-- Blog 1 -->
+        <article class="blog-card reveal reveal-delay-1">
+          <div class="blog-card-image blog-placeholder-1">
+            <div class="blog-placeholder-inner">🍕</div>
+          </div>
+          <div class="blog-card-body">
+            <span class="blog-card-category">Menu Spotlight</span>
+            <h3 class="blog-card-title">The Story Behind Mevish Pizza — Our Signature Creation</h3>
+            <p class="blog-card-excerpt">Discover how our signature Mevish Pizza was born — a labour of love combining pineapple, sausage, and chicken into one unforgettable slice.</p>
+            <div class="blog-card-meta">
+              <span>May 2025</span>
+              <a href="blog.html" class="read-more" id="readBlog1">Read More →</a>
+            </div>
+          </div>
+        </article>
+
+        <!-- Blog 2 -->
+        <article class="blog-card reveal reveal-delay-2">
+          <div class="blog-card-image blog-placeholder-2">
+            <div class="blog-placeholder-inner">🍖</div>
+          </div>
+          <div class="blog-card-body">
+            <span class="blog-card-category">Food &amp; Culture</span>
+            <h3 class="blog-card-title">What Is Mandi Rice? The Arabian Dish Taking Yola by Storm</h3>
+            <p class="blog-card-excerpt">Mandi Rice is a slow-cooked marvel from the Arabian Peninsula — fragrant, tender, and deeply satisfying. We're bringing it to Yola, Adamawa.</p>
+            <div class="blog-card-meta">
+              <span>April 2025</span>
+              <a href="blog.html" class="read-more" id="readBlog2">Read More →</a>
+            </div>
+          </div>
+        </article>
+
+        <!-- Blog 3 -->
+        <article class="blog-card reveal reveal-delay-3">
+          <div class="blog-card-image blog-placeholder-3">
+            <div class="blog-placeholder-inner">🏪</div>
+          </div>
+          <div class="blog-card-body">
+            <span class="blog-card-category">News &amp; Events</span>
+            <h3 class="blog-card-title">Mevish Eatery: Your Go-To Restaurant in Yola, Adamawa</h3>
+            <p class="blog-card-excerpt">From humble beginnings to becoming Yola's favourite dining spot, here's the full story of Mevish Eatery and what makes us truly special.</p>
+            <div class="blog-card-meta">
+              <span>March 2025</span>
+              <a href="blog.html" class="read-more" id="readBlog3">Read More →</a>
+            </div>
+          </div>
+        </article>
+
+      </div>
+
+      <div class="text-center" style="margin-top: var(--sp-2xl);">
+        <a href="blog.html" class="btn btn-secondary btn-lg" id="readBlogAll">Read Our Blog →</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- H. CONTACT SECTION                     -->
+  <!-- ═══════════════════════════════════════ -->
+  <section class="section section-alt" id="contact">
+    <div class="container">
+      <div class="section-header reveal">
+        <p class="section-eyebrow">Get In Touch</p>
+        <h2 class="section-title">Visit Us or Order Now</h2>
+      </div>
+
+      <div class="grid grid-2 contact-section-grid" style="gap: var(--sp-2xl); align-items: center;">
+
+        <!-- Contact Info -->
+        <div class="reveal">
+          <div style="display: flex; flex-direction: column; gap: var(--sp-lg);">
+
+            <div style="display: flex; align-items: flex-start; gap: var(--sp-md);">
+              <div style="font-size: 1.5rem; width: 48px; height: 48px; background: var(--gold-dim); border: 1px solid var(--border-accent); border-radius: var(--r-sm); display:flex; align-items:center; justify-content:center; flex-shrink:0;">📍</div>
+              <div>
+                <div style="font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">Our Location</div>
+                <div style="color: var(--text-secondary); font-size: var(--fs-sm);">Yola, Adamawa State, Nigeria</div>
+              </div>
+            </div>
+
+            <div style="display: flex; align-items: flex-start; gap: var(--sp-md);">
+              <div style="font-size: 1.5rem; width: 48px; height: 48px; background: var(--gold-dim); border: 1px solid var(--border-accent); border-radius: var(--r-sm); display:flex; align-items:center; justify-content:center; flex-shrink:0;">🕐</div>
+              <div>
+                <div style="font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">Opening Hours</div>
+                <div style="color: var(--text-secondary); font-size: var(--fs-sm);">Monday – Sunday: 8:00 AM – 10:00 PM</div>
+                <div style="color: var(--text-muted); font-size: var(--fs-xs); margin-top: 2px;">Open 7 days a week</div>
+              </div>
+            </div>
+
+            <div style="display: flex; align-items: flex-start; gap: var(--sp-md);">
+              <div style="font-size: 1.5rem; width: 48px; height: 48px; background: var(--gold-dim); border: 1px solid var(--border-accent); border-radius: var(--r-sm); display:flex; align-items:center; justify-content:center; flex-shrink:0;">📞</div>
+              <div>
+                <div style="font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">Phone / WhatsApp</div>
+                <div style="color: var(--text-secondary); font-size: var(--fs-sm);" id="contactPhone">Contact us for reservations</div>
+              </div>
+            </div>
+
+            <div style="display: flex; align-items: flex-start; gap: var(--sp-md);">
+              <div style="font-size: 1.5rem; width: 48px; height: 48px; background: var(--gold-dim); border: 1px solid var(--border-accent); border-radius: var(--r-sm); display:flex; align-items:center; justify-content:center; flex-shrink:0;">📱</div>
+              <div>
+                <div style="font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">Follow Us</div>
+                <div style="color: var(--text-secondary); font-size: var(--fs-sm);">@mevisheatery</div>
+                <div style="color: var(--text-muted); font-size: var(--fs-xs); margin-top: 2px;">Instagram · Facebook</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- CTA Right -->
+        <div class="contact-cta-box reveal reveal-delay-2">
+          <div style="font-size: 4rem; margin-bottom: var(--sp-md);">🍽️</div>
+          <h3 style="font-size: var(--fs-2xl); margin-bottom: var(--sp-sm);">Ready to Order?</h3>
+          <p style="color: var(--text-secondary); margin-bottom: var(--sp-xl);">
+            Skip the wait. Order online now and your food will be fresh and ready — whether you're dining in or picking up at the counter.
+          </p>
+          <a href="index.html?table=Counter" class="btn btn-primary btn-lg btn-full" id="contactOrderBtn" style="font-size: var(--fs-base);">🍔 Order Now — It's Easy!</a>
+          <p style="margin-top: var(--sp-md); font-size: var(--fs-xs); color: var(--text-muted);">Or scan your table QR code to order directly from your seat.</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- I. FOOTER                              -->
+  <!-- ═══════════════════════════════════════ -->
+  <footer class="footer" id="siteFooter">
+    <div class="container">
+      <div class="footer-grid">
+
+        <!-- Col 1: Brand -->
+        <div>
+          <div class="footer-brand-name">🍽️ Mevish <span>Eatery</span></div>
+          <p class="footer-tagline">Where Every Bite Tells a Story.<br>Premium Food. Fast Service. Real Flavour.</p>
+          <div style="display:flex; gap: var(--sp-sm); margin-top: var(--sp-md);">
+            <a href="https://instagram.com/mevisheatery" target="_blank" rel="noopener" class="social-link" id="footerInstagram" title="Instagram">📸</a>
+            <a href="https://wa.me/234000000000" target="_blank" rel="noopener" class="social-link" id="footerWhatsApp" title="WhatsApp">💬</a>
+            <a href="https://facebook.com/mevisheatery" target="_blank" rel="noopener" class="social-link" id="footerFacebook" title="Facebook">🌐</a>
+          </div>
+        </div>
+
+        <!-- Col 2: Quick Links -->
+        <div>
+          <div class="footer-heading">Quick Links</div>
+          <ul class="footer-links">
+            <li><a href="home.html" class="footer-link" id="footerHome">Home</a></li>
+            <li><a href="index.html?table=Counter" class="footer-link" id="footerMenu">Menu</a></li>
+            <li><a href="blog.html" class="footer-link" id="footerBlog">Blog</a></li>
+            <li><a href="#contact" class="footer-link" id="footerContact">Contact</a></li>
+            <li><a href="index.html?table=Counter" class="footer-link" id="footerOrder" style="color: var(--gold);">Order Now →</a></li>
+          </ul>
+        </div>
+
+        <!-- Col 3: Categories -->
+        <div>
+          <div class="footer-heading">Food Categories</div>
+          <ul class="footer-links">
+            <li><a href="index.html?table=Counter&cat=Foods" class="footer-link" id="footerCatFoods">🍽️ Foods</a></li>
+            <li><a href="index.html?table=Counter&cat=Swallows" class="footer-link" id="footerCatSwallows">🥘 Swallows</a></li>
+            <li><a href="index.html?table=Counter&cat=Pastries" class="footer-link" id="footerCatPastries">🥐 Pastries</a></li>
+            <li><a href="index.html?table=Counter&cat=Drinks" class="footer-link" id="footerCatDrinks">🥤 Drinks</a></li>
+          </ul>
+        </div>
+
+        <!-- Col 4: Contact -->
+        <div>
+          <div class="footer-heading">Contact</div>
+          <ul class="footer-links">
+            <li class="footer-link">📍 Yola, Adamawa State</li>
+            <li class="footer-link">🕐 Mon–Sun: 8 AM – 10 PM</li>
+            <li class="footer-link">📱 @mevisheatery</li>
+            <li style="margin-top: var(--sp-sm);">
+              <a href="track.html" class="footer-link" id="footerTrack">📦 Track Your Order</a>
+            </li>
+          </ul>
+        </div>
+
+      </div><!-- /footer-grid -->
+
+      <div class="footer-bottom">
+        <span>© <span id="footerYear"></span> Mevish Eatery. All rights reserved. Yola, Adamawa, Nigeria.</span>
+        <div style="display:flex; gap: var(--sp-lg);">
+          <a href="dashboard.html" class="footer-link" id="footerErpLogin" style="font-size: var(--fs-xs);">ERP Login</a>
+          <a href="manager.html" class="footer-link" id="footerManager" style="font-size: var(--fs-xs);">Manager</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- SCRIPTS                                -->
+  <!-- ═══════════════════════════════════════ -->
+  <script>
+    // ── Footer year ─────────────────────────
+    document.getElementById('footerYear').textContent = new Date().getFullYear();
+
+    // ── Mobile nav toggle ───────────────────
+    const navToggle  = document.getElementById('navToggle');
+    const navLinks   = document.getElementById('navLinks');
+
+    navToggle.addEventListener('click', () => {
+      navLinks.classList.toggle('mobile-open');
+    });
+
+    // Close nav when a link is clicked
+    navLinks.querySelectorAll('a').forEach(a => {
+      a.addEventListener('click', () => navLinks.classList.remove('mobile-open'));
+    });
+
+    // ── Scroll reveal ───────────────────────
+    const revealObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          revealObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+    document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+
+    // ── Smooth scroll for anchor links ──────
+    document.querySelectorAll('a[href^="#"]').forEach(a => {
+      a.addEventListener('click', (e) => {
+        const id = a.getAttribute('href').slice(1);
+        const target = document.getElementById(id);
+        if (target) {
+          e.preventDefault();
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    });
+
+    // ── Navbar shadow on scroll ─────────────
+    const navbar = document.getElementById('mainNav');
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 40) {
+        navbar.style.boxShadow = 'var(--shadow-md)';
+      } else {
+        navbar.style.boxShadow = 'none';
+      }
+    });
+  </script>
+</body>
+</html>

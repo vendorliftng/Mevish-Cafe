@@ -1,180 +1,662 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Track Order | Mevish Eatery</title>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Roboto', sans-serif; }
-        body { background: #FDFCFB; color: #1D1D1D; display: flex; flex-direction: column; min-height: 100vh; }
-        
-        header { background: #FFF; padding: 20px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-        .logo-mevish { font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 24px; color: #E63946; }
-        .logo-eatery { font-weight: 300; font-size: 20px; }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-        .container { max-width: 400px; margin: 40px auto; padding: 20px; flex-grow: 1; width: 100%; }
-        h1 { font-family: 'Montserrat', sans-serif; font-size: 22px; margin-bottom: 10px; text-align: center; }
-        p.subtitle { text-align: center; color: #6C6C6C; margin-bottom: 30px; font-size: 14px; }
+  <!-- SEO -->
+  <title>Track Your Order | Mevish Eatery</title>
+  <meta name="description" content="Track your Mevish Eatery order status in real-time. Enter your Order ID to see if your food is being prepared or ready for pickup.">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="canonical" href="./track.html">
 
-        .search-box { display: flex; gap: 10px; margin-bottom: 30px; }
-        .search-box input { flex: 1; padding: 15px; border: 2px solid #DDD; border-radius: 12px; font-size: 16px; text-transform: uppercase; outline: none; transition: 0.3s; }
-        .search-box input:focus { border-color: #D4AF37; }
-        .search-box button { background: #D4AF37; color: white; border: none; padding: 0 20px; border-radius: 12px; font-weight: bold; cursor: pointer; }
+  <link rel="stylesheet" href="style.css">
+  <script src="config.js"></script>
 
-        .result-card { background: white; padding: 25px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); text-align: center; display: none; border-top: 5px solid #E63946; }
-        .result-card.success { display: block; }
-        .status-badge { display: inline-block; padding: 8px 16px; border-radius: 20px; font-weight: bold; font-size: 14px; margin-top: 15px; }
-        .status-pending { background: #FFF3CD; color: #856404; }
-        .status-ready { background: #D4EDDA; color: #155724; }
+  <style>
+    /* ── Page background ── */
+    body {
+      background:
+        radial-gradient(ellipse at 30% 0%, rgba(245,166,35,0.07) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 100%, rgba(232,93,58,0.05) 0%, transparent 50%),
+        var(--bg-primary);
+      min-height: 100vh;
+    }
 
-        .timer-container { margin-top: 25px; padding-top: 20px; border-top: 1px dashed #DDD; display: none; }
-        .timer-container.active { display: block; }
-        .countdown-text { font-size: 40px; font-weight: 900; color: #E63946; font-family: 'Montserrat', sans-serif; margin: 10px 0; }
-        .disclaimer { font-size: 12px; color: #888; font-style: italic; }
+    /* ── Tracker card ── */
+    .tracker-card {
+      max-width: 560px;
+      margin: var(--sp-2xl) auto;
+      padding: 0 var(--sp-md);
+    }
 
-        .back-link { display: block; text-align: center; margin-top: 30px; color: #E63946; text-decoration: none; font-weight: bold; }
-    </style>
+    .tracker-inner {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-xl);
+      overflow: hidden;
+      box-shadow: var(--shadow-lg);
+    }
+
+    /* ── Card header banner ── */
+    .tracker-banner {
+      background: linear-gradient(135deg, rgba(245,166,35,0.12), rgba(232,93,58,0.08));
+      border-bottom: 1px solid var(--border-accent);
+      padding: var(--sp-xl) var(--sp-xl) var(--sp-lg);
+      text-align: center;
+    }
+
+    .tracker-banner-icon {
+      font-size: 2.8rem;
+      margin-bottom: var(--sp-sm);
+    }
+
+    .tracker-banner-title {
+      font-size: var(--fs-2xl);
+      font-weight: 800;
+      color: var(--text-primary);
+      margin-bottom: var(--sp-xs);
+    }
+
+    .tracker-banner-sub {
+      font-size: var(--fs-sm);
+      color: var(--text-muted);
+    }
+
+    /* ── Search area ── */
+    .tracker-search {
+      padding: var(--sp-xl);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .tracker-search-row {
+      display: flex;
+      gap: var(--sp-sm);
+    }
+
+    .tracker-search-row input {
+      flex: 1;
+      min-width: 0;
+    }
+
+    /* ── Results area ── */
+    .tracker-result {
+      padding: var(--sp-xl);
+      min-height: 280px;
+    }
+
+    /* ── Initial / idle state ── */
+    .tracker-idle {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: var(--sp-2xl) var(--sp-lg);
+      gap: var(--sp-md);
+      text-align: center;
+      color: var(--text-muted);
+    }
+
+    .tracker-idle-icon {
+      font-size: 3rem;
+      opacity: 0.35;
+    }
+
+    /* ── Order info ── */
+    .tracker-order-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--sp-md);
+      margin-bottom: var(--sp-lg);
+      flex-wrap: wrap;
+    }
+
+    .tracker-customer {
+      font-size: var(--fs-xl);
+      font-weight: 800;
+      color: var(--text-primary);
+    }
+
+    .tracker-order-id {
+      font-family: 'Courier New', monospace;
+      font-size: var(--fs-sm);
+      color: var(--gold);
+      background: var(--gold-dim);
+      border: 1px solid var(--border-accent);
+      padding: 4px 12px;
+      border-radius: var(--r-sm);
+      letter-spacing: 0.5px;
+    }
+
+    /* ── Table badge ── */
+    .tracker-table-badge {
+      font-size: var(--fs-xs);
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* ── Step tracker ── */
+    .tracker-steps {
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      margin: var(--sp-xl) 0;
+      position: relative;
+    }
+
+    .tracker-step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--sp-sm);
+      flex: 1;
+      position: relative;
+    }
+
+    /* connector line */
+    .tracker-step::after {
+      content: '';
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      width: 100%;
+      height: 2px;
+      background: var(--border);
+      z-index: 0;
+      transition: background 0.5s ease;
+    }
+
+    .tracker-step:last-child::after {
+      display: none;
+    }
+
+    .tracker-step.done::after {
+      background: var(--success);
+    }
+
+    .tracker-dot {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--bg-surface);
+      border: 2px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      position: relative;
+      z-index: 1;
+      transition: all 0.5s ease;
+    }
+
+    .tracker-step.done   .tracker-dot { background: var(--success); border-color: var(--success); box-shadow: var(--shadow-success); }
+    .tracker-step.active .tracker-dot { background: var(--gold-dim); border-color: var(--gold); animation: pulse 2s infinite; }
+
+    .tracker-label {
+      font-size: var(--fs-xs);
+      color: var(--text-muted);
+      text-align: center;
+      font-weight: 600;
+      max-width: 80px;
+    }
+
+    .tracker-step.done   .tracker-label { color: var(--success); }
+    .tracker-step.active .tracker-label { color: var(--gold); }
+
+    /* ── Status message ── */
+    .tracker-status-msg {
+      padding: var(--sp-lg);
+      border-radius: var(--r-lg);
+      text-align: center;
+      font-size: var(--fs-base);
+      font-weight: 500;
+      line-height: 1.6;
+      margin-bottom: var(--sp-lg);
+      transition: all 0.4s ease;
+    }
+
+    .tracker-status-msg.status-active {
+      background: var(--info-dim);
+      border: 1px solid var(--info-border);
+      color: var(--text-primary);
+    }
+
+    .tracker-status-msg.status-ready {
+      background: var(--gold-dim);
+      border: 1px solid var(--border-accent);
+      color: var(--text-primary);
+    }
+
+    .tracker-status-msg.status-paid {
+      background: var(--success-dim);
+      border: 1px solid var(--success-border);
+      color: var(--text-primary);
+    }
+
+    /* ── Auto-refresh countdown ── */
+    .tracker-refresh {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--sp-sm) var(--sp-md);
+      background: var(--bg-surface);
+      border-radius: var(--r-sm);
+      font-size: var(--fs-xs);
+      color: var(--text-muted);
+      margin-bottom: var(--sp-lg);
+    }
+
+    .tracker-refresh-spinner {
+      width: 14px;
+      height: 14px;
+      border: 2px solid var(--border);
+      border-top-color: var(--gold);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      display: inline-block;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+
+    /* ── Order another link ── */
+    .tracker-footer-links {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: var(--sp-md);
+      border-top: 1px solid var(--border);
+      font-size: var(--fs-sm);
+      margin-top: var(--sp-md);
+    }
+
+    /* ── Not found state ── */
+    .tracker-not-found {
+      text-align: center;
+      padding: var(--sp-2xl) var(--sp-lg);
+    }
+
+    .tracker-not-found-icon {
+      font-size: 3.5rem;
+      margin-bottom: var(--sp-md);
+    }
+
+    /* ── Error state ── */
+    .tracker-error {
+      text-align: center;
+      padding: var(--sp-2xl) var(--sp-lg);
+      color: var(--text-muted);
+    }
+
+    /* ── Loading state ── */
+    .tracker-loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: var(--sp-2xl);
+      gap: var(--sp-md);
+      color: var(--text-muted);
+      font-size: var(--fs-sm);
+    }
+
+    /* ── Order items summary ── */
+    .tracker-items-list {
+      background: var(--bg-surface);
+      border-radius: var(--r-md);
+      padding: var(--sp-md);
+      margin-bottom: var(--sp-lg);
+      font-size: var(--fs-sm);
+      color: var(--text-secondary);
+      line-height: 1.9;
+    }
+
+    .tracker-items-list-title {
+      font-size: var(--fs-xs);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      margin-bottom: var(--sp-xs);
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      .tracker-order-header { flex-direction: column; align-items: flex-start; }
+      .tracker-search-row { flex-direction: column; }
+      .tracker-search-row .btn { width: 100%; }
+    }
+  </style>
 </head>
 <body>
 
-    <header>
-        <a href="index.html" style="text-decoration: none;">
-            <span class="logo-mevish">MEVISH</span><span class="logo-eatery" style="color: #1D1D1D;">Eatery</span>
-        </a>
-    </header>
-
+  <!-- ═══════════════════════════════════════ -->
+  <!-- NAVBAR                                 -->
+  <!-- ═══════════════════════════════════════ -->
+  <nav class="navbar" id="trackNavbar">
     <div class="container">
-        <h1>Track Your Order</h1>
-        <p class="subtitle">Enter your Order ID below to check its current status.</p>
-
-        <div class="search-box">
-            <input type="text" id="order-id-input" placeholder="MEV-1234">
-            <button onclick="checkStatus()" id="track-btn">Track</button>
-        </div>
-
-        <div class="result-card" id="result-card">
-            <h3 style="margin-bottom: 5px;" id="r-name">Loading...</h3>
-            <p style="color: #6C6C6C; font-size: 14px;" id="r-id"></p>
-            <div class="status-badge" id="r-status">Checking...</div>
-            
-            <div class="timer-container" id="timer-box">
-                <p style="font-size: 14px; font-weight: bold; color: #1D1D1D;">Estimated Prep Time:</p>
-                <div class="countdown-text" id="countdown-display">00:00</div>
-                <p class="disclaimer">*Note: Prep times may vary slightly. We appreciate your patience!</p>
-            </div>
-        </div>
-
-        <a href="index.html" class="back-link">← Back to Menu</a>
+      <a href="home.html" class="navbar-brand" id="trackNavLogo">
+        <div class="brand-icon">🍽️</div>
+        Mevish <span class="brand-accent">Eatery</span>
+      </a>
+      <div style="display:flex; align-items:center; gap: var(--sp-md);">
+        <a href="home.html" class="nav-link" id="trackNavHome">← Back to Home</a>
+        <a href="index.html?table=Counter" class="btn btn-primary btn-sm" id="trackNavOrder">Order Now</a>
+      </div>
     </div>
+  </nav>
 
-    <script>
-        // ⚠️ PASTE YOUR REAL GOOGLE SCRIPT URL HERE:
-        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxEpm1qIgup5q6DBF4F9PEzQD3XEZv0Sqz0otqGdzrbXB079afSjD8P_lpZj1_xpMXy1A/exec";
-        
-        let timerInterval;
-        let lastKnownStatus = "";
+  <!-- ═══════════════════════════════════════ -->
+  <!-- TRACKER CARD                           -->
+  <!-- ═══════════════════════════════════════ -->
+  <main>
+    <div class="tracker-card" id="trackerCard">
 
-        window.onload = function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const autoId = urlParams.get('id');
-            if (autoId) {
-                document.getElementById('order-id-input').value = autoId;
-                checkStatus(false); 
-                setInterval(() => checkStatus(true), 10000); 
-            }
-        };
+      <div class="tracker-inner">
 
-        async function checkStatus(isSilent = false) {
-            let input = document.getElementById('order-id-input').value.trim().toUpperCase();
-            if(!input) return; 
+        <!-- Banner -->
+        <div class="tracker-banner">
+          <div class="tracker-banner-icon">📦</div>
+          <h1 class="tracker-banner-title">Track Your Order</h1>
+          <p class="tracker-banner-sub">Enter your Order ID to see your food's current status in real-time.</p>
+        </div>
 
-            const btn = document.getElementById('track-btn');
-            const card = document.getElementById('result-card');
-            
-            if (!isSilent) {
-                btn.innerText = "...";
-                btn.disabled = true;
-            }
+        <!-- Search input -->
+        <div class="tracker-search">
+          <div class="form-group" style="margin-bottom: var(--sp-sm);">
+            <label class="form-label" for="orderIdInput">Order ID</label>
+            <div class="tracker-search-row">
+              <input
+                type="text"
+                id="orderIdInput"
+                class="form-control"
+                placeholder="e.g. ORD-20250529-1234"
+                autocomplete="off"
+                spellcheck="false"
+                aria-label="Order ID"
+              >
+              <button class="btn btn-primary" id="trackBtn" onclick="handleTrackClick()">
+                🔍 Track
+              </button>
+            </div>
+          </div>
+          <p class="form-hint">Your Order ID was shown on your receipt or order confirmation screen.</p>
+        </div>
 
-            try {
-                // Brute force cache bypass
-                const cacheBuster = new Date().getTime() + Math.floor(Math.random() * 1000);
-                const response = await fetch(`${APPS_SCRIPT_URL}?type=track&orderId=${input}&t=${cacheBuster}`);
-                const result = await response.json();
+        <!-- Results area -->
+        <div class="tracker-result" id="trackerResult">
+          <!-- Idle state (default) -->
+          <div class="tracker-idle" id="trackerIdle">
+            <div class="tracker-idle-icon">🔍</div>
+            <div style="font-weight: 600; color: var(--text-secondary);">Enter your Order ID above</div>
+            <div style="font-size: var(--fs-xs); max-width: 260px;">Your order status will appear here once you search.</div>
+          </div>
+        </div>
 
-                if (result.status === "success") {
-                    let rawStatus = result.data.status;
-                    
-                    if (rawStatus !== lastKnownStatus) {
-                        lastKnownStatus = rawStatus;
-                        
-                        document.getElementById('r-name').innerText = `Hello, ${result.data.name}!`;
-                        document.getElementById('r-id').innerText = `Order: ${result.data.orderId}`;
-                        
-                        const statusBadge = document.getElementById('r-status');
-                        const timerBox = document.getElementById('timer-box');
-                        
-                        statusBadge.className = "status-badge status-pending";
-                        timerBox.classList.remove('active');
+      </div><!-- /tracker-inner -->
 
-                        if (rawStatus === "Pending") {
-                            statusBadge.innerText = "Awaiting Kitchen Confirmation...";
-                            statusBadge.style.background = "#EEE";
-                            statusBadge.style.color = "#555";
-                        } 
-                        else if (rawStatus.includes("Paid") || rawStatus.includes("Ready")) {
-                            statusBadge.innerText = rawStatus;
-                            statusBadge.className = "status-badge status-ready";
-                            clearInterval(timerInterval); 
-                        } 
-                        else if (rawStatus.includes("Preparing")) {
-                            statusBadge.innerText = "Preparing your meal!";
-                            statusBadge.style.background = "#D4AF37"; 
-                            statusBadge.style.color = "#FFF";
-                            
-                            let minutes = parseInt(rawStatus.replace(/[^0-9]/g, ''));
-                            if (minutes) {
-                                timerBox.classList.add('active');
-                                clearInterval(timerInterval); 
-                                startTimer(minutes * 60); 
-                            }
-                        } else {
-                            statusBadge.innerText = rawStatus;
-                        }
-                        
-                        card.classList.add('success');
-                    }
-                }
-            } catch (error) {
-                console.log("Background check skipped.");
-            }
+      <!-- Order Another link (below card) -->
+      <p class="text-center" style="margin-top: var(--sp-xl); font-size: var(--fs-sm); color: var(--text-muted);">
+        Want to place a new order? <a href="index.html?table=Counter" class="text-gold" id="orderAnotherLink" style="font-weight:600;">Order here →</a>
+      </p>
 
-            if (!isSilent) {
-                btn.innerText = "Track";
-                btn.disabled = false;
-            }
+    </div><!-- /tracker-card -->
+  </main>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- SCRIPTS                                -->
+  <!-- ═══════════════════════════════════════ -->
+  <script>
+    // ── State ────────────────────────────────
+    let currentOrderId    = null;
+    let refreshTimer      = null;
+    let refreshCountdown  = CONFIG.TRACKER_INTERVAL / 1000;
+
+    // ── Helpers ─────────────────────────────
+    function esc(str) {
+      const d = document.createElement('div');
+      d.textContent = str;
+      return d.innerHTML;
+    }
+
+    // ── Step state logic ──────────────────────
+    function getStepState(status) {
+      const isPaid  = CONFIG.STATUS.isPaid(status);
+      const isReady = status === 'Ready' || isPaid;
+      return {
+        received: 'done',
+        preparing: isReady ? 'done' : 'active',
+        ready: isPaid ? 'done' : isReady ? 'active' : ''
+      };
+    }
+
+    function stepDot(step, emoji) {
+      if (step === 'done')   return `<span>✓</span>`;
+      if (step === 'active') return `<span>${emoji}</span>`;
+      return `<span>${emoji}</span>`;
+    }
+
+    // ── Render result ────────────────────────
+    function renderResult(order) {
+      const status = order.status || 'Active';
+      const steps  = getStepState(status);
+      const isPaid = CONFIG.STATUS.isPaid(status);
+      const isVoid = CONFIG.STATUS.isVoid(status);
+
+      // Status message
+      let msgClass = 'status-active';
+      let msgText  = '⏳ Your order has been received and is being prepared. Please wait while our team works their magic…';
+
+      if (status === 'Ready') {
+        msgClass = 'status-ready';
+        msgText  = '🎉 Your order is <strong>READY!</strong> Please proceed to collect your food.';
+      } else if (isPaid) {
+        msgClass = 'status-paid';
+        msgText  = '✅ This order has been completed. Thank you for dining with us at Mevish Eatery!';
+      } else if (isVoid) {
+        msgClass = 'status-active';
+        msgText  = '❌ This order has been voided. Please contact a staff member if you need assistance.';
+      }
+
+      // Items summary
+      let itemsHtml = '';
+      if (order.items && order.items.length > 0) {
+        const itemLines = order.items.map(item => {
+          const qty  = item.qty  ? `×${item.qty} ` : '';
+          const name = esc(item.name || item.item || '');
+          return `<div>${qty}${name}</div>`;
+        }).join('');
+        itemsHtml = `
+          <div class="tracker-items-list">
+            <div class="tracker-items-list-title">Your Order</div>
+            ${itemLines}
+          </div>
+        `;
+      }
+
+      const tableLabel = order.table ? `📍 ${esc(order.table)}` : '';
+
+      const html = `
+        <div class="animate-fade-in">
+          <!-- Order header -->
+          <div class="tracker-order-header">
+            <div>
+              <div class="tracker-customer">${esc(order.customerName || order.name || 'Your Order')}</div>
+              ${tableLabel ? `<div class="tracker-table-badge">${tableLabel}</div>` : ''}
+            </div>
+            <div class="tracker-order-id">${esc(order.orderId || currentOrderId)}</div>
+          </div>
+
+          <!-- Step tracker -->
+          <div class="tracker-steps" role="progressbar" aria-label="Order progress">
+
+            <div class="tracker-step ${steps.received}" id="stepReceived">
+              <div class="tracker-dot">📋</div>
+              <div class="tracker-label">Received</div>
+            </div>
+
+            <div class="tracker-step ${steps.preparing}" id="stepPreparing">
+              <div class="tracker-dot">👨‍🍳</div>
+              <div class="tracker-label">Preparing</div>
+            </div>
+
+            <div class="tracker-step ${steps.ready}" id="stepReady">
+              <div class="tracker-dot">✅</div>
+              <div class="tracker-label">Ready</div>
+            </div>
+
+          </div>
+
+          <!-- Status message -->
+          <div class="tracker-status-msg ${msgClass}">${msgText}</div>
+
+          <!-- Items list -->
+          ${itemsHtml}
+
+          <!-- Auto-refresh bar (only if order still in progress) -->
+          ${(!isPaid && !isVoid) ? `
+            <div class="tracker-refresh" id="refreshBar">
+              <span><span class="tracker-refresh-spinner"></span> Auto-refreshing…</span>
+              <span id="countdownDisplay">Refreshing in ${refreshCountdown}s…</span>
+            </div>
+          ` : ''}
+
+          <!-- Footer links -->
+          <div class="tracker-footer-links">
+            <a href="index.html?table=Counter" class="btn btn-secondary btn-sm" id="orderAnotherBtn">🍔 Order Another</a>
+            <button class="btn btn-ghost btn-sm" id="refreshNowBtn" onclick="handleTrackClick()">↻ Refresh Now</button>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('trackerResult').innerHTML = html;
+
+      // Start auto-refresh only if order not complete
+      if (!isPaid && !isVoid) {
+        startAutoRefresh(order.orderId || currentOrderId);
+      } else {
+        clearInterval(refreshTimer);
+        refreshTimer = null;
+      }
+    }
+
+    // ── Not Found state ──────────────────────
+    function showNotFound(orderId) {
+      clearInterval(refreshTimer);
+      document.getElementById('trackerResult').innerHTML = `
+        <div class="tracker-not-found animate-fade-in">
+          <div class="tracker-not-found-icon">🔎</div>
+          <h2 style="font-size: var(--fs-xl); margin-bottom: var(--sp-sm);">Order Not Found</h2>
+          <p style="color: var(--text-secondary); font-size: var(--fs-sm); margin-bottom: var(--sp-xl); max-width: 320px; margin-left:auto; margin-right:auto;">
+            We couldn't find an order with ID <strong style="color:var(--gold); font-family:monospace;">${esc(orderId)}</strong>.
+            Please double-check the Order ID on your receipt.
+          </p>
+          <div style="display:flex; gap: var(--sp-sm); justify-content:center; flex-wrap:wrap;">
+            <button class="btn btn-primary" onclick="document.getElementById('orderIdInput').value=''; document.getElementById('orderIdInput').focus(); document.getElementById('trackerResult').innerHTML = document.getElementById('trackerIdle') ? '' : '';" id="tryAgainBtn">Try Again</button>
+            <a href="index.html?table=Counter" class="btn btn-secondary" id="notFoundOrderBtn">Place a New Order</a>
+          </div>
+        </div>
+      `;
+    }
+
+    // ── Error state ──────────────────────────
+    function showError() {
+      clearInterval(refreshTimer);
+      document.getElementById('trackerResult').innerHTML = `
+        <div class="tracker-error animate-fade-in">
+          <div style="font-size:3rem; margin-bottom:var(--sp-md);">⚠️</div>
+          <h2 style="font-size:var(--fs-xl); margin-bottom:var(--sp-sm); color:var(--text-primary);">Connection Error</h2>
+          <p style="font-size:var(--fs-sm); margin-bottom:var(--sp-xl);">
+            Unable to reach the server. Please check your internet connection and try again.
+          </p>
+          <button class="btn btn-primary" id="retryBtn" onclick="handleTrackClick()">↻ Retry</button>
+        </div>
+      `;
+    }
+
+    // ── Loading state ────────────────────────
+    function showLoading() {
+      document.getElementById('trackerResult').innerHTML = `
+        <div class="tracker-loading">
+          <div class="spinner"></div>
+          <span>Looking up your order…</span>
+        </div>
+      `;
+    }
+
+    // ── Countdown display ────────────────────
+    function updateCountdownDisplay(sec) {
+      const el = document.getElementById('countdownDisplay');
+      if (el) el.textContent = `Refreshing in ${sec}s…`;
+    }
+
+    // ── Auto-refresh logic ───────────────────
+    function startAutoRefresh(orderId) {
+      clearInterval(refreshTimer);
+      refreshCountdown = Math.floor(CONFIG.TRACKER_INTERVAL / 1000);
+      updateCountdownDisplay(refreshCountdown);
+
+      refreshTimer = setInterval(() => {
+        refreshCountdown--;
+        updateCountdownDisplay(refreshCountdown);
+        if (refreshCountdown <= 0) {
+          clearInterval(refreshTimer);
+          trackOrder(orderId);
+          refreshCountdown = Math.floor(CONFIG.TRACKER_INTERVAL / 1000);
         }
+      }, 1000);
+    }
 
-        function startTimer(durationInSeconds) {
-            let timer = durationInSeconds;
-            const display = document.getElementById('countdown-display');
-            
-            timerInterval = setInterval(function () {
-                let minutes = parseInt(timer / 60, 10);
-                let seconds = parseInt(timer % 60, 10);
+    // ── Core track function ──────────────────
+    async function trackOrder(orderId) {
+      currentOrderId = orderId.trim();
+      if (!currentOrderId) {
+        document.getElementById('orderIdInput').focus();
+        return;
+      }
 
-                minutes = minutes < 10 ? "0" + minutes : minutes;
-                seconds = seconds < 10 ? "0" + seconds : seconds;
+      showLoading();
 
-                display.textContent = minutes + ":" + seconds;
-
-                if (--timer < 0) {
-                    clearInterval(timerInterval);
-                    display.textContent = "Almost Ready!";
-                }
-            }, 1000);
+      try {
+        const res  = await fetch(`${CONFIG.API_URL}?type=track&orderId=${encodeURIComponent(currentOrderId)}`);
+        const data = await res.json();
+        if (data.status === 'success' && data.data) {
+          renderResult(data.data);
+        } else {
+          showNotFound(currentOrderId);
         }
-    </script>
+      } catch (e) {
+        showError();
+      }
+    }
+
+    // ── Button click handler ─────────────────
+    function handleTrackClick() {
+      const orderId = document.getElementById('orderIdInput').value.trim();
+      if (!orderId) {
+        document.getElementById('orderIdInput').focus();
+        return;
+      }
+      clearInterval(refreshTimer);
+      trackOrder(orderId);
+    }
+
+    // ── Enter key on input ───────────────────
+    document.addEventListener('DOMContentLoaded', () => {
+      const input = document.getElementById('orderIdInput');
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') handleTrackClick();
+      });
+
+      // ── Auto-search from URL ?orderId=XXX ───
+      const params  = new URLSearchParams(window.location.search);
+      const urlId   = params.get('orderId') || params.get('orderid') || params.get('id');
+      if (urlId) {
+        input.value = urlId.trim();
+        trackOrder(urlId.trim());
+      }
+    });
+  </script>
+
 </body>
 </html>

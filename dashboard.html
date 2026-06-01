@@ -1,248 +1,1681 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mevish | Command Center</title>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Roboto', sans-serif; }
-        body { background: #F4F6F8; color: #1D1D1D; padding: 20px; padding-top: 40px; }
-        
-        /* THE OFFLINE BANNER */
-        #network-status { display: none; background: #E63946; color: white; text-align: center; padding: 10px; font-weight: bold; position: fixed; top: 0; left: 0; width: 100%; z-index: 9999; box-shadow: 0 4px 10px rgba(230, 57, 70, 0.3); }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Command Center | Mevish Eatery ERP</title>
+  <meta name="description" content="Mevish Eatery Command Center — Kitchen Display System and Cashier Checkout Terminal with Receipt Printing.">
+  <link rel="stylesheet" href="style.css">
+  <script src="config.js"></script>
+  <style>
+    /* ─── Dashboard-specific overrides & additions ─── */
 
-        header { background: #1D1D1D; color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
-        .logo { font-family: 'Montserrat', sans-serif; font-size: 24px; color: #E63946; }
-        
-        .header-controls { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
-        
-        /* LIVE SEARCH BAR */
-        .search-box { padding: 10px 15px; border-radius: 8px; border: none; outline: none; font-size: 14px; width: 200px; transition: 0.3s; }
-        .search-box:focus { box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.5); }
-        
-        select { padding: 10px; border-radius: 8px; font-weight: bold; border: none; outline: none; cursor: pointer; }
-        .refresh-btn { background: #D4AF37; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        .refresh-btn:active { transform: scale(0.95); }
-        
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
-        .order-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); border-top: 4px solid #E63946; transition: 0.3s; }
-        .order-card.paid { border-top-color: #2ECC71; opacity: 0.8; }
-        
-        .header-row { display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid #EEE; padding-bottom: 10px; }
-        .order-id { font-weight: 700; font-size: 18px; }
-        .status-badge { background: #FFF3CD; color: #856404; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: bold; }
-        .status-badge.paid { background: #D4EDDA; color: #155724; }
-        .status-badge.prep { background: #D4AF37; color: #FFF; }
-        
-        .details p { margin-bottom: 5px; font-size: 14px; }
-        .items-list { background: #F9F9F9; padding: 10px; border-radius: 8px; margin: 10px 0; font-size: 14px; font-family: monospace; }
-        .total { font-size: 18px; font-weight: 900; color: #E63946; margin-bottom: 15px; }
-        
-        .action-row { display: flex; gap: 8px; flex-wrap: wrap; }
-        .btn-action { flex: 1; color: white; border: none; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; min-width: 60px; transition: 0.2s; }
-        .btn-action:disabled { background: #CCC !important; cursor: not-allowed; }
-        
-        #toast { visibility: hidden; min-width: 250px; background-color: #1D1D1D; color: #fff; text-align: center; border-radius: 8px; padding: 16px; position: fixed; z-index: 1000; left: 50%; bottom: 30px; transform: translateX(-50%); box-shadow: 0 4px 15px rgba(0,0,0,0.2); transition: opacity 0.4s; opacity: 0; font-weight: bold; border-bottom: 4px solid #E63946; }
-    </style>
+    /* === HEADER === */
+    .page-header {
+      position: sticky;
+      top: 0;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.5rem;
+      height: 64px;
+      background: var(--surface, #1a1a2e);
+      border-bottom: 1px solid var(--border, rgba(255,255,255,0.08));
+      backdrop-filter: blur(12px);
+      gap: 1rem;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-shrink: 0;
+    }
+
+    .logo {
+      font-size: 1.5rem;
+    }
+
+    .header-brand h1 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text-primary, #f0f0f0);
+      margin: 0;
+      line-height: 1.2;
+    }
+
+    .header-brand p {
+      font-size: 0.72rem;
+      color: var(--text-muted, #888);
+      margin: 0;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .header-center {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.8rem;
+      color: var(--text-secondary, #aaa);
+    }
+
+    .refresh-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success, #22c55e);
+      animation: pulse-dot 2s infinite;
+      display: inline-block;
+    }
+
+    .refresh-dot.spinning {
+      animation: spin-pulse 0.8s linear infinite;
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.4; transform: scale(0.7); }
+    }
+
+    @keyframes spin-pulse {
+      0%   { transform: rotate(0deg) scale(1);   opacity: 1; }
+      50%  { transform: rotate(180deg) scale(0.7); opacity: 0.5; }
+      100% { transform: rotate(360deg) scale(1);  opacity: 1; }
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-shrink: 0;
+    }
+
+    #lastUpdated {
+      font-size: 0.75rem;
+      color: var(--text-muted, #888);
+      white-space: nowrap;
+    }
+
+    /* === OFFLINE BANNER === */
+    .offline-banner {
+      background: linear-gradient(90deg, #7f1d1d, #991b1b);
+      color: #fef2f2;
+      text-align: center;
+      padding: 0.55rem 1rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      display: none;
+      border-bottom: 1px solid #ef4444;
+      z-index: 199;
+      position: sticky;
+      top: 64px;
+    }
+
+    .offline-banner.show { display: block; }
+
+    /* === CONTROLS BAR === */
+    .controls-bar {
+      position: sticky;
+      top: 64px;
+      z-index: 190;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.75rem 1.5rem;
+      background: var(--surface-alt, #111827);
+      border-bottom: 1px solid var(--border, rgba(255,255,255,0.07));
+      flex-wrap: wrap;
+    }
+
+    .controls-bar .controls-left { flex: 0 0 auto; min-width: 220px; }
+    .controls-bar .controls-center { flex: 1 1 200px; }
+    .controls-bar .controls-right { flex: 0 0 auto; }
+
+    .cashier-wrapper {
+      position: relative;
+    }
+
+    .cashier-wrapper select.form-control {
+      padding-left: 2.2rem;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f59e0b' stroke-width='2'%3E%3Cpath d='M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='12' cy='7' r='4'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: 0.6rem center;
+      background-size: 1rem;
+    }
+
+    .cashier-wrapper select.form-control.has-value {
+      border-color: var(--success, #22c55e);
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2322c55e' stroke-width='2'%3E%3Cpath d='M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='12' cy='7' r='4'/%3E%3C/svg%3E");
+    }
+
+    .search-bar {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .search-bar input {
+      width: 100%;
+      padding-left: 2.4rem;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 0.75rem;
+      color: var(--text-muted, #888);
+      font-style: normal;
+      font-size: 1rem;
+      pointer-events: none;
+      line-height: 1;
+    }
+
+    .tab-bar {
+      display: flex;
+      gap: 0.25rem;
+      background: var(--surface, #1a1a2e);
+      border-radius: 8px;
+      padding: 3px;
+      border: 1px solid var(--border, rgba(255,255,255,0.08));
+    }
+
+    .tab-btn {
+      padding: 0.35rem 0.9rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      background: transparent;
+      color: var(--text-secondary, #aaa);
+      transition: all 0.18s ease;
+      white-space: nowrap;
+    }
+
+    .tab-btn.active {
+      background: var(--primary, #6366f1);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(99,102,241,0.4);
+    }
+
+    .tab-btn:not(.active):hover {
+      background: rgba(255,255,255,0.07);
+      color: var(--text-primary, #f0f0f0);
+    }
+
+    /* === MAIN CONTENT === */
+    .main-content {
+      padding: 1.25rem 1.5rem 4rem;
+    }
+
+    /* === ORDER GRID === */
+    .grid-orders {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1rem;
+    }
+
+    /* === ORDER CARD === */
+    .order-card {
+      background: var(--surface, #1a1a2e);
+      border: 1px solid var(--border, rgba(255,255,255,0.08));
+      border-radius: 14px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.18s ease;
+      position: relative;
+    }
+
+    .order-card:hover {
+      box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+      transform: translateY(-1px);
+    }
+
+    .order-card.ready {
+      border-color: var(--success, #22c55e);
+      box-shadow: 0 0 0 1px var(--success, #22c55e), 0 4px 20px rgba(34,197,94,0.12);
+    }
+
+    .order-card.voiding {
+      border-color: #ef4444;
+      box-shadow: 0 0 0 1px #ef4444, 0 4px 20px rgba(239,68,68,0.15);
+      animation: voiding-pulse 1s ease-in-out infinite;
+    }
+
+    @keyframes voiding-pulse {
+      0%, 100% { box-shadow: 0 0 0 1px #ef4444, 0 4px 20px rgba(239,68,68,0.15); }
+      50%       { box-shadow: 0 0 0 2px #ef4444, 0 4px 30px rgba(239,68,68,0.3); }
+    }
+
+    .order-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.8rem 1rem 0.6rem;
+      border-bottom: 1px solid var(--border, rgba(255,255,255,0.06));
+      gap: 0.5rem;
+    }
+
+    .order-id {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--primary, #6366f1);
+      letter-spacing: 0.04em;
+      font-family: 'Courier New', monospace;
+    }
+
+    .header-right-group {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-left: auto;
+    }
+
+    .order-timestamp {
+      font-size: 0.72rem;
+      color: var(--text-muted, #888);
+      white-space: nowrap;
+    }
+
+    .order-card-body {
+      padding: 0.85rem 1rem;
+      flex: 1;
+      cursor: pointer;
+    }
+
+    .order-card-body:hover .order-customer {
+      color: var(--primary, #6366f1);
+    }
+
+    .order-customer {
+      font-size: 0.98rem;
+      font-weight: 700;
+      color: var(--text-primary, #f0f0f0);
+      margin-bottom: 0.2rem;
+      transition: color 0.15s;
+    }
+
+    .order-location {
+      font-size: 0.78rem;
+      color: var(--text-muted, #888);
+      margin-bottom: 0.7rem;
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .order-items {
+      font-size: 0.82rem;
+      color: var(--text-secondary, #ccc);
+      line-height: 1.7;
+      border-left: 2px solid var(--border, rgba(255,255,255,0.1));
+      padding-left: 0.65rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .order-total {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: var(--text-primary, #f0f0f0);
+      letter-spacing: 0.01em;
+    }
+
+    .order-card-footer {
+      border-top: 1px solid var(--border, rgba(255,255,255,0.06));
+      padding: 0.65rem 1rem;
+    }
+
+    /* === PREP TIMERS === */
+    .prep-timers {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      margin-bottom: 0.6rem;
+      flex-wrap: wrap;
+    }
+
+    .prep-btn {
+      padding: 0.2rem 0.55rem;
+      font-size: 0.72rem;
+      font-weight: 700;
+      border-radius: 6px;
+      border: 1px solid var(--border, rgba(255,255,255,0.15));
+      background: rgba(255,255,255,0.05);
+      color: var(--text-secondary, #ccc);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .prep-btn:hover {
+      background: var(--primary, #6366f1);
+      border-color: var(--primary, #6366f1);
+      color: #fff;
+    }
+
+    .prep-timer-display {
+      margin-left: auto;
+      font-size: 0.74rem;
+      font-weight: 600;
+      color: var(--text-muted, #888);
+      white-space: nowrap;
+    }
+
+    /* === ORDER ACTIONS === */
+    .order-actions {
+      display: flex;
+      gap: 0.35rem;
+      flex-wrap: wrap;
+    }
+
+    .order-actions .btn {
+      flex: 1 1 auto;
+      min-width: fit-content;
+      font-size: 0.74rem;
+      padding: 0.4rem 0.6rem;
+      border-radius: 7px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.25rem;
+    }
+
+    .btn-success {
+      background: linear-gradient(135deg, #16a34a, #22c55e);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(34,197,94,0.25);
+    }
+
+    .btn-success:hover {
+      background: linear-gradient(135deg, #15803d, #16a34a);
+      box-shadow: 0 4px 16px rgba(34,197,94,0.35);
+      transform: translateY(-1px);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #4f46e5, #6366f1);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(99,102,241,0.25);
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #4338ca, #4f46e5);
+      box-shadow: 0 4px 16px rgba(99,102,241,0.35);
+      transform: translateY(-1px);
+    }
+
+    /* Cash = amber/gold */
+    .btn-cash {
+      background: linear-gradient(135deg, #b45309, #f59e0b);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(245,158,11,0.25);
+    }
+
+    .btn-cash:hover {
+      background: linear-gradient(135deg, #92400e, #b45309);
+      box-shadow: 0 4px 16px rgba(245,158,11,0.35);
+      transform: translateY(-1px);
+    }
+
+    .btn-danger {
+      background: linear-gradient(135deg, #b91c1c, #ef4444);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(239,68,68,0.2);
+    }
+
+    .btn-danger:hover {
+      background: linear-gradient(135deg, #991b1b, #b91c1c);
+      box-shadow: 0 4px 16px rgba(239,68,68,0.35);
+      transform: translateY(-1px);
+    }
+
+    .btn-danger-outline {
+      background: transparent;
+      border: 1.5px solid #ef4444 !important;
+      color: #ef4444;
+    }
+
+    .btn-danger-outline:hover {
+      background: rgba(239,68,68,0.12);
+    }
+
+    .btn-ghost {
+      background: rgba(255,255,255,0.06);
+      color: var(--text-secondary, #ccc);
+      border: 1px solid var(--border, rgba(255,255,255,0.1)) !important;
+    }
+
+    .btn-ghost:hover {
+      background: rgba(255,255,255,0.12);
+      color: var(--text-primary, #f0f0f0);
+    }
+
+    .btn-warning {
+      background: linear-gradient(135deg, #b45309, #f59e0b);
+      color: #fff;
+    }
+
+    /* === BADGES === */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.2rem 0.55rem;
+      border-radius: 999px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .badge-active {
+      background: rgba(99,102,241,0.18);
+      color: #818cf8;
+      border: 1px solid rgba(99,102,241,0.3);
+    }
+
+    .badge-ready {
+      background: rgba(34,197,94,0.15);
+      color: #4ade80;
+      border: 1px solid rgba(34,197,94,0.3);
+    }
+
+    .badge-paid {
+      background: rgba(34,197,94,0.1);
+      color: #4ade80;
+      border: 1px solid rgba(34,197,94,0.2);
+    }
+
+    .badge-void {
+      background: rgba(239,68,68,0.1);
+      color: #f87171;
+      border: 1px solid rgba(239,68,68,0.2);
+    }
+
+    .badge-credit {
+      background: rgba(245,158,11,0.12);
+      color: #fbbf24;
+      border: 1px solid rgba(245,158,11,0.25);
+    }
+
+    /* === MODALS === */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      backdrop-filter: blur(4px);
+      z-index: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+
+    .modal-overlay.open {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .modal {
+      background: var(--surface, #1a1a2e);
+      border: 1px solid var(--border, rgba(255,255,255,0.1));
+      border-radius: 18px;
+      width: 100%;
+      max-width: 560px;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transform: translateY(24px) scale(0.97);
+      transition: transform 0.2s ease;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+    }
+
+    .modal-overlay.open .modal {
+      transform: translateY(0) scale(1);
+    }
+
+    .modal-sm { max-width: 420px; }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.1rem 1.4rem 0.9rem;
+      border-bottom: 1px solid var(--border, rgba(255,255,255,0.08));
+      flex-shrink: 0;
+    }
+
+    .modal-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text-primary, #f0f0f0);
+      margin: 0;
+    }
+
+    .modal-close {
+      background: rgba(255,255,255,0.07);
+      border: none;
+      color: var(--text-muted, #888);
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 1.2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+
+    .modal-close:hover {
+      background: rgba(239,68,68,0.15);
+      color: #ef4444;
+    }
+
+    .modal-body {
+      padding: 1.2rem 1.4rem;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .modal-footer {
+      padding: 0.9rem 1.4rem;
+      border-top: 1px solid var(--border, rgba(255,255,255,0.08));
+      display: flex;
+      gap: 0.6rem;
+      justify-content: flex-end;
+      flex-shrink: 0;
+    }
+
+    .modal-footer .btn {
+      padding: 0.55rem 1.25rem;
+      border-radius: 9px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    /* === DETAIL MODAL specific === */
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 0.45rem 0;
+      border-bottom: 1px solid var(--border, rgba(255,255,255,0.05));
+      font-size: 0.85rem;
+      gap: 0.5rem;
+    }
+
+    .detail-row:last-child { border-bottom: none; }
+
+    .detail-label {
+      color: var(--text-muted, #888);
+      flex-shrink: 0;
+    }
+
+    .detail-value {
+      color: var(--text-primary, #f0f0f0);
+      font-weight: 600;
+      text-align: right;
+    }
+
+    .detail-items-list {
+      background: rgba(255,255,255,0.03);
+      border-radius: 10px;
+      padding: 0.75rem 1rem;
+      margin: 0.75rem 0;
+      border: 1px solid var(--border, rgba(255,255,255,0.06));
+    }
+
+    .detail-item-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.3rem 0;
+      font-size: 0.85rem;
+      color: var(--text-secondary, #ccc);
+      border-bottom: 1px solid var(--border, rgba(255,255,255,0.04));
+    }
+
+    .detail-item-row:last-child { border-bottom: none; }
+
+    .detail-item-qty {
+      background: rgba(99,102,241,0.2);
+      color: #818cf8;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 0.1rem 0.4rem;
+      border-radius: 4px;
+      min-width: 2rem;
+      text-align: center;
+    }
+
+    .detail-total {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 0.65rem;
+      margin-top: 0.25rem;
+      font-weight: 800;
+      font-size: 1.1rem;
+      color: var(--text-primary, #f0f0f0);
+      border-top: 2px solid var(--border, rgba(255,255,255,0.1));
+    }
+
+    /* === RECEIPT STYLES === */
+    .receipt-paper {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 0.82rem;
+      color: #1a1a1a;
+      background: #f9f9f9;
+      padding: 1.25rem 1rem;
+      border-radius: 6px;
+      line-height: 1.6;
+      border: 1px dashed #ccc;
+    }
+
+    .receipt-center { text-align: center; margin-bottom: 0.5rem; }
+    .receipt-title { font-size: 1rem; font-weight: 900; letter-spacing: 0.06em; }
+    .receipt-sub { font-size: 0.75rem; color: #555; }
+    .receipt-dash { border: none; border-top: 1px dashed #aaa; margin: 0.6rem 0; }
+
+    .receipt-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.78rem;
+      padding: 0.1rem 0;
+    }
+
+    .receipt-label { color: #555; }
+    .receipt-value { font-weight: 600; color: #111; }
+    .receipt-items-hdr { font-weight: 700; font-size: 0.78rem; text-align: center; margin: 0.3rem 0; letter-spacing: 0.06em; }
+
+    .receipt-item-line {
+      display: flex;
+      gap: 0.5rem;
+      padding: 0.1rem 0;
+      font-size: 0.8rem;
+    }
+
+    .receipt-item-qty { font-weight: 700; color: #333; min-width: 2rem; }
+    .receipt-item-name { color: #222; }
+
+    .receipt-total-row {
+      display: flex;
+      justify-content: space-between;
+      font-weight: 900;
+      font-size: 0.95rem;
+      padding: 0.3rem 0;
+    }
+
+    .receipt-method {
+      font-size: 0.75rem;
+      color: #555;
+      text-align: center;
+      margin-top: 0.25rem;
+    }
+
+    .receipt-footer {
+      text-align: center;
+      font-size: 0.73rem;
+      color: #666;
+      margin-top: 0.4rem;
+      font-style: italic;
+    }
+
+    /* === PRINT STYLES === */
+    #receiptPrintArea {
+      display: none;
+    }
+
+    @media print {
+      body > *:not(#receiptPrintArea) { display: none !important; }
+      #receiptPrintArea {
+        display: block !important;
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 11pt;
+        color: #000;
+        background: #fff;
+        padding: 0;
+        margin: 0;
+        width: 80mm;
+      }
+      #receiptPrintArea .receipt-paper {
+        border: none;
+        background: none;
+        padding: 0;
+        border-radius: 0;
+      }
+
+      body.printing-receipt > * { display: none !important; }
+      body.printing-receipt #receiptPrintArea { display: block !important; }
+    }
+
+    /* === LOADING / EMPTY STATES === */
+    .loading-state, .empty-state {
+      grid-column: 1 / -1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 4rem 2rem;
+      text-align: center;
+      color: var(--text-muted, #888);
+      gap: 1rem;
+    }
+
+    .loading-state .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(99,102,241,0.2);
+      border-top-color: var(--primary, #6366f1);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .empty-state-icon { font-size: 3rem; line-height: 1; }
+    .empty-state-title { font-size: 1.1rem; font-weight: 700; color: var(--text-secondary, #aaa); }
+    .empty-state-sub { font-size: 0.85rem; }
+
+    /* === TOAST === */
+    .toast-container {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      pointer-events: none;
+    }
+
+    .toast {
+      background: var(--surface, #1a1a2e);
+      border: 1px solid var(--border, rgba(255,255,255,0.1));
+      border-radius: 10px;
+      padding: 0.7rem 1.1rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-primary, #f0f0f0);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      pointer-events: all;
+      transform: translateX(120%);
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+      max-width: 340px;
+    }
+
+    .toast.show { transform: translateX(0); }
+
+    .toast.toast-success { border-left: 3px solid #22c55e; }
+    .toast.toast-error   { border-left: 3px solid #ef4444; }
+    .toast.toast-warning { border-left: 3px solid #f59e0b; }
+    .toast.toast-info    { border-left: 3px solid #6366f1; }
+
+    /* === MISC === */
+    .hidden { display: none !important; }
+    .divider { border: none; border-top: 1px solid var(--border, rgba(255,255,255,0.07)); margin: 0.75rem 0; }
+    .card { background: var(--surface, #1a1a2e); border: 1px solid var(--border, rgba(255,255,255,0.08)); border-radius: 12px; }
+    .card-body { padding: 1rem 1.25rem; }
+
+    .form-control {
+      background: var(--surface, #1a1a2e);
+      border: 1px solid var(--border, rgba(255,255,255,0.12));
+      border-radius: 8px;
+      color: var(--text-primary, #f0f0f0);
+      padding: 0.5rem 0.85rem;
+      font-size: 0.85rem;
+      width: 100%;
+      outline: none;
+      transition: border-color 0.15s;
+      font-family: inherit;
+    }
+
+    .form-control:focus { border-color: var(--primary, #6366f1); }
+    .form-control option { background: #1a1a2e; color: #f0f0f0; }
+
+    /* Subtle section count label */
+    .section-meta {
+      font-size: 0.78rem;
+      color: var(--text-muted, #888);
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .count-pill {
+      background: rgba(99,102,241,0.15);
+      color: #818cf8;
+      border-radius: 999px;
+      padding: 0.1rem 0.55rem;
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+  </style>
 </head>
 <body>
 
-    <!-- OFFLINE TRACKER -->
-    <div id="network-status">⚠️ NO INTERNET CONNECTION. Waiting to reconnect...</div>
-
-    <header>
-        <div class="logo">COMMAND CENTER</div>
-        <div class="header-controls">
-            <!-- NEW LIVE SEARCH -->
-            <input type="text" id="search-bar" class="search-box" placeholder="🔍 Search Order ID or Name..." onkeyup="filterLiveOrders()">
-            
-            <a href="index.html?table=Counter" target="_blank" style="background: #2ECC71; color: white; padding: 10px 15px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px;">+ Walk-In</a>
-            
-            <select id="cashier-select">
-                <option value="">👤 Cashier...</option>
-            </select>
-            <button class="refresh-btn" onclick="fetchOrders()">🔄 Refresh</button>
-        </div>
-    </header>
-
-    <div class="grid" id="orders-container">
-        <h3 style="text-align:center; width: 100%;">Loading real-time orders...</h3>
+  <!-- ═══════════════════════════════════════════════ -->
+  <!--  STICKY PAGE HEADER                            -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <header class="page-header" id="pageHeader">
+    <div class="header-left">
+      <span class="logo">🍽️</span>
+      <div class="header-brand">
+        <h1>Mevish Eatery</h1>
+        <p>Command Center</p>
+      </div>
     </div>
 
-    <div id="toast"><span id="toast-msg"></span></div>
+    <div class="header-center">
+      <span class="refresh-dot" id="refreshDot"></span>
+      <span id="refreshLabel">Auto-refresh: ON</span>
+    </div>
 
-    <script>
-        // ⚠️ PASTE YOUR REAL GOOGLE SCRIPT URL HERE:
-        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxEpm1qIgup5q6DBF4F9PEzQD3XEZv0Sqz0otqGdzrbXB079afSjD8P_lpZj1_xpMXy1A/exec";
+    <div class="header-right">
+      <span id="lastUpdated">—</span>
+      <button class="btn btn-ghost btn-sm" id="manualRefreshBtn"
+              onclick="manualRefresh()"
+              style="padding:0.4rem 0.85rem;font-size:0.78rem;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.06);color:var(--text-secondary,#ccc);cursor:pointer;font-weight:600;transition:all .15s;white-space:nowrap;">
+        🔄 Refresh
+      </button>
+    </div>
+  </header>
 
-        // --- OFFLINE AWARENESS LISTENER ---
-        window.addEventListener('offline', () => { document.getElementById('network-status').style.display = 'block'; });
-        window.addEventListener('online', () => { 
-            document.getElementById('network-status').style.background = '#2ECC71';
-            document.getElementById('network-status').innerText = '✅ Connection Restored!';
-            setTimeout(() => {
-                document.getElementById('network-status').style.display = 'none';
-                document.getElementById('network-status').style.background = '#E63946';
-                document.getElementById('network-status').innerText = '⚠️ NO INTERNET CONNECTION. Waiting to reconnect...';
-                fetchOrders(); // Auto-refresh when internet comes back!
-            }, 3000);
-        });
+  <!-- ═══════════════════════════════════════════════ -->
+  <!--  OFFLINE BANNER                                -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <div class="offline-banner" id="offlineBanner">
+    ⚠️ No Internet Connection — Payments are locked. Data may be stale.
+  </div>
 
-        function showToast(message) {
-            const toast = document.getElementById("toast");
-            document.getElementById("toast-msg").innerText = message;
-            toast.style.visibility = "visible";
-            toast.style.opacity = "1";
-            setTimeout(() => { toast.style.opacity = "0"; setTimeout(() => toast.style.visibility = "hidden", 400); }, 3000);
+  <!-- ═══════════════════════════════════════════════ -->
+  <!--  CONTROLS BAR                                  -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <div class="controls-bar" id="controlsBar">
+    <!-- Left: Cashier Selector -->
+    <div class="controls-left">
+      <div class="cashier-wrapper">
+        <select id="cashierSelect" class="form-control" onchange="onCashierChange(this)">
+          <option value="">⚠️ Select Cashier to Enable Payments</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Center: Search -->
+    <div class="controls-center">
+      <div class="search-bar">
+        <i class="search-icon">🔍</i>
+        <input
+          id="searchInput"
+          class="form-control"
+          type="search"
+          placeholder="Search by Order ID, name, or item..."
+          oninput="onSearch()"
+          autocomplete="off"
+        >
+      </div>
+    </div>
+
+    <!-- Right: Filter tabs -->
+    <div class="controls-right">
+      <div class="tab-bar" role="tablist">
+        <button class="tab-btn active" id="tab-all"    onclick="setTab('all')"    role="tab" aria-selected="true">All</button>
+        <button class="tab-btn"        id="tab-active" onclick="setTab('active')" role="tab" aria-selected="false">Active</button>
+        <button class="tab-btn"        id="tab-ready"  onclick="setTab('ready')"  role="tab" aria-selected="false">Ready</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!--  MAIN CONTENT                                  -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <main class="main-content">
+    <div class="section-meta" id="sectionMeta">
+      <span id="sectionTitle">All Orders</span>
+      <span class="count-pill" id="orderCount">0</span>
+    </div>
+
+    <!-- Orders Grid -->
+    <div class="grid-orders" id="ordersGrid">
+      <div class="loading-state" id="loadingState">
+        <div class="spinner"></div>
+        <span>Loading orders…</span>
+      </div>
+    </div>
+  </main>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!--  ORDER DETAIL MODAL                            -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <div class="modal-overlay" id="detailModal" onclick="onOverlayClick(event,'detailModal')">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="detailModalTitle">
+      <div class="modal-header">
+        <h3 class="modal-title" id="detailModalTitle">Order Details</h3>
+        <button class="modal-close" onclick="closeDetailModal()" aria-label="Close">×</button>
+      </div>
+      <div class="modal-body" id="detailModalBody">
+        <!-- injected by JS -->
+      </div>
+      <div class="modal-footer" id="detailModalFooter">
+        <button class="btn btn-ghost" onclick="closeDetailModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!--  RECEIPT PREVIEW MODAL                         -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <div class="modal-overlay" id="receiptModal" onclick="onOverlayClick(event,'receiptModal')">
+    <div class="modal modal-sm" role="dialog" aria-modal="true" aria-label="Receipt Preview">
+      <div class="modal-header">
+        <h3 class="modal-title">🧾 Receipt Preview</h3>
+        <button class="modal-close" onclick="closeReceiptModal()" aria-label="Close">×</button>
+      </div>
+      <div class="modal-body">
+        <div id="receiptPreview"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeReceiptModal()">Skip</button>
+        <button class="btn btn-primary" onclick="triggerPrint()">🖨️ Print Receipt</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden print area (outside visible DOM) -->
+  <div id="receiptPrintArea"></div>
+
+  <!-- Toast container -->
+  <div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!--  JAVASCRIPT                                    -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <script>
+  'use strict';
+
+  // ──────────────────────────────────────────────────
+  // STATE
+  // ──────────────────────────────────────────────────
+  let allOrders        = [];   // All orders from API (non-void, non-paid)
+  let currentTab       = 'all';
+  let searchQuery      = '';
+  let refreshInterval  = null;
+  let voidPending      = null; // orderId awaiting second-tap confirm
+  const activeTimers   = {};   // orderId → intervalId
+  let currentReceiptOrder = null;
+  let currentDetailOrder  = null;
+
+  const FALLBACK_CASHIERS = ['Deborah', 'Jamila', 'Amina', 'Hauwa', 'Copper'];
+
+  // ──────────────────────────────────────────────────
+  // OFFLINE / ONLINE
+  // ──────────────────────────────────────────────────
+  window.addEventListener('offline', () => {
+    document.getElementById('offlineBanner').classList.add('show');
+    showToast('📡 Connection lost — payments locked', 'error');
+  });
+  window.addEventListener('online', () => {
+    document.getElementById('offlineBanner').classList.remove('show');
+    showToast('✅ Back online', 'success');
+  });
+
+  // ──────────────────────────────────────────────────
+  // CASHIER
+  // ──────────────────────────────────────────────────
+  async function loadCashiers() {
+    try {
+      const res  = await fetch(CONFIG.API_URL + '?type=cashiers');
+      const data = await res.json();
+      populateCashierSelect(data.data || FALLBACK_CASHIERS);
+    } catch (_) {
+      populateCashierSelect(FALLBACK_CASHIERS);
+    }
+  }
+
+  function populateCashierSelect(names) {
+    const select = document.getElementById('cashierSelect');
+    // Keep first placeholder option
+    while (select.options.length > 1) select.remove(1);
+    names.forEach(name => {
+      const opt       = document.createElement('option');
+      opt.value       = name;
+      opt.textContent = name;
+      select.appendChild(opt);
+    });
+  }
+
+  function onCashierChange(sel) {
+    sel.classList.toggle('has-value', !!sel.value);
+  }
+
+  function getSelectedCashier() {
+    return document.getElementById('cashierSelect').value || '';
+  }
+
+  function isPaymentLocked() {
+    return !getSelectedCashier();
+  }
+
+  // ──────────────────────────────────────────────────
+  // FETCH ORDERS
+  // ──────────────────────────────────────────────────
+  async function fetchOrders() {
+    setRefreshing(true);
+    try {
+      const res  = await fetch(CONFIG.API_URL + '?type=orders');
+      const data = await res.json();
+      const raw  = Array.isArray(data.data) ? data.data : [];
+
+      // Keep only Active + Ready (non-paid, non-void)
+      allOrders = raw.filter(o =>
+        CONFIG.STATUS.isActive(o.status) || o.status === CONFIG.STATUS.READY
+      );
+
+      renderGrid();
+      setLastUpdated();
+    } catch (err) {
+      console.error('fetchOrders error', err);
+      showEmptyState('⚠️ Could not load orders', 'Check your connection or API URL.');
+    } finally {
+      setRefreshing(false);
+    }
+  }
+
+  function setRefreshing(yes) {
+    const dot   = document.getElementById('refreshDot');
+    const label = document.getElementById('refreshLabel');
+    dot.classList.toggle('spinning', yes);
+    label.textContent = yes ? 'Refreshing…' : 'Auto-refresh: ON';
+  }
+
+  function setLastUpdated() {
+    const now = new Date();
+    const t   = now.toLocaleTimeString('en-NG', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    document.getElementById('lastUpdated').textContent = 'Updated ' + t;
+  }
+
+  function manualRefresh() {
+    fetchOrders();
+    showToast('🔄 Refreshing orders…', 'info');
+  }
+
+  // ──────────────────────────────────────────────────
+  // FILTER / SEARCH HELPERS
+  // ──────────────────────────────────────────────────
+  function setTab(tab) {
+    currentTab = tab;
+    ['all','active','ready'].forEach(t => {
+      const btn = document.getElementById('tab-' + t);
+      btn.classList.toggle('active', t === tab);
+      btn.setAttribute('aria-selected', t === tab ? 'true' : 'false');
+    });
+    const titles = { all: 'All Orders', active: 'Active Orders', ready: 'Ready Orders' };
+    document.getElementById('sectionTitle').textContent = titles[tab] || 'Orders';
+    renderGrid();
+  }
+
+  function onSearch() {
+    searchQuery = document.getElementById('searchInput').value.trim().toLowerCase();
+    renderGrid();
+  }
+
+  function getFilteredOrders() {
+    let list = allOrders;
+
+    // Tab filter
+    if (currentTab === 'active') {
+      list = list.filter(o => CONFIG.STATUS.isActive(o.status));
+    } else if (currentTab === 'ready') {
+      list = list.filter(o => o.status === CONFIG.STATUS.READY);
+    }
+
+    // Search filter
+    if (searchQuery) {
+      list = list.filter(o => {
+        const id   = (o.orderId  || '').toLowerCase();
+        const name = (o.name     || '').toLowerCase();
+        const itms = (o.items    || '').toLowerCase();
+        return id.includes(searchQuery) || name.includes(searchQuery) || itms.includes(searchQuery);
+      });
+    }
+
+    return list;
+  }
+
+  // ──────────────────────────────────────────────────
+  // RENDER
+  // ──────────────────────────────────────────────────
+  function renderGrid() {
+    const grid    = document.getElementById('ordersGrid');
+    const filtered = getFilteredOrders();
+
+    document.getElementById('orderCount').textContent = filtered.length;
+
+    if (filtered.length === 0) {
+      grid.innerHTML = '';
+      const empty = document.createElement('div');
+      empty.className = 'empty-state';
+      empty.innerHTML = `
+        <div class="empty-state-icon">🍽️</div>
+        <div class="empty-state-title">No orders found</div>
+        <div class="empty-state-sub">${searchQuery ? 'Try a different search term.' : 'All orders are paid or voided — great job!'}</div>
+      `;
+      grid.appendChild(empty);
+      return;
+    }
+
+    grid.innerHTML = '';
+    filtered.forEach(order => {
+      const card = buildOrderCard(order);
+      grid.appendChild(card);
+    });
+  }
+
+  function buildOrderCard(order) {
+    const isReady   = order.status === CONFIG.STATUS.READY;
+    const cardEl    = document.createElement('div');
+    cardEl.className = 'order-card' + (isReady ? ' ready' : '');
+    cardEl.setAttribute('data-order', order.orderId);
+
+    const timeLabel = formatTime(order.timestamp);
+    const badgeClass = CONFIG.STATUS.getBadgeClass(order.status);
+    const badgeLabel = CONFIG.STATUS.getLabel(order.status);
+    const itemLines  = buildItemLines(order.items);
+
+    cardEl.innerHTML = `
+      <!-- HEADER -->
+      <div class="order-card-header">
+        <span class="order-id">${escHtml(order.orderId)}</span>
+        <div class="header-right-group">
+          <span class="badge ${badgeClass}" data-badge="${order.orderId}">${badgeLabel}</span>
+          <span class="order-timestamp order-timestamp--${order.orderId}">🕐 ${timeLabel}</span>
+        </div>
+      </div>
+
+      <!-- BODY (clickable → detail modal) -->
+      <div class="order-card-body" onclick="openDetailModal('${escAttr(order.orderId)}')" title="View order details">
+        <div class="order-customer">${escHtml(order.name || '—')}</div>
+        <div class="order-location">📍 ${escHtml(order.location || '—')}</div>
+        <div class="order-items">${itemLines}</div>
+        <div class="order-total">${CONFIG.formatCurrency(order.total)}</div>
+      </div>
+
+      <!-- FOOTER -->
+      <div class="order-card-footer">
+        <!-- Prep Timers -->
+        <div class="prep-timers">
+          ${CONFIG.PREP_TIMERS.map(m => `
+            <button class="prep-btn" onclick="startTimer('${escAttr(order.orderId)}', ${m})" title="Set ${m} min timer">⏱${m}</button>
+          `).join('')}
+          <span class="prep-timer-display" data-timer="${escAttr(order.orderId)}">—</span>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="order-actions">
+          ${!isReady ? `<button class="btn btn-success" id="readyBtn-${escAttr(order.orderId)}"
+            onclick="handleMarkReady('${escAttr(order.orderId)}')">✅ Ready</button>` : ''}
+          <button class="btn btn-primary" id="posBtn-${escAttr(order.orderId)}"
+            onclick="handlePayPOS('${escAttr(order.orderId)}')">💳 POS</button>
+          <button class="btn btn-cash" id="cashBtn-${escAttr(order.orderId)}"
+            onclick="handlePayCash('${escAttr(order.orderId)}')">💵 Cash</button>
+          <button class="btn btn-danger-outline" id="voidBtn-${escAttr(order.orderId)}"
+            onclick="handleVoid('${escAttr(order.orderId)}')">⊘ Void</button>
+        </div>
+      </div>
+    `;
+
+    return cardEl;
+  }
+
+  function buildItemLines(itemsStr) {
+    if (!itemsStr) return '<em style="color:var(--text-muted,#888)">No items</em>';
+    const items = parseOrderItems(itemsStr);
+    return items.map(i => `<div>${i.qty}× <strong>${escHtml(i.name)}</strong></div>`).join('');
+  }
+
+  function showEmptyState(title, sub) {
+    const grid = document.getElementById('ordersGrid');
+    grid.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">⚠️</div>
+        <div class="empty-state-title">${escHtml(title)}</div>
+        <div class="empty-state-sub">${escHtml(sub)}</div>
+      </div>`;
+    document.getElementById('orderCount').textContent = '0';
+  }
+
+  // ──────────────────────────────────────────────────
+  // PREP TIMERS
+  // ──────────────────────────────────────────────────
+  function startTimer(orderId, minutes) {
+    if (activeTimers[orderId]) clearInterval(activeTimers[orderId]);
+    let remaining = minutes * 60;
+    updateTimerDisplay(orderId, remaining);
+    showToast(`⏱ Timer set: ${minutes} min for ${orderId}`, 'info');
+    activeTimers[orderId] = setInterval(() => {
+      remaining--;
+      if (remaining <= 0) {
+        clearInterval(activeTimers[orderId]);
+        delete activeTimers[orderId];
+        updateTimerDisplay(orderId, 0, true);
+        showToast(`🔔 Timer done for ${orderId}!`, 'success');
+      } else {
+        updateTimerDisplay(orderId, remaining);
+      }
+    }, 1000);
+  }
+
+  function updateTimerDisplay(orderId, seconds, done = false) {
+    const el = document.querySelector(`[data-timer='${CSS.escape(orderId)}']`);
+    if (!el) return;
+    if (done) {
+      el.textContent = '✅ Time is up!';
+      el.style.color = 'var(--success, #22c55e)';
+      return;
+    }
+    const m = Math.floor(seconds / 60);
+    const s = String(seconds % 60).padStart(2, '0');
+    el.textContent = `⏳ ${m}:${s} remaining`;
+    el.style.color = seconds <= 60 ? '#ef4444' : 'var(--text-muted, #888)';
+  }
+
+  // ──────────────────────────────────────────────────
+  // ACTION HANDLERS
+  // ──────────────────────────────────────────────────
+  async function handleMarkReady(orderId) {
+    const card = document.querySelector(`[data-order='${CSS.escape(orderId)}']`);
+    if (!card) return;
+    await updateStatus(orderId, CONFIG.STATUS.READY);
+    card.classList.add('ready');
+    const badge = card.querySelector(`[data-badge='${orderId}']`);
+    if (badge) {
+      badge.className = 'badge ' + CONFIG.STATUS.getBadgeClass(CONFIG.STATUS.READY);
+      badge.textContent = CONFIG.STATUS.getLabel(CONFIG.STATUS.READY);
+    }
+    const readyBtn = card.querySelector(`#readyBtn-${orderId}`);
+    if (readyBtn) readyBtn.remove();
+    showToast(`✅ ${orderId} marked as Ready`, 'success');
+  }
+
+  async function handlePayPOS(orderId) {
+    if (isPaymentLocked()) {
+      showToast('⚠️ Please select a cashier before processing payment', 'warning');
+      document.getElementById('cashierSelect').focus();
+      return;
+    }
+    const cashier   = getSelectedCashier();
+    const newStatus = CONFIG.STATUS.paidPOS(cashier);
+    const ok        = await updateStatus(orderId, newStatus);
+    if (ok) {
+      const order = getOrderById(orderId);
+      if (order) order.status = newStatus;
+      removeCardFromGrid(orderId);
+      showToast(`💳 POS payment recorded by ${cashier}`, 'success');
+      if (order) showReceiptModal(order);
+    }
+  }
+
+  async function handlePayCash(orderId) {
+    if (isPaymentLocked()) {
+      showToast('⚠️ Please select a cashier before processing payment', 'warning');
+      document.getElementById('cashierSelect').focus();
+      return;
+    }
+    const cashier   = getSelectedCashier();
+    const newStatus = CONFIG.STATUS.paidCash(cashier);
+    const ok        = await updateStatus(orderId, newStatus);
+    if (ok) {
+      const order = getOrderById(orderId);
+      if (order) order.status = newStatus;
+      removeCardFromGrid(orderId);
+      showToast(`💵 Cash payment recorded by ${cashier}`, 'success');
+      if (order) showReceiptModal(order);
+    }
+  }
+
+  function handleVoid(orderId) {
+    if (voidPending === orderId) {
+      // Second tap — confirm void
+      voidPending = null;
+      updateStatus(orderId, CONFIG.STATUS.VOID).then(ok => {
+        if (ok) {
+          removeCardFromGrid(orderId);
+          showToast(`⊘ Order ${orderId} voided`, 'error');
         }
-
-        // --- LIVE SEARCH LOGIC ---
-        function filterLiveOrders() {
-            const query = document.getElementById('search-bar').value.toLowerCase();
-            const cards = document.querySelectorAll('.order-card');
-            cards.forEach(card => {
-                // Search inside the whole card text (finds names, IDs, or even food items)
-                const text = card.innerText.toLowerCase();
-                card.style.display = text.includes(query) ? "block" : "none";
-            });
+      });
+    } else {
+      // First tap — warn
+      if (voidPending) {
+        // Cancel previous pending
+        const prevCard = document.querySelector(`[data-order='${CSS.escape(voidPending)}']`);
+        if (prevCard) {
+          prevCard.classList.remove('voiding');
+          const prevBtn = prevCard.querySelector(`#voidBtn-${voidPending}`);
+          if (prevBtn) prevBtn.textContent = '⊘ Void';
         }
-
-        async function fetchCashiers() {
-            try {
-                const response = await fetch(APPS_SCRIPT_URL + "?type=cashiers&t=" + new Date().getTime());
-                const result = await response.json();
-                if (result.status === "success") {
-                    const select = document.getElementById('cashier-select');
-                    select.innerHTML = '<option value="">👤 Cashier...</option>';
-                    result.data.forEach(name => { select.innerHTML += `<option value="${name}">${name}</option>`; });
-                }
-            } catch (error) { console.log("Failed to load cashiers."); }
+      }
+      voidPending = orderId;
+      const card = document.querySelector(`[data-order='${CSS.escape(orderId)}']`);
+      if (card) {
+        card.classList.add('voiding');
+        const btn = card.querySelector(`#voidBtn-${orderId}`);
+        if (btn) btn.textContent = '⚠️ Confirm Void';
+      }
+      showToast(`⚠️ Tap Void again to confirm for ${orderId}`, 'warning');
+      setTimeout(() => {
+        if (voidPending === orderId) {
+          voidPending = null;
+          if (card) {
+            card.classList.remove('voiding');
+            const btn = card.querySelector(`#voidBtn-${orderId}`);
+            if (btn) btn.textContent = '⊘ Void';
+          }
         }
+      }, 4000);
+    }
+  }
 
-        async function fetchOrders() {
-            if(!navigator.onLine) return; // Don't try to fetch if offline
-            try {
-                const response = await fetch(APPS_SCRIPT_URL + "?type=orders&t=" + new Date().getTime());
-                const result = await response.json();
-                if (result.status === "success") { renderOrders(result.data); filterLiveOrders(); }
-            } catch (error) { console.log("Background refresh skipped."); }
-        }
+  // ──────────────────────────────────────────────────
+  // API HELPERS
+  // ──────────────────────────────────────────────────
+  async function updateStatus(orderId, newStatus) {
+    try {
+      const res = await fetch(CONFIG.API_URL, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ action: 'updateStatus', orderId, newStatus }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        showToast('❌ Failed to update order status', 'error');
+        return false;
+      }
+      return true;
+    } catch (err) {
+      showToast('❌ Network error — could not update order', 'error');
+      console.error('updateStatus error', err);
+      return false;
+    }
+  }
 
-        function renderOrders(orders) {
-            const container = document.getElementById('orders-container');
-            container.innerHTML = '';
-            const activeOrders = orders.filter(order => order.status !== "Cancelled").slice(0, 30); 
+  function getOrderById(orderId) {
+    return allOrders.find(o => o.orderId === orderId) || null;
+  }
 
-            activeOrders.forEach(order => {
-                const isPaid = order.status.includes("Paid");
-                const isPrep = order.status.includes("Preparing");
-                
-                let badgeClass = '';
-                if(isPaid) badgeClass = 'paid';
-                if(isPrep) badgeClass = 'prep';
-                
-                container.innerHTML += `
-                    <div class="order-card ${isPaid ? 'paid' : ''}">
-                        <div class="header-row">
-                            <span class="order-id">${order.orderId}</span>
-                            <span class="status-badge ${badgeClass}">${order.status}</span>
-                        </div>
-                        <div class="details">
-                            <p><strong>Name:</strong> ${order.name}</p>
-                            <p><strong>Type:</strong> ${order.type} (${order.location})</p>
-                            <div class="items-list">${order.items}</div>
-                            <div class="total">₦${order.total.toLocaleString()}</div>
-                        </div>
-                        
-                        ${!isPaid ? `
-                            ${!isPrep ? `
-                                <p style="font-size: 12px; margin-bottom: 5px; color: #666;">Set Prep Time:</p>
-                                <div class="action-row" style="margin-bottom: 15px;">
-                                    <button class="btn-action" style="background:#E63946;" onclick="updateStatus('${order.orderId}', 'Preparing - 5', this)">5m</button>
-                                    <button class="btn-action" style="background:#E63946;" onclick="updateStatus('${order.orderId}', 'Preparing - 10', this)">10m</button>
-                                    <button class="btn-action" style="background:#E63946;" onclick="updateStatus('${order.orderId}', 'Preparing - 15', this)">15m</button>
-                                    <button class="btn-action" style="background:#E63946;" onclick="updateStatus('${order.orderId}', 'Preparing - 30', this)">30m</button>
-                                </div>
-                            ` : `
-                                <div class="action-row" style="margin-bottom: 15px;">
-                                    <button class="btn-action" style="background:#D4AF37; width: 100%;" onclick="updateStatus('${order.orderId}', 'Ready for Pickup', this)">Mark as Ready</button>
-                                </div>
-                            `}
-                            
-                            <div class="action-row">
-                                <button class="btn-action" style="background:#2ECC71;" onclick="processPayment('${order.orderId}', 'Paid - POS', this)">POS</button>
-                                <button class="btn-action" style="background:#3498DB;" onclick="processPayment('${order.orderId}', 'Paid - Cash', this)">Cash</button>
-                                <!-- THE NEW DESTRUCTIVE SHIELD VOID BUTTON -->
-                                <button class="btn-action" style="background:#1D1D1D; flex: 0.5;" onclick="confirmVoid('${order.orderId}', this)" title="Void this order">❌</button>
-                            </div>
-                        ` : '<p style="text-align:center; color:#2ECC71; font-weight:bold; margin-top: 15px;">Order Complete ✅</p>'}
-                    </div>
-                `;
-            });
-        }
+  function removeCardFromGrid(orderId) {
+    // Remove from in-memory list
+    allOrders = allOrders.filter(o => o.orderId !== orderId);
+    // Animate card out, then remove
+    const card = document.querySelector(`[data-order='${CSS.escape(orderId)}']`);
+    if (card) {
+      card.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+      card.style.opacity    = '0';
+      card.style.transform  = 'scale(0.95)';
+      setTimeout(() => {
+        card.remove();
+        renderGrid();
+      }, 300);
+    } else {
+      renderGrid();
+    }
+    // Stop timer if any
+    if (activeTimers[orderId]) {
+      clearInterval(activeTimers[orderId]);
+      delete activeTimers[orderId];
+    }
+  }
 
-        // --- DOUBLE TAP VOID LOGIC ---
-        function confirmVoid(orderId, btnElement) {
-            if (btnElement.dataset.confirming === "true") {
-                // They clicked it twice! Actually delete it.
-                updateStatus(orderId, 'Cancelled', btnElement);
-            } else {
-                // First click: Show warning shield
-                const originalText = btnElement.innerHTML;
-                const originalBg = btnElement.style.background;
-                
-                btnElement.dataset.confirming = "true";
-                btnElement.innerHTML = "Sure?";
-                btnElement.style.background = "#E63946";
-                
-                // Reset back to normal if they don't click again in 3 seconds
-                setTimeout(() => {
-                    if (btnElement.innerText !== "...") { // Don't reset if it's already processing
-                        btnElement.dataset.confirming = "false";
-                        btnElement.innerHTML = originalText;
-                        btnElement.style.background = originalBg;
-                    }
-                }, 3000);
-            }
-        }
+  // ──────────────────────────────────────────────────
+  // DETAIL MODAL
+  // ──────────────────────────────────────────────────
+  function openDetailModal(orderId) {
+    const order = getOrderById(orderId);
+    if (!order) return;
+    currentDetailOrder = order;
 
-        function processPayment(orderId, baseStatus, btnElement) {
-            const cashier = document.getElementById('cashier-select').value;
-            if (!cashier || cashier === "") {
-                alert("⚠️ PLEASE SELECT YOUR CASHIER NAME FROM THE TOP DROPDOWN BEFORE TAKING PAYMENT.");
-                return;
-            }
-            const finalStatus = `${baseStatus} (${cashier})`;
-            updateStatus(orderId, finalStatus, btnElement);
-        }
+    const items    = parseOrderItems(order.items);
+    const isReady  = order.status === CONFIG.STATUS.READY;
+    const badgeClass = CONFIG.STATUS.getBadgeClass(order.status);
+    const badgeLabel = CONFIG.STATUS.getLabel(order.status);
 
-        async function updateStatus(orderId, newStatus, btnElement) {
-            if(!navigator.onLine) {
-                showToast("⚠️ Cannot update. No internet connection.");
-                return;
-            }
+    const itemRows = items.map(i => `
+      <div class="detail-item-row">
+        <span class="detail-item-qty">${i.qty}×</span>
+        <span>${escHtml(i.name)}</span>
+      </div>
+    `).join('');
 
-            const originalText = btnElement.innerText;
-            btnElement.innerText = "...";
-            btnElement.disabled = true;
+    document.getElementById('detailModalTitle').textContent = `Order — ${order.orderId}`;
+    document.getElementById('detailModalBody').innerHTML = `
+      <div class="detail-row"><span class="detail-label">Order ID</span><span class="detail-value" style="font-family:monospace;color:var(--primary,#6366f1)">${escHtml(order.orderId)}</span></div>
+      <div class="detail-row"><span class="detail-label">Customer</span><span class="detail-value">${escHtml(order.name || '—')}</span></div>
+      <div class="detail-row"><span class="detail-label">Table / Location</span><span class="detail-value">${escHtml(order.location || '—')}</span></div>
+      <div class="detail-row"><span class="detail-label">Timestamp</span><span class="detail-value">${escHtml(formatReceiptDate(order.timestamp))}</span></div>
+      <div class="detail-row"><span class="detail-label">Status</span><span class="detail-value"><span class="badge ${badgeClass}">${badgeLabel}</span></span></div>
+      <hr class="divider">
+      <div style="font-size:0.78rem;font-weight:700;color:var(--text-muted,#888);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.4rem;">Items Ordered</div>
+      <div class="detail-items-list">${itemRows || '<em style="color:var(--text-muted,#888)">No items</em>'}</div>
+      <div class="detail-total">
+        <span>Total</span>
+        <span>${CONFIG.formatCurrency(order.total)}</span>
+      </div>
+    `;
 
-            const payload = { action: "updateStatus", orderId: orderId, newStatus: newStatus };
+    // Footer action buttons
+    const footer = document.getElementById('detailModalFooter');
+    footer.innerHTML = `<button class="btn btn-ghost" onclick="closeDetailModal()">Close</button>`;
+    if (!isReady) {
+      const readyBtn = document.createElement('button');
+      readyBtn.className = 'btn btn-success';
+      readyBtn.textContent = '✅ Mark Ready';
+      readyBtn.onclick = () => { closeDetailModal(); handleMarkReady(order.orderId); };
+      footer.appendChild(readyBtn);
+    }
+    const posBtn = document.createElement('button');
+    posBtn.className = 'btn btn-primary';
+    posBtn.innerHTML = '💳 Pay POS';
+    posBtn.onclick = () => { closeDetailModal(); handlePayPOS(order.orderId); };
+    footer.appendChild(posBtn);
 
-            try {
-                await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
-                showToast("Status Updated!");
-                fetchOrders(); 
-            } catch (error) {
-                showToast("Failed to update status.");
-                btnElement.innerText = originalText;
-                btnElement.disabled = false;
-            }
-        }
+    const cashBtn = document.createElement('button');
+    cashBtn.className = 'btn btn-cash';
+    cashBtn.innerHTML = '💵 Pay Cash';
+    cashBtn.onclick = () => { closeDetailModal(); handlePayCash(order.orderId); };
+    footer.appendChild(cashBtn);
 
-        fetchCashiers();
-        fetchOrders();
-        setInterval(fetchOrders, 30000); 
-    </script>
+    const voidBtn = document.createElement('button');
+    voidBtn.className = 'btn btn-danger-outline';
+    voidBtn.textContent = '⊘ Void';
+    voidBtn.onclick = () => { closeDetailModal(); handleVoid(order.orderId); };
+    footer.appendChild(voidBtn);
+
+    document.getElementById('detailModal').classList.add('open');
+  }
+
+  function closeDetailModal() {
+    document.getElementById('detailModal').classList.remove('open');
+    currentDetailOrder = null;
+  }
+
+  function onOverlayClick(e, modalId) {
+    if (e.target === document.getElementById(modalId)) {
+      if (modalId === 'detailModal')  closeDetailModal();
+      if (modalId === 'receiptModal') closeReceiptModal();
+    }
+  }
+
+  // ──────────────────────────────────────────────────
+  // RECEIPT
+  // ──────────────────────────────────────────────────
+  function parseOrderItems(itemsStr) {
+    if (!itemsStr) return [];
+    const clean = itemsStr.split(' (Notes:')[0].split(' ⚠️')[0];
+    return clean.split(' | ').map(part => {
+      const m = part.trim().match(/^(\d+)x (.+)$/i);
+      return m ? { qty: parseInt(m[1]), name: m[2].trim() } : { qty: 1, name: part.trim() };
+    }).filter(i => i.name);
+  }
+
+  function formatReceiptDate(ts) {
+    const d = new Date(ts);
+    if (isNaN(d)) return ts || '—';
+    return d.toLocaleDateString('en-NG', { day: '2-digit', month: 'short', year: 'numeric' }) +
+           ' ' +
+           d.toLocaleTimeString('en-NG', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function formatTime(ts) {
+    const d = new Date(ts);
+    if (isNaN(d)) return ts || '—';
+    return d.toLocaleTimeString('en-NG', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function generateReceiptHTML(order) {
+    const items   = parseOrderItems(order.items);
+    const cashier = CONFIG.STATUS.getCashier(order.status) || 'Staff';
+    const method  = CONFIG.STATUS.getMethod(order.status)  || 'N/A';
+    const date    = formatReceiptDate(order.timestamp);
+
+    const itemLines = items.map(item => `
+      <div class="receipt-item-line">
+        <span class="receipt-item-qty">${item.qty}x</span>
+        <span class="receipt-item-name">${escHtml(item.name)}</span>
+      </div>
+    `).join('');
+
+    const footer = (CONFIG.RECEIPT_FOOTER || 'Thank you for dining with us!').replace(/\n/g, '<br>');
+
+    return `
+      <div class="receipt-paper">
+        <div class="receipt-center">
+          <div class="receipt-title">MEVISH EATERY</div>
+          <div class="receipt-sub">Yola, Adamawa State, Nigeria</div>
+          <div class="receipt-sub">${escHtml(CONFIG.RESTAURANT.phone || '')}</div>
+        </div>
+        <hr class="receipt-dash">
+        <div class="receipt-row"><span class="receipt-label">Order ID:</span><span class="receipt-value">${escHtml(order.orderId)}</span></div>
+        <div class="receipt-row"><span class="receipt-label">Date:</span><span class="receipt-value">${escHtml(date)}</span></div>
+        <div class="receipt-row"><span class="receipt-label">Customer:</span><span class="receipt-value">${escHtml(order.name || '—')}</span></div>
+        <div class="receipt-row"><span class="receipt-label">Table/Location:</span><span class="receipt-value">${escHtml(order.location || '—')}</span></div>
+        <div class="receipt-row"><span class="receipt-label">Cashier:</span><span class="receipt-value">${escHtml(cashier)}</span></div>
+        <hr class="receipt-dash">
+        <div class="receipt-items-hdr">ITEMS ORDERED</div>
+        ${itemLines}
+        <hr class="receipt-dash">
+        <div class="receipt-total-row">
+          <span>TOTAL</span>
+          <span>${CONFIG.formatCurrency(order.total)}</span>
+        </div>
+        <div class="receipt-method">Payment Method: ${escHtml(method)}</div>
+        <hr class="receipt-dash">
+        <div class="receipt-footer">${footer}</div>
+      </div>
+    `;
+  }
+
+  function showReceiptModal(order) {
+    currentReceiptOrder = order;
+    document.getElementById('receiptPreview').innerHTML = generateReceiptHTML(order);
+    document.getElementById('receiptModal').classList.add('open');
+  }
+
+  function closeReceiptModal() {
+    document.getElementById('receiptModal').classList.remove('open');
+    currentReceiptOrder = null;
+  }
+
+  function triggerPrint() {
+    if (!currentReceiptOrder) return;
+    document.getElementById('receiptPrintArea').innerHTML = generateReceiptHTML(currentReceiptOrder);
+    document.body.classList.add('printing-receipt');
+    window.print();
+    document.body.classList.remove('printing-receipt');
+  }
+
+  // ──────────────────────────────────────────────────
+  // TOASTS
+  // ──────────────────────────────────────────────────
+  function showToast(message, type = 'info') {
+    const container = document.getElementById('toastContainer');
+    const toast     = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.textContent = message;
+    container.appendChild(toast);
+
+    // Trigger transition
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => toast.classList.add('show'));
+    });
+
+    setTimeout(() => {
+      toast.classList.remove('show');
+      setTimeout(() => toast.remove(), 300);
+    }, 3500);
+  }
+
+  // ──────────────────────────────────────────────────
+  // AUTO-REFRESH
+  // ──────────────────────────────────────────────────
+  function startAutoRefresh() {
+    if (refreshInterval) clearInterval(refreshInterval);
+    refreshInterval = setInterval(fetchOrders, CONFIG.REFRESH_INTERVAL);
+  }
+
+  // ──────────────────────────────────────────────────
+  // UTILITIES
+  // ──────────────────────────────────────────────────
+  function escHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function escAttr(str) {
+    return String(str).replace(/'/g, "\\'");
+  }
+
+  // CSS.escape polyfill for older browsers
+  if (!CSS.escape) {
+    CSS.escape = function(value) {
+      return value.replace(/[^\w-]/g, c => '\\' + c);
+    };
+  }
+
+  // ──────────────────────────────────────────────────
+  // INIT
+  // ──────────────────────────────────────────────────
+  async function init() {
+    await Promise.all([loadCashiers(), fetchOrders()]);
+    startAutoRefresh();
+  }
+
+  document.addEventListener('DOMContentLoaded', init);
+  </script>
 </body>
 </html>

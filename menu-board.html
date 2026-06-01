@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mevish Eatery — Menu Board</title>
+  <meta name="robots" content="noindex, nofollow">
+
+  <link rel="stylesheet" href="style.css">
+  <script src="config.js"></script>
+
+  <style>
+    /* ── Full-screen TV display ── */
+    html, body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      margin: 0;
+      padding: 0;
+      background: var(--bg-deep);
+      font-family: var(--font);
+      color: var(--text-primary);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Animated ambient background ── */
+    .mb-ambient {
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse at 80% 20%, rgba(245,166,35,0.06) 0%, transparent 55%),
+        radial-gradient(ellipse at 15% 80%, rgba(232,93,58,0.05) 0%, transparent 50%),
+        var(--bg-deep);
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* subtle animated grid */
+    .mb-ambient::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+      background-size: 80px 80px;
+    }
+
+    /* ── Wrapper ── */
+    .mb-wrapper {
+      position: relative;
+      z-index: 1;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ── */
+    .mb-header {
+      padding: 24px 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(0,0,0,0.3);
+      border-bottom: 2px solid rgba(245,166,35,0.25);
+      flex-shrink: 0;
+    }
+
+    .mb-brand {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .mb-brand-icon {
+      width: 52px;
+      height: 52px;
+      background: linear-gradient(135deg, var(--gold), var(--orange));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      flex-shrink: 0;
+    }
+
+    .mb-restaurant {
+      font-size: clamp(1.8rem, 3vw, 2.8rem);
+      font-weight: 900;
+      color: var(--gold);
+      line-height: 1;
+    }
+
+    .mb-slogan {
+      font-size: clamp(0.7rem, 1.2vw, 1rem);
+      color: var(--text-muted);
+      font-weight: 400;
+      margin-top: 4px;
+    }
+
+    .mb-center-info {
+      text-align: center;
+    }
+
+    .mb-category-label {
+      font-size: clamp(0.65rem, 1vw, 0.85rem);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2.5px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .mb-category {
+      font-size: clamp(1.4rem, 2.5vw, 2.2rem);
+      font-weight: 800;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .mb-category-icon {
+      font-size: clamp(1.2rem, 2vw, 1.8rem);
+    }
+
+    .mb-right-info {
+      text-align: right;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+    }
+
+    .mb-time {
+      font-size: clamp(1.6rem, 3vw, 2.6rem);
+      font-weight: 700;
+      font-family: 'Courier New', monospace;
+      color: var(--text-primary);
+      line-height: 1;
+    }
+
+    .mb-date {
+      font-size: clamp(0.75rem, 1.2vw, 1rem);
+      color: var(--text-muted);
+    }
+
+    /* ── Category pills (indicator row) ── */
+    .mb-cat-pills {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      padding: 14px 48px;
+      background: rgba(0,0,0,0.15);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .mb-cat-pill {
+      padding: 6px 22px;
+      border-radius: 999px;
+      font-size: clamp(0.7rem, 1vw, 0.9rem);
+      font-weight: 600;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      background: transparent;
+      transition: all 0.4s ease;
+      letter-spacing: 0.5px;
+    }
+
+    .mb-cat-pill.active {
+      background: var(--gold-dim);
+      border-color: var(--border-accent);
+      color: var(--gold);
+    }
+
+    /* ── Body grid ── */
+    .mb-body {
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(clamp(260px, 28vw, 400px), 1fr));
+      gap: clamp(12px, 2vw, 24px);
+      padding: clamp(16px, 3vw, 36px) clamp(24px, 4vw, 48px);
+      align-content: start;
+      overflow: hidden;
+    }
+
+    /* ── Item card ── */
+    .mb-item {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 16px;
+      padding: clamp(14px, 2vw, 22px) clamp(18px, 2.5vw, 28px);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      transition: border-color 0.3s ease, transform 0.3s ease;
+    }
+
+    .mb-item:hover {
+      border-color: rgba(245,166,35,0.3);
+    }
+
+    .mb-item-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      overflow: hidden;
+    }
+
+    .mb-item-emoji {
+      font-size: clamp(1.4rem, 2.2vw, 2rem);
+      flex-shrink: 0;
+    }
+
+    .mb-item-name {
+      font-size: clamp(0.85rem, 1.4vw, 1.2rem);
+      font-weight: 600;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .mb-item-price {
+      font-size: clamp(0.95rem, 1.6vw, 1.4rem);
+      font-weight: 900;
+      color: var(--gold);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    /* ── Item count badge ── */
+    .mb-item-count {
+      font-size: clamp(0.65rem, 0.9vw, 0.8rem);
+      color: var(--text-muted);
+      text-align: center;
+      padding: 8px;
+      flex-shrink: 0;
+    }
+
+    /* ── Progress bar ── */
+    .mb-progress-track {
+      height: 4px;
+      background: rgba(255,255,255,0.05);
+      flex-shrink: 0;
+    }
+
+    .mb-progress {
+      height: 100%;
+      background: linear-gradient(90deg, var(--gold), var(--orange));
+      width: 100%;
+      transition: width linear;
+    }
+
+    /* ── Fade transition ── */
+    .mb-body.fading {
+      animation: mbFadeOut 0.35s ease forwards;
+    }
+
+    .mb-body.fading-in {
+      animation: mbFadeIn 0.4s ease forwards;
+    }
+
+    @keyframes mbFadeOut {
+      from { opacity: 1; transform: translateY(0); }
+      to   { opacity: 0; transform: translateY(-12px); }
+    }
+
+    @keyframes mbFadeIn {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Item slide-in ── */
+    .mb-item {
+      animation: mbItemIn 0.45s ease both;
+    }
+
+    @keyframes mbItemIn {
+      from { opacity: 0; transform: translateX(-16px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    /* ── Next-up badge ── */
+    .mb-next-label {
+      font-size: clamp(0.65rem, 0.9vw, 0.8rem);
+      color: var(--text-muted);
+    }
+
+    /* ── Connection status ── */
+    .mb-status {
+      position: fixed;
+      bottom: 12px;
+      left: 16px;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      opacity: 0.5;
+      font-family: 'Courier New', monospace;
+    }
+
+    /* ── Error / fallback notice ── */
+    .mb-notice {
+      position: fixed;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.75rem;
+      padding: 6px 16px;
+      border-radius: 999px;
+      background: var(--warning-dim);
+      color: var(--warning);
+      border: 1px solid var(--warning-border);
+      white-space: nowrap;
+      transition: top 0.4s ease;
+      z-index: 100;
+    }
+
+    .mb-notice.show {
+      top: calc(100% - 44px);
+    }
+  </style>
+</head>
+<body class="menu-board-page">
+
+  <div class="mb-ambient" aria-hidden="true"></div>
+
+  <div class="mb-wrapper">
+
+    <!-- HEADER -->
+    <header class="mb-header">
+      <div class="mb-brand">
+        <div class="mb-brand-icon">🍽️</div>
+        <div>
+          <div class="mb-restaurant" id="mbRestaurant">Mevish Eatery</div>
+          <div class="mb-slogan">Premium Food. Fast Service. Real Flavour.</div>
+        </div>
+      </div>
+
+      <div class="mb-center-info">
+        <div class="mb-category-label">Now Showing</div>
+        <div class="mb-category">
+          <span class="mb-category-icon" id="mbCategoryIcon">🍽️</span>
+          <span id="mbCategory">Loading…</span>
+        </div>
+      </div>
+
+      <div class="mb-right-info">
+        <div class="mb-time" id="mbClock">--:--</div>
+        <div class="mb-date" id="mbDate"></div>
+        <div class="mb-next-label" id="mbNextLabel"></div>
+      </div>
+    </header>
+
+    <!-- CATEGORY PILL INDICATORS -->
+    <div class="mb-cat-pills" id="mbCatPills">
+      <!-- Rendered by JS -->
+    </div>
+
+    <!-- MENU ITEMS GRID -->
+    <div class="mb-body" id="mbBody">
+      <!-- Loading state -->
+      <div style="grid-column: 1/-1; display:flex; align-items:center; justify-content:center; gap: 16px; opacity:0.5; padding: 60px;">
+        <div class="spinner"></div>
+        <span style="font-size: 1.1rem;">Loading menu…</span>
+      </div>
+    </div>
+
+    <!-- PROGRESS TRACK -->
+    <div class="mb-progress-track">
+      <div class="mb-progress" id="mbProgress"></div>
+    </div>
+
+  </div><!-- /mb-wrapper -->
+
+  <!-- Connection status -->
+  <div class="mb-status" id="mbStatus">⬤ Live</div>
+
+  <!-- Fallback notice -->
+  <div class="mb-notice" id="mbNotice">⚠ Showing fallback menu — check internet connection</div>
+
+  <script>
+    // ── Config ─────────────────────────────
+    const CATEGORIES  = ['Foods', 'Swallows', 'Pastries', 'Drinks'];
+    const CYCLE_MS    = 10000;     // 10 seconds per category
+    const CATEGORY_ICONS = CONFIG.CATEGORY_ICONS;
+
+    let currentCatIndex = 0;
+    let menuData        = [];
+    let cycleInterval   = null;
+    let progressInterval = null;
+    let progressStart   = null;
+
+    // ── Helpers ─────────────────────────────
+    function fmt(price) {
+      return CONFIG.formatCurrency(price);
+    }
+
+    // ── Date label ──────────────────────────
+    function updateDate() {
+      const d = new Date();
+      document.getElementById('mbDate').textContent = d.toLocaleDateString('en-NG', {
+        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+      });
+    }
+
+    // ── Clock ───────────────────────────────
+    function updateClock() {
+      document.getElementById('mbClock').textContent = new Date().toLocaleTimeString('en-NG', {
+        hour: '2-digit', minute: '2-digit'
+      });
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+    updateDate();
+
+    // ── Category pills ───────────────────────
+    function renderPills(activeIndex) {
+      const container = document.getElementById('mbCatPills');
+      container.innerHTML = CATEGORIES.map((cat, i) => `
+        <div class="mb-cat-pill ${i === activeIndex ? 'active' : ''}" id="pill-${i}">
+          ${CATEGORY_ICONS[cat] || '🍴'} ${cat}
+        </div>
+      `).join('');
+    }
+
+    // ── Progress bar ─────────────────────────
+    function startProgress() {
+      const bar = document.getElementById('mbProgress');
+      clearInterval(progressInterval);
+      progressStart = Date.now();
+
+      bar.style.transition = 'none';
+      bar.style.width = '100%';
+
+      // Force reflow
+      bar.getBoundingClientRect();
+
+      bar.style.transition = `width ${CYCLE_MS}ms linear`;
+      bar.style.width = '0%';
+    }
+
+    // ── Next label ───────────────────────────
+    function updateNextLabel(activeIndex) {
+      const nextIdx  = (activeIndex + 1) % CATEGORIES.length;
+      const nextCat  = CATEGORIES[nextIdx];
+      document.getElementById('mbNextLabel').textContent = `Next: ${CATEGORY_ICONS[nextCat] || ''} ${nextCat}`;
+    }
+
+    // ── Show category ────────────────────────
+    function showCategory(index, skipFade = false) {
+      const cat   = CATEGORIES[index];
+      const items = menuData.filter(i => i.category === cat);
+
+      // Update header
+      document.getElementById('mbCategory').textContent = cat;
+      document.getElementById('mbCategoryIcon').textContent = CATEGORY_ICONS[cat] || '🍴';
+
+      // Update pills
+      renderPills(index);
+
+      // Update next label
+      updateNextLabel(index);
+
+      // Render items with stagger
+      const body = document.getElementById('mbBody');
+
+      const doRender = () => {
+        body.innerHTML = items.length > 0
+          ? items.map((item, idx) => `
+              <div class="mb-item" style="animation-delay: ${idx * 0.045}s">
+                <div class="mb-item-left">
+                  <span class="mb-item-emoji">${CATEGORY_ICONS[item.category] || '🍴'}</span>
+                  <span class="mb-item-name">${item.name}</span>
+                </div>
+                <span class="mb-item-price">${fmt(item.price)}</span>
+              </div>
+            `).join('')
+          : `<div style="grid-column:1/-1; text-align:center; padding:60px; opacity:0.4;">
+               <div style="font-size:3rem;">🍴</div>
+               <div style="margin-top:12px; font-size:1.1rem;">No items in this category</div>
+             </div>`;
+        body.classList.remove('fading');
+        body.classList.add('fading-in');
+        setTimeout(() => body.classList.remove('fading-in'), 500);
+      };
+
+      if (skipFade) {
+        doRender();
+      } else {
+        body.classList.add('fading');
+        setTimeout(doRender, 350);
+      }
+
+      // Progress bar
+      startProgress();
+    }
+
+    // ── Auto cycle ───────────────────────────
+    function startCycle() {
+      clearInterval(cycleInterval);
+      cycleInterval = setInterval(() => {
+        currentCatIndex = (currentCatIndex + 1) % CATEGORIES.length;
+        showCategory(currentCatIndex);
+      }, CYCLE_MS);
+    }
+
+    // ── Load menu ────────────────────────────
+    async function loadMenu() {
+      try {
+        const res  = await fetch(CONFIG.API_URL);
+        const data = await res.json();
+        if (data && Array.isArray(data.data)) {
+          menuData = data.data;
+          document.getElementById('mbStatus').textContent = '⬤ Live';
+          document.getElementById('mbStatus').style.color = 'var(--success)';
+        } else {
+          throw new Error('bad data');
+        }
+      } catch {
+        // Fall back to local menu
+        menuData = CONFIG.FALLBACK_MENU;
+        const notice = document.getElementById('mbNotice');
+        notice.classList.add('show');
+        setTimeout(() => notice.classList.remove('show'), 6000);
+        document.getElementById('mbStatus').textContent = '⬤ Offline';
+        document.getElementById('mbStatus').style.color = 'var(--warning)';
+      }
+
+      showCategory(0, true);
+      startCycle();
+    }
+
+    // ── Init ─────────────────────────────────
+    loadMenu();
+  </script>
+</body>
+</html>

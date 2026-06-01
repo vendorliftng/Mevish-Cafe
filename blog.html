@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blog | Mevish Eatery — Food, Culture &amp; Stories from Yola</title>
+  <meta name="description" content="Explore food culture, recipes, and stories from Mevish Eatery's kitchen in Yola, Adamawa. Discover what makes our food special.">
+  <meta property="og:title" content="Blog | Mevish Eatery">
+  <meta property="og:description" content="Explore food culture, recipes, and stories from Mevish Eatery's kitchen in Yola, Adamawa.">
+  <meta property="og:type" content="website">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script type="application/ld+json">
+  { "@context":"https://schema.org", "@type":"Blog", "name":"Mevish Eatery Blog", "url":"./blog.html", "publisher":{"@type":"Organization","name":"Mevish Eatery","address":{"@type":"PostalAddress","addressLocality":"Yola","addressRegion":"Adamawa"}}}
+  </script>
+  <style>
+    /* ── BLOG PAGE STYLES ── */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg-base: #0a0a0f;
+      --bg-card: #13131a;
+      --bg-card-hover: #1a1a24;
+      --bg-glass: rgba(255,255,255,0.04);
+      --border: rgba(255,255,255,0.08);
+      --border-hover: rgba(255,255,255,0.18);
+      --accent: #f59e0b;
+      --accent-dark: #d97706;
+      --accent-glow: rgba(245,158,11,0.25);
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --gradient-hero: linear-gradient(135deg, #0a0a0f 0%, #1a0f00 50%, #0a0a0f 100%);
+      --font-body: 'Inter', sans-serif;
+      --font-display: 'Playfair Display', serif;
+      --radius: 16px;
+      --radius-sm: 8px;
+      --shadow-card: 0 4px 24px rgba(0,0,0,0.4);
+      --shadow-glow: 0 0 40px rgba(245,158,11,0.15);
+      --transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--bg-base);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* NAVBAR */
+    .navbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(10,10,15,0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .navbar-brand {
+      font-family: var(--font-display);
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--accent);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .navbar-brand span { color: var(--text-primary); }
+    .navbar-nav { display: flex; align-items: center; gap: 1.5rem; }
+    .navbar-nav a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: var(--transition);
+      padding: 0.4rem 0.8rem;
+      border-radius: var(--radius-sm);
+    }
+    .navbar-nav a:hover { color: var(--accent); background: var(--accent-glow); }
+    .navbar-nav a.active { color: var(--accent); }
+    .nav-cta {
+      background: var(--accent);
+      color: #000 !important;
+      border-radius: var(--radius-sm);
+      font-weight: 600 !important;
+    }
+    .nav-cta:hover { background: var(--accent-dark) !important; color: #000 !important; }
+
+    /* HERO */
+    .blog-hero {
+      background: var(--gradient-hero);
+      padding: 5rem 2rem 4rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .blog-hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at center, rgba(245,158,11,0.12) 0%, transparent 70%);
+    }
+    .blog-hero::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: var(--accent-glow);
+      border: 1px solid rgba(245,158,11,0.3);
+      color: var(--accent);
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 0.4rem 1rem;
+      border-radius: 999px;
+      margin-bottom: 1.5rem;
+      position: relative;
+    }
+    .blog-hero h1 {
+      font-family: var(--font-display);
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      font-weight: 700;
+      line-height: 1.15;
+      margin-bottom: 1rem;
+      position: relative;
+    }
+    .blog-hero h1 em {
+      font-style: normal;
+      background: linear-gradient(135deg, var(--accent), #fbbf24);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .blog-hero p {
+      color: var(--text-secondary);
+      font-size: 1.1rem;
+      max-width: 500px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    /* CATEGORY TABS */
+    .category-bar-wrap {
+      background: var(--bg-base);
+      border-bottom: 1px solid var(--border);
+      padding: 1.25rem 2rem;
+      position: sticky;
+      top: 64px;
+      z-index: 90;
+    }
+    .tab-bar {
+      display: flex;
+      gap: 0.5rem;
+      overflow-x: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .tab-bar::-webkit-scrollbar { display: none; }
+    .tab-pill {
+      flex-shrink: 0;
+      padding: 0.5rem 1.2rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--bg-glass);
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: var(--transition);
+      white-space: nowrap;
+    }
+    .tab-pill:hover { border-color: var(--accent); color: var(--accent); }
+    .tab-pill.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #000;
+      font-weight: 700;
+      box-shadow: 0 0 20px var(--accent-glow);
+    }
+
+    /* MAIN CONTENT */
+    .blog-main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 3rem 2rem;
+    }
+
+    /* SEARCH BAR */
+    .search-wrap {
+      margin-bottom: 2rem;
+      position: relative;
+    }
+    .search-wrap input {
+      width: 100%;
+      max-width: 500px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 0.75rem 1rem 0.75rem 2.75rem;
+      color: var(--text-primary);
+      font-size: 0.9rem;
+      font-family: var(--font-body);
+      transition: var(--transition);
+      outline: none;
+    }
+    .search-wrap input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+    .search-icon {
+      position: absolute;
+      left: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 1rem;
+    }
+
+    /* GRID */
+    .grid-blog {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 1.75rem;
+    }
+
+    /* BLOG CARD */
+    .blog-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      transition: var(--transition);
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      flex-direction: column;
+      cursor: pointer;
+    }
+    .blog-card:hover {
+      border-color: var(--border-hover);
+      background: var(--bg-card-hover);
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-card), var(--shadow-glow);
+    }
+    .blog-card-image {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+      display: block;
+      background: linear-gradient(135deg, #1a1200, #2d1f00);
+      position: relative;
+      overflow: hidden;
+    }
+    .blog-card-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.5s ease;
+    }
+    .blog-card:hover .blog-card-image img { transform: scale(1.05); }
+    .blog-card-image-fallback {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3.5rem;
+    }
+    .blog-card-body {
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      gap: 0.6rem;
+    }
+    .blog-card-category {
+      display: inline-flex;
+      align-items: center;
+      background: var(--accent-glow);
+      color: var(--accent);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 0.25rem 0.65rem;
+      border-radius: 999px;
+      align-self: flex-start;
+      border: 1px solid rgba(245,158,11,0.2);
+    }
+    .blog-card-title {
+      font-family: var(--font-display);
+      font-size: 1.15rem;
+      font-weight: 700;
+      line-height: 1.4;
+      color: var(--text-primary);
+    }
+    .blog-card-excerpt {
+      color: var(--text-secondary);
+      font-size: 0.87rem;
+      line-height: 1.6;
+      flex: 1;
+    }
+    .blog-card-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 0.75rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+    .blog-card-meta-left { display: flex; gap: 0.75rem; align-items: center; }
+    .blog-card-read-more {
+      color: var(--accent);
+      font-size: 0.82rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+    .blog-card-read-more:hover { gap: 0.5rem; }
+
+    /* LOADING STATE */
+    .skeleton-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 1.75rem;
+    }
+    .skeleton-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      animation: pulse 1.8s ease-in-out infinite;
+    }
+    .skeleton-img { height: 200px; background: var(--border); }
+    .skeleton-body { padding: 1.25rem; display: flex; flex-direction: column; gap: 0.75rem; }
+    .skeleton-line {
+      height: 14px;
+      background: var(--border);
+      border-radius: 4px;
+    }
+    .skeleton-line.short { width: 40%; }
+    .skeleton-line.medium { width: 70%; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+    /* EMPTY STATE */
+    .empty-state {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 4rem 2rem;
+      color: var(--text-muted);
+    }
+    .empty-state .empty-icon { font-size: 3rem; margin-bottom: 1rem; }
+    .empty-state h3 { font-size: 1.2rem; color: var(--text-secondary); margin-bottom: 0.5rem; }
+
+    /* FOOTER */
+    .blog-footer {
+      border-top: 1px solid var(--border);
+      padding: 2.5rem 2rem;
+      text-align: center;
+    }
+    .blog-footer-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+    .footer-brand {
+      font-family: var(--font-display);
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    .footer-links { display: flex; gap: 1.5rem; }
+    .footer-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.85rem;
+      transition: var(--transition);
+    }
+    .footer-links a:hover { color: var(--accent); }
+    .footer-copy { color: var(--text-muted); font-size: 0.8rem; }
+
+    /* RESULTS COUNT */
+    .results-info {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      margin-bottom: 1.5rem;
+    }
+
+    /* CATEGORY GRADIENTS */
+    .cat-food { background: linear-gradient(135deg,#2d1200,#5c2800); }
+    .cat-menu { background: linear-gradient(135deg,#001f2d,#003347); }
+    .cat-news { background: linear-gradient(135deg,#0d1f00,#1f3d00); }
+    .cat-recipes { background: linear-gradient(135deg,#1f001f,#3d0033); }
+    .cat-behind { background: linear-gradient(135deg,#1a001a,#2d0050); }
+
+    @media (max-width: 768px) {
+      .navbar-nav { display: none; }
+      .blog-hero { padding: 3rem 1.25rem 2.5rem; }
+      .blog-main { padding: 2rem 1.25rem; }
+      .category-bar-wrap { padding: 1rem 1.25rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar" role="navigation" aria-label="Main navigation">
+  <a href="home.html" class="navbar-brand">🍽️ <span>Mevish Eatery</span></a>
+  <div class="navbar-nav">
+    <a href="home.html">Home</a>
+    <a href="index.html">Order</a>
+    <a href="blog.html" class="active">Blog</a>
+    <a href="track.html">Track Order</a>
+    <a href="index.html" class="nav-cta">Order Now</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="blog-hero">
+  <div class="hero-badge">✨ Stories &amp; Recipes</div>
+  <h1>Stories From <em>Our Kitchen</em></h1>
+  <p>Discover food culture, recipes, and what makes every plate at Mevish Eatery special.</p>
+</section>
+
+<!-- CATEGORY TABS -->
+<div class="category-bar-wrap">
+  <div class="tab-bar" role="tablist" aria-label="Blog categories" id="categoryBar">
+    <button class="tab-pill active" role="tab" aria-selected="true" data-cat="All" onclick="filterPosts('All')">All Posts</button>
+    <button class="tab-pill" role="tab" aria-selected="false" data-cat="Food & Culture" onclick="filterPosts('Food & Culture')">Food &amp; Culture</button>
+    <button class="tab-pill" role="tab" aria-selected="false" data-cat="Menu Spotlight" onclick="filterPosts('Menu Spotlight')">Menu Spotlight</button>
+    <button class="tab-pill" role="tab" aria-selected="false" data-cat="News & Events" onclick="filterPosts('News & Events')">News &amp; Events</button>
+    <button class="tab-pill" role="tab" aria-selected="false" data-cat="Recipes & Tips" onclick="filterPosts('Recipes & Tips')">Recipes &amp; Tips</button>
+    <button class="tab-pill" role="tab" aria-selected="false" data-cat="Behind the Scenes" onclick="filterPosts('Behind the Scenes')">Behind the Scenes</button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<main class="blog-main">
+  <!-- SEARCH -->
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input type="search" id="searchInput" placeholder="Search articles..." aria-label="Search blog posts" oninput="handleSearch()">
+  </div>
+
+  <p class="results-info" id="resultsInfo"></p>
+
+  <!-- GRID -->
+  <div class="grid-blog" id="blogGrid" role="list" aria-label="Blog posts">
+    <!-- Skeleton loading state -->
+    <div class="skeleton-card">
+      <div class="skeleton-img"></div>
+      <div class="skeleton-body">
+        <div class="skeleton-line short"></div>
+        <div class="skeleton-line medium"></div>
+        <div class="skeleton-line"></div>
+        <div class="skeleton-line medium"></div>
+      </div>
+    </div>
+    <div class="skeleton-card">
+      <div class="skeleton-img"></div>
+      <div class="skeleton-body">
+        <div class="skeleton-line short"></div>
+        <div class="skeleton-line medium"></div>
+        <div class="skeleton-line"></div>
+        <div class="skeleton-line medium"></div>
+      </div>
+    </div>
+    <div class="skeleton-card">
+      <div class="skeleton-img"></div>
+      <div class="skeleton-body">
+        <div class="skeleton-line short"></div>
+        <div class="skeleton-line medium"></div>
+        <div class="skeleton-line"></div>
+        <div class="skeleton-line medium"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- FOOTER -->
+<footer class="blog-footer">
+  <div class="blog-footer-inner">
+    <div class="footer-brand">🍽️ Mevish Eatery</div>
+    <div class="footer-links">
+      <a href="home.html">Home</a>
+      <a href="index.html">Order Online</a>
+      <a href="blog.html">Blog</a>
+      <a href="track.html">Track Order</a>
+    </div>
+    <p class="footer-copy">© 2025 Mevish Eatery, Yola, Adamawa. All rights reserved.</p>
+  </div>
+</footer>
+
+<script src="config.js"></script>
+<script>
+  // ── STATE ──
+  let allPosts = [];
+  let activeCategory = 'All';
+  let searchQuery = '';
+
+  // ── CATEGORY EMOJI MAP ──
+  const catEmoji = {
+    'Food & Culture': '🌍',
+    'Menu Spotlight': '⭐',
+    'News & Events': '📰',
+    'Recipes & Tips': '👨‍🍳',
+    'Behind the Scenes': '🎬',
+  };
+  const catGradient = {
+    'Food & Culture': 'cat-food',
+    'Menu Spotlight': 'cat-menu',
+    'News & Events': 'cat-news',
+    'Recipes & Tips': 'cat-recipes',
+    'Behind the Scenes': 'cat-behind',
+  };
+
+  // ── FETCH POSTS ──
+  async function loadPosts(category = 'All') {
+    try {
+      const url = (typeof CONFIG !== 'undefined' ? CONFIG.API_URL : '') + '?type=blogs';
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('Network error');
+      const data = await res.json();
+      allPosts = data.data || [];
+      applyFilters();
+    } catch (err) {
+      console.warn('API unavailable, using fallback posts:', err.message);
+      renderFallbackPosts();
+    }
+  }
+
+  // ── FILTER & SEARCH ──
+  function filterPosts(cat) {
+    activeCategory = cat;
+    document.querySelectorAll('.tab-pill').forEach(b => {
+      b.classList.toggle('active', b.dataset.cat === cat);
+      b.setAttribute('aria-selected', b.dataset.cat === cat ? 'true' : 'false');
+    });
+    applyFilters();
+  }
+
+  function handleSearch() {
+    searchQuery = document.getElementById('searchInput').value.toLowerCase();
+    applyFilters();
+  }
+
+  function applyFilters() {
+    let posts = [...allPosts];
+    if (activeCategory !== 'All') posts = posts.filter(p => p.category === activeCategory);
+    if (searchQuery) posts = posts.filter(p =>
+      p.title.toLowerCase().includes(searchQuery) ||
+      (p.content || '').toLowerCase().includes(searchQuery)
+    );
+    renderPosts(posts);
+  }
+
+  // ── READ TIME ──
+  function readTime(content) {
+    if (!content) return '1 min read';
+    const words = content.split(/\s+/).length;
+    const mins = Math.max(1, Math.round(words / 200));
+    return `${mins} min read`;
+  }
+
+  // ── FORMAT DATE ──
+  function formatDate(dateStr) {
+    if (!dateStr) return '';
+    try {
+      return new Date(dateStr).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' });
+    } catch { return dateStr; }
+  }
+
+  // ── RENDER POSTS ──
+  function renderPosts(posts) {
+    const grid = document.getElementById('blogGrid');
+    const info = document.getElementById('resultsInfo');
+
+    if (posts.length === 0) {
+      grid.innerHTML = `
+        <div class="empty-state" role="status">
+          <div class="empty-icon">📭</div>
+          <h3>No articles found</h3>
+          <p>Try a different category or search term.</p>
+        </div>`;
+      info.textContent = '';
+      return;
+    }
+
+    info.textContent = `Showing ${posts.length} article${posts.length !== 1 ? 's' : ''}${activeCategory !== 'All' ? ' in ' + activeCategory : ''}`;
+
+    grid.innerHTML = posts.map(post => {
+      const excerpt = (post.content || '').replace(/#{1,3} /g, '').replace(/\*\*/g, '').replace(/\*/g, '').substring(0, 120);
+      const slug = post.slug || generateSlug(post.title);
+      const gradClass = catGradient[post.category] || 'cat-food';
+      const emoji = catEmoji[post.category] || '✍️';
+      const imageHtml = post.imageUrl
+        ? `<img src="${post.imageUrl}" alt="${escHtml(post.title)}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+        : '';
+      return `
+        <article class="blog-card" role="listitem" onclick="window.location='article.html?slug=${encodeURIComponent(slug)}'" tabindex="0" aria-label="${escHtml(post.title)}">
+          <div class="blog-card-image ${gradClass}">
+            ${imageHtml}
+            <div class="blog-card-image-fallback" style="${post.imageUrl ? 'display:none' : ''}">${emoji}</div>
+          </div>
+          <div class="blog-card-body">
+            <span class="blog-card-category">${escHtml(post.category || 'General')}</span>
+            <h2 class="blog-card-title">${escHtml(post.title)}</h2>
+            <p class="blog-card-excerpt">${escHtml(excerpt)}${excerpt.length >= 120 ? '…' : ''}</p>
+            <div class="blog-card-meta">
+              <div class="blog-card-meta-left">
+                <span>📅 ${formatDate(post.date)}</span>
+                <span>⏱ ${readTime(post.content)}</span>
+              </div>
+              <a href="article.html?slug=${encodeURIComponent(slug)}" class="blog-card-read-more" onclick="event.stopPropagation()">Read More →</a>
+            </div>
+          </div>
+        </article>`;
+    }).join('');
+
+    // Keyboard accessibility
+    document.querySelectorAll('.blog-card').forEach(card => {
+      card.addEventListener('keypress', e => { if (e.key === 'Enter') card.click(); });
+    });
+  }
+
+  // ── FALLBACK POSTS ──
+  function renderFallbackPosts() {
+    allPosts = [
+      {
+        id: 'demo1',
+        title: 'The Story Behind Mevish Pizza',
+        category: 'Menu Spotlight',
+        slug: 'story-behind-mevish-pizza',
+        content: 'Our signature pizza is more than just a dish — it\'s a fusion of traditional Nigerian spices and Italian technique. Every dough is hand-stretched, topped with locally sourced vegetables, and finished in our high-heat oven. The result is a crispy, flavourful pizza that has become the most-ordered item at Mevish Eatery. We started experimenting with the recipe in 2022, trying different spice blends until we found the perfect balance. Today, our pizza comes in four sizes and over a dozen toppings — all designed to satisfy every palate in Yola.',
+        author: 'Mevish Eatery',
+        date: '2025-05-15',
+        status: 'Published',
+        imageUrl: '',
+        metaDescription: 'Discover the story behind Mevish Eatery\'s most popular pizza and what makes it unique in Yola.'
+      },
+      {
+        id: 'demo2',
+        title: 'What Is Mandi Rice and Why We Love It',
+        category: 'Food & Culture',
+        slug: 'what-is-mandi-rice',
+        content: 'Mandi rice is a traditional Middle Eastern dish that has found a beloved home in Northern Nigeria. Originating from Yemen, mandi features slow-cooked meat — typically lamb or chicken — infused with saffron, cardamom, and cinnamon, served over long-grain basmati rice. At Mevish Eatery, we prepare our mandi the authentic way: the meat is slow-roasted in a tandoor pit, which gives it that distinctive smoky flavour. The rice absorbs all the rich juices from the cooking process, making every grain burst with flavour. It\'s a dish that embodies hospitality and celebration — and we serve it with pride every day.',
+        author: 'Chef Mevish',
+        date: '2025-05-10',
+        status: 'Published',
+        imageUrl: '',
+        metaDescription: 'Learn about Mandi Rice — the flavourful Middle Eastern dish that Mevish Eatery brings to Yola, Adamawa.'
+      },
+      {
+        id: 'demo3',
+        title: 'Best Restaurants in Yola 2025: Why Mevish Leads the Pack',
+        category: 'News & Events',
+        slug: 'best-restaurants-yola-2025',
+        content: 'Yola\'s food scene has grown tremendously in recent years, with restaurants offering diverse cuisines from local Nigerian dishes to international favourites. Among the standout establishments, Mevish Eatery has consistently been praised for its combination of quality, variety, and customer service. We offer dine-in, takeout, and online ordering — making great food accessible to everyone in Adamawa State. Our menu spans from traditional Nigerian soups and rice dishes to pizzas, sandwiches, and fresh-squeezed juices. Whether you\'re looking for a quick lunch or a special family dinner, Mevish Eatery has something for every occasion.',
+        author: 'Mevish Eatery',
+        date: '2025-05-05',
+        status: 'Published',
+        imageUrl: '',
+        metaDescription: 'Find out why Mevish Eatery is considered among the best restaurants in Yola, Adamawa State in 2025.'
+      }
+    ];
+    applyFilters();
+  }
+
+  // ── HELPERS ──
+  function escHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function generateSlug(title) {
+    return (title || '').toLowerCase().replace(/[^a-z0-9\s-]/g,'').trim().replace(/\s+/g,'-');
+  }
+
+  // ── INIT ──
+  document.addEventListener('DOMContentLoaded', loadPosts);
+</script>
+</body>
+</html>

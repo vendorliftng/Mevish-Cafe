@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title id="pageTitle">Article | Mevish Eatery Blog</title>
+  <meta name="description" id="pageDesc" content="">
+  <meta property="og:title" id="ogTitle" content="">
+  <meta property="og:image" id="ogImage" content="">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Mevish Eatery Blog">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    :root {
+      --bg-base:#0a0a0f;
+      --bg-card:#13131a;
+      --bg-card-hover:#1a1a24;
+      --bg-glass:rgba(255,255,255,0.04);
+      --border:rgba(255,255,255,0.08);
+      --border-hover:rgba(255,255,255,0.18);
+      --accent:#f59e0b;
+      --accent-dark:#d97706;
+      --accent-glow:rgba(245,158,11,0.25);
+      --text-primary:#f1f5f9;
+      --text-secondary:#94a3b8;
+      --text-muted:#64748b;
+      --font-body:'Inter',sans-serif;
+      --font-display:'Playfair Display',serif;
+      --radius:16px;
+      --radius-sm:8px;
+      --shadow-card:0 4px 24px rgba(0,0,0,0.4);
+      --shadow-glow:0 0 40px rgba(245,158,11,0.15);
+      --transition:all 0.3s cubic-bezier(0.4,0,0.2,1);
+      --max-article:720px;
+    }
+    body { font-family:var(--font-body); background:var(--bg-base); color:var(--text-primary); min-height:100vh; overflow-x:hidden; }
+
+    /* NAVBAR */
+    .navbar { position:sticky; top:0; z-index:100; background:rgba(10,10,15,0.85); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border-bottom:1px solid var(--border); padding:0 2rem; height:64px; display:flex; align-items:center; justify-content:space-between; }
+    .navbar-brand { font-family:var(--font-display); font-size:1.4rem; font-weight:700; color:var(--accent); text-decoration:none; display:flex; align-items:center; gap:0.5rem; }
+    .navbar-brand span { color:var(--text-primary); }
+    .navbar-nav { display:flex; align-items:center; gap:1.5rem; }
+    .navbar-nav a { color:var(--text-secondary); text-decoration:none; font-size:0.9rem; font-weight:500; transition:var(--transition); padding:0.4rem 0.8rem; border-radius:var(--radius-sm); }
+    .navbar-nav a:hover { color:var(--accent); background:var(--accent-glow); }
+    .nav-cta { background:var(--accent); color:#000 !important; border-radius:var(--radius-sm); font-weight:600 !important; }
+    .nav-cta:hover { background:var(--accent-dark) !important; }
+
+    /* BREADCRUMB */
+    .breadcrumb-wrap { max-width:900px; margin:0 auto; padding:1.25rem 2rem 0; }
+    .breadcrumb { display:flex; align-items:center; gap:0.5rem; font-size:0.82rem; color:var(--text-muted); flex-wrap:wrap; }
+    .breadcrumb a { color:var(--text-muted); text-decoration:none; transition:var(--transition); }
+    .breadcrumb a:hover { color:var(--accent); }
+    .breadcrumb .sep { color:var(--border-hover); }
+    .breadcrumb .current { color:var(--text-secondary); }
+
+    /* ARTICLE HERO */
+    .article-hero {
+      max-width:900px; margin:1.5rem auto 0; padding:0 2rem;
+    }
+    .article-hero-img {
+      width:100%; height:400px; object-fit:cover; border-radius:var(--radius); display:block;
+      background:linear-gradient(135deg,#1a1200,#2d1f00);
+      position:relative; overflow:hidden;
+    }
+    .article-hero-img img { width:100%; height:100%; object-fit:cover; border-radius:var(--radius); }
+    .article-hero-fallback { width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:5rem; border-radius:var(--radius); }
+
+    /* ARTICLE META */
+    .article-meta-wrap { max-width:var(--max-article); margin:2rem auto 0; padding:0 2rem; }
+    .article-category-badge {
+      display:inline-flex; align-items:center; background:var(--accent-glow); color:var(--accent);
+      font-size:0.75rem; font-weight:700; letter-spacing:0.08em; text-transform:uppercase;
+      padding:0.3rem 0.8rem; border-radius:999px; border:1px solid rgba(245,158,11,0.25);
+      margin-bottom:1rem;
+    }
+    .article-meta { display:flex; align-items:center; gap:1.25rem; font-size:0.82rem; color:var(--text-muted); flex-wrap:wrap; margin-bottom:1.5rem; }
+    .article-meta span { display:flex; align-items:center; gap:0.35rem; }
+
+    /* ARTICLE TITLE */
+    .article-title {
+      max-width:var(--max-article); margin:0 auto 2rem; padding:0 2rem;
+      font-family:var(--font-display); font-size:clamp(1.6rem,4vw,2.6rem);
+      font-weight:900; line-height:1.2; color:var(--text-primary);
+    }
+
+    /* ARTICLE BODY */
+    .article-body-wrap { max-width:var(--max-article); margin:0 auto; padding:0 2rem 3rem; }
+    .article-body { color:var(--text-secondary); font-size:1.05rem; line-height:1.85; }
+    .article-body h2 { font-family:var(--font-display); font-size:1.6rem; color:var(--text-primary); margin:2rem 0 0.75rem; font-weight:700; }
+    .article-body h3 { font-family:var(--font-display); font-size:1.25rem; color:var(--text-primary); margin:1.5rem 0 0.6rem; font-weight:600; }
+    .article-body p { margin-bottom:1.25rem; }
+    .article-body ul { margin:0.75rem 0 1.25rem 1.5rem; display:flex; flex-direction:column; gap:0.4rem; }
+    .article-body li { color:var(--text-secondary); }
+    .article-body strong { color:var(--text-primary); font-weight:700; }
+    .article-body em { color:var(--accent); font-style:italic; }
+
+    /* FAQ ITEMS IN BODY */
+    .faq-question { color:var(--text-primary); font-weight:700; font-size:1rem; padding:0.75rem 0 0.25rem; border-top:1px solid var(--border); margin-top:1rem; }
+    .faq-question::before { content:'Q: '; color:var(--accent); }
+    .faq-answer { color:var(--text-secondary); padding-bottom:0.75rem; }
+    .faq-answer::before { content:'A: '; color:var(--text-muted); font-weight:600; }
+
+    /* FAQ ACCORDION SECTION */
+    .faq-section { max-width:var(--max-article); margin:0 auto; padding:0 2rem 3rem; }
+    .faq-section h2 { font-family:var(--font-display); font-size:1.6rem; color:var(--text-primary); margin-bottom:1.25rem; font-weight:700; }
+    .faq-item { border:1px solid var(--border); border-radius:var(--radius-sm); margin-bottom:0.75rem; overflow:hidden; }
+    .faq-toggle {
+      width:100%; text-align:left; background:var(--bg-card); border:none; padding:1rem 1.25rem;
+      color:var(--text-primary); font-family:var(--font-body); font-size:0.95rem; font-weight:600;
+      cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:1rem;
+      transition:var(--transition);
+    }
+    .faq-toggle:hover { background:var(--bg-card-hover); color:var(--accent); }
+    .faq-toggle.open { color:var(--accent); }
+    .faq-chevron { transition:transform 0.3s ease; font-size:0.8rem; flex-shrink:0; }
+    .faq-toggle.open .faq-chevron { transform:rotate(180deg); }
+    .faq-content { display:none; padding:0 1.25rem 1rem; color:var(--text-secondary); font-size:0.92rem; line-height:1.7; background:var(--bg-card); }
+    .faq-content.open { display:block; }
+
+    /* SHARE BAR */
+    .share-bar { max-width:var(--max-article); margin:0 auto; padding:1.5rem 2rem 3rem; border-top:1px solid var(--border); }
+    .share-bar p { font-size:0.85rem; color:var(--text-muted); margin-bottom:0.75rem; }
+    .share-btns { display:flex; gap:0.75rem; flex-wrap:wrap; }
+    .share-btn {
+      display:inline-flex; align-items:center; gap:0.5rem; padding:0.6rem 1.25rem;
+      border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--bg-card);
+      color:var(--text-secondary); font-size:0.85rem; font-weight:600; cursor:pointer;
+      text-decoration:none; transition:var(--transition);
+    }
+    .share-btn:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-glow); }
+    .share-btn.whatsapp:hover { border-color:#25d366; color:#25d366; background:rgba(37,211,102,0.1); }
+
+    /* RELATED ARTICLES */
+    .related-section { max-width:1100px; margin:0 auto; padding:0 2rem 4rem; }
+    .related-section h2 { font-family:var(--font-display); font-size:1.5rem; color:var(--text-primary); margin-bottom:1.5rem; font-weight:700; }
+    .related-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:1.25rem; }
+    .related-card {
+      background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden;
+      text-decoration:none; color:inherit; display:flex; flex-direction:column; transition:var(--transition);
+    }
+    .related-card:hover { border-color:var(--border-hover); background:var(--bg-card-hover); transform:translateY(-3px); box-shadow:var(--shadow-card); }
+    .related-card-img { height:150px; background:linear-gradient(135deg,#1a1200,#2d1f00); position:relative; overflow:hidden; }
+    .related-card-img img { width:100%; height:100%; object-fit:cover; }
+    .related-card-img .fallback { width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:2.5rem; }
+    .related-card-body { padding:1rem; }
+    .related-card-cat { display:inline-block; background:var(--accent-glow); color:var(--accent); font-size:0.7rem; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; padding:0.2rem 0.6rem; border-radius:999px; margin-bottom:0.5rem; }
+    .related-card-title { font-weight:700; font-size:0.9rem; line-height:1.4; color:var(--text-primary); }
+
+    /* NOT FOUND */
+    .not-found { text-align:center; padding:6rem 2rem; }
+    .not-found .icon { font-size:4rem; margin-bottom:1rem; }
+    .not-found h1 { font-family:var(--font-display); font-size:2rem; margin-bottom:0.75rem; }
+    .not-found p { color:var(--text-muted); margin-bottom:1.5rem; }
+    .btn-back { display:inline-flex; align-items:center; gap:0.5rem; padding:0.7rem 1.5rem; background:var(--accent); color:#000; border-radius:var(--radius-sm); font-weight:700; text-decoration:none; transition:var(--transition); }
+    .btn-back:hover { background:var(--accent-dark); }
+
+    /* LOADING */
+    .loading-overlay { text-align:center; padding:5rem 2rem; }
+    .spinner { display:inline-block; width:2.5rem; height:2.5rem; border:3px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin 0.8s linear infinite; margin-bottom:1rem; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+
+    /* PROGRESS BAR */
+    .reading-progress { position:fixed; top:0; left:0; height:3px; background:linear-gradient(90deg,var(--accent),#fbbf24); z-index:200; width:0%; transition:width 0.1s; }
+
+    /* FOOTER */
+    .article-footer { border-top:1px solid var(--border); padding:2.5rem 2rem; text-align:center; }
+    .article-footer-inner { max-width:900px; margin:0 auto; display:flex; flex-direction:column; align-items:center; gap:1rem; }
+    .footer-brand { font-family:var(--font-display); font-size:1.4rem; font-weight:700; color:var(--accent); }
+    .footer-links { display:flex; gap:1.5rem; }
+    .footer-links a { color:var(--text-muted); text-decoration:none; font-size:0.85rem; transition:var(--transition); }
+    .footer-links a:hover { color:var(--accent); }
+    .footer-copy { color:var(--text-muted); font-size:0.8rem; }
+
+    @media (max-width:768px) {
+      .navbar-nav { display:none; }
+      .article-hero-img { height:220px; }
+      .article-title, .article-meta-wrap, .article-body-wrap, .faq-section, .share-bar { padding-left:1.25rem; padding-right:1.25rem; }
+      .breadcrumb-wrap { padding:1rem 1.25rem 0; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- READING PROGRESS BAR -->
+<div class="reading-progress" id="readingProgress" role="progressbar" aria-label="Reading progress"></div>
+
+<!-- NAVBAR -->
+<nav class="navbar" role="navigation" aria-label="Main navigation">
+  <a href="home.html" class="navbar-brand">🍽️ <span>Mevish Eatery</span></a>
+  <div class="navbar-nav">
+    <a href="home.html">Home</a>
+    <a href="index.html">Order</a>
+    <a href="blog.html">Blog</a>
+    <a href="track.html">Track Order</a>
+    <a href="index.html" class="nav-cta">Order Now</a>
+  </div>
+</nav>
+
+<!-- MAIN ARTICLE CONTENT -->
+<div id="articleContainer">
+  <!-- Loading state -->
+  <div class="loading-overlay" id="loadingState">
+    <div class="spinner"></div>
+    <p style="color:var(--text-muted)">Loading article…</p>
+  </div>
+  <!-- Rendered article injected here -->
+  <div id="articleContent" style="display:none"></div>
+  <!-- Not found state -->
+  <div class="not-found" id="notFoundState" style="display:none">
+    <div class="icon">📭</div>
+    <h1>Article Not Found</h1>
+    <p>This article doesn't exist or may have been removed.</p>
+    <a href="blog.html" class="btn-back">← Back to Blog</a>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer class="article-footer">
+  <div class="article-footer-inner">
+    <div class="footer-brand">🍽️ Mevish Eatery</div>
+    <div class="footer-links">
+      <a href="home.html">Home</a>
+      <a href="index.html">Order Online</a>
+      <a href="blog.html">Blog</a>
+      <a href="track.html">Track Order</a>
+    </div>
+    <p class="footer-copy">© 2025 Mevish Eatery, Yola, Adamawa. All rights reserved.</p>
+  </div>
+</footer>
+
+<script src="config.js"></script>
+<script>
+// ── INIT ──
+const params = new URLSearchParams(window.location.search);
+const slug = params.get('slug');
+
+// ── READING PROGRESS ──
+window.addEventListener('scroll', () => {
+  const doc = document.documentElement;
+  const scrolled = doc.scrollTop;
+  const total = doc.scrollHeight - doc.clientHeight;
+  const pct = total > 0 ? (scrolled / total) * 100 : 0;
+  document.getElementById('readingProgress').style.width = pct + '%';
+});
+
+// ── FETCH ARTICLE ──
+async function loadArticle() {
+  if (!slug) { showNotFound(); return; }
+  try {
+    const apiUrl = (typeof CONFIG !== 'undefined' ? CONFIG.API_URL : '');
+    const res = await fetch(`${apiUrl}?type=blog&slug=${encodeURIComponent(slug)}`);
+    const data = await res.json();
+    if (data.status === 'success') renderArticle(data.data);
+    else showNotFound();
+  } catch(err) {
+    console.warn('Could not load article:', err);
+    // Try fallback demo
+    tryFallback();
+  }
+}
+
+function tryFallback() {
+  const fallbacks = {
+    'story-behind-mevish-pizza': { id:'demo1', title:'The Story Behind Mevish Pizza', category:'Menu Spotlight', slug:'story-behind-mevish-pizza', content:'Our signature pizza is more than just a dish — it\'s a fusion of traditional Nigerian spices and Italian technique.\n\n## The Recipe Origin\n\nEvery dough is hand-stretched, topped with locally sourced vegetables, and finished in our high-heat oven. The result is a crispy, flavourful pizza that has become the most-ordered item at Mevish Eatery.\n\n## Our Journey\n\nWe started experimenting with the recipe in 2022, trying different spice blends until we found the perfect balance.\n\n- Hand-stretched dough made fresh daily\n- Locally sourced vegetables from Yola market\n- Secret spice blend developed over two years\n- High-heat stone oven for the perfect crisp\n\n## Frequently Asked Questions\n\nQ: What makes Mevish Pizza different from other pizzas in Yola?\nA: Our use of local Nigerian spices combined with authentic Italian pizza technique creates a unique flavour profile you won\'t find anywhere else.\n\nQ: Can I customise my pizza toppings?\nA: Absolutely! We offer over a dozen topping options and four different sizes to suit every appetite.', author:'Mevish Eatery', date:'2025-05-15', status:'Published', imageUrl:'', metaDescription:'Discover the story behind Mevish Eatery\'s most popular pizza and what makes it unique in Yola.' },
+    'what-is-mandi-rice': { id:'demo2', title:'What Is Mandi Rice and Why We Love It', category:'Food & Culture', slug:'what-is-mandi-rice', content:'Mandi rice is a traditional Middle Eastern dish that has found a beloved home in Northern Nigeria.\n\n## Origins of Mandi\n\nOriginating from Yemen, mandi features slow-cooked meat — typically lamb or chicken — infused with **saffron**, **cardamom**, and **cinnamon**, served over long-grain basmati rice.\n\n## How We Prepare It\n\nAt Mevish Eatery, we prepare our mandi the authentic way:\n\n- The meat is slow-roasted in a tandoor pit\n- The rice absorbs all the rich juices\n- We use imported saffron for colour and aroma\n- Served with traditional sides like salata and dakous\n\n## The Cultural Connection\n\nMandi is a dish that embodies **hospitality and celebration** — and we serve it with pride every day. In Northern Nigeria, it has become a staple for weddings and special occasions.\n\nQ: Is mandi rice available every day at Mevish Eatery?\nA: Yes! We prepare fresh mandi rice daily. However, on weekends we recommend calling ahead or ordering online to guarantee your portion.\n\nQ: Can mandi be ordered for large groups or events?\nA: Absolutely. We offer catering packages for events in Yola and surrounding areas.', author:'Chef Mevish', date:'2025-05-10', status:'Published', imageUrl:'', metaDescription:'Learn about Mandi Rice — the flavourful Middle Eastern dish that Mevish Eatery brings to Yola, Adamawa.' },
+    'best-restaurants-yola-2025': { id:'demo3', title:'Best Restaurants in Yola 2025: Why Mevish Leads the Pack', category:'News & Events', slug:'best-restaurants-yola-2025', content:'Yola\'s food scene has grown tremendously in recent years.\n\n## The Growing Food Scene\n\nWith restaurants offering diverse cuisines from local Nigerian dishes to international favourites, Adamawa\'s capital city is becoming a food destination.\n\n## Why Mevish Stands Out\n\nAmong the standout establishments, Mevish Eatery has consistently been praised for:\n\n- **Quality** — Fresh ingredients prepared daily\n- **Variety** — From Nigerian soups to pizzas and juices\n- **Service** — Friendly staff and fast delivery\n- **Technology** — Online ordering with real-time tracking\n\n## What We Offer\n\nOur menu spans from traditional Nigerian soups and rice dishes to pizzas, sandwiches, and fresh-squeezed juices. Whether you\'re looking for a quick lunch or a special family dinner, Mevish Eatery has something for every occasion.\n\nQ: Where is Mevish Eatery located in Yola?\nA: We are located in the heart of Yola, Adamawa State. You can also order online from anywhere in the city for delivery.\n\nQ: Does Mevish Eatery offer delivery?\nA: Yes! Place your order online at our website and track it in real time.', author:'Mevish Eatery', date:'2025-05-05', status:'Published', imageUrl:'', metaDescription:'Find out why Mevish Eatery is considered among the best restaurants in Yola, Adamawa State in 2025.' },
+  };
+  if (fallbacks[slug]) renderArticle(fallbacks[slug]);
+  else showNotFound();
+}
+
+// ── RENDER ARTICLE ──
+function renderArticle(post) {
+  // Update <head> meta
+  document.getElementById('pageTitle').textContent = `${post.title} | Mevish Eatery Blog`;
+  const desc = post.metaDescription || (post.content || '').substring(0, 160);
+  document.getElementById('pageDesc').setAttribute('content', desc);
+  document.getElementById('ogTitle').setAttribute('content', post.title);
+  if (post.imageUrl) document.getElementById('ogImage').setAttribute('content', post.imageUrl);
+
+  // Inject Article schema
+  injectSchema({
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    'headline': post.title,
+    'author': { '@type': 'Person', 'name': post.author || 'Mevish Eatery' },
+    'datePublished': post.date,
+    'publisher': { '@type': 'Organization', 'name': 'Mevish Eatery' },
+    'image': post.imageUrl || '',
+    'description': desc
+  });
+
+  // Extract FAQs and inject FAQ schema
+  const faqs = extractFAQs(post.content || '');
+  if (faqs.length > 0) {
+    injectSchema({
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      'mainEntity': faqs.map(f => ({
+        '@type': 'Question',
+        'name': f.q,
+        'acceptedAnswer': { '@type': 'Answer', 'text': f.a }
+      }))
+    });
+  }
+
+  // Build breadcrumb category
+  const cat = post.category || 'General';
+  const readTimeMins = Math.max(1, Math.round((post.content || '').split(/\s+/).length / 200));
+  const formattedDate = formatDate(post.date);
+  const catEmoji = { 'Food & Culture':'🌍','Menu Spotlight':'⭐','News & Events':'📰','Recipes & Tips':'👨‍🍳','Behind the Scenes':'🎬' };
+  const emoji = catEmoji[cat] || '✍️';
+
+  // Build hero image
+  const heroHtml = post.imageUrl
+    ? `<div class="article-hero-img"><img src="${escHtml(post.imageUrl)}" alt="${escHtml(post.title)}" id="heroImg"></div>`
+    : `<div class="article-hero-img"><div class="article-hero-fallback">${emoji}</div></div>`;
+
+  // Render content
+  const contentHtml = renderContent(post.content || '');
+
+  // FAQ accordion (if any)
+  const faqHtml = faqs.length > 0 ? `
+    <section class="faq-section" aria-label="Frequently asked questions">
+      <h2>Frequently Asked Questions</h2>
+      ${faqs.map((f, i) => `
+        <div class="faq-item">
+          <button class="faq-toggle" id="faq-btn-${i}" onclick="toggleFAQ(${i})" aria-expanded="false" aria-controls="faq-content-${i}">
+            <span>${escHtml(f.q)}</span>
+            <span class="faq-chevron">▼</span>
+          </button>
+          <div class="faq-content" id="faq-content-${i}" role="region" aria-labelledby="faq-btn-${i}">${escHtml(f.a)}</div>
+        </div>`).join('')}
+    </section>` : '';
+
+  // Assemble full HTML
+  const html = `
+    <div class="breadcrumb-wrap">
+      <nav class="breadcrumb" aria-label="Breadcrumb">
+        <a href="home.html">Home</a>
+        <span class="sep">›</span>
+        <a href="blog.html">Blog</a>
+        <span class="sep">›</span>
+        <span class="current">${escHtml(cat)}</span>
+      </nav>
+    </div>
+
+    <article>
+      <div class="article-hero">${heroHtml}</div>
+
+      <div class="article-meta-wrap">
+        <div class="article-category-badge">${escHtml(cat)}</div>
+        <div class="article-meta">
+          <span>✍️ ${escHtml(post.author || 'Mevish Eatery')}</span>
+          <span>📅 ${formattedDate}</span>
+          <span>⏱ ${readTimeMins} min read</span>
+        </div>
+      </div>
+
+      <h1 class="article-title" id="articleTitle">${escHtml(post.title)}</h1>
+
+      <div class="article-body-wrap">
+        <div class="article-body">${contentHtml}</div>
+      </div>
+
+      ${faqHtml}
+
+      <div class="share-bar">
+        <p>Found this useful? Share it:</p>
+        <div class="share-btns">
+          <a href="#" class="share-btn whatsapp" id="shareWhatsapp" onclick="shareWhatsApp(event)" aria-label="Share on WhatsApp">
+            💬 Share on WhatsApp
+          </a>
+          <button class="share-btn" onclick="copyLink()" id="copyLinkBtn" aria-label="Copy article link">
+            🔗 Copy Link
+          </button>
+        </div>
+      </div>
+
+      <section class="related-section" id="relatedSection" aria-label="Related articles"></section>
+    </article>`;
+
+  document.getElementById('loadingState').style.display = 'none';
+  document.getElementById('articleContent').innerHTML = html;
+  document.getElementById('articleContent').style.display = 'block';
+
+  // Load related posts
+  loadRelated(cat, slug);
+}
+
+// ── PARSE CONTENT ──
+function renderContent(content) {
+  const lines = content.split('\n');
+  let html = '';
+  let inUl = false;
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    if (line.startsWith('## ')) {
+      if (inUl) { html += '</ul>'; inUl = false; }
+      html += `<h2>${escHtml(line.slice(3).trim())}</h2>`;
+    } else if (line.startsWith('### ')) {
+      if (inUl) { html += '</ul>'; inUl = false; }
+      html += `<h3>${escHtml(line.slice(4).trim())}</h3>`;
+    } else if (line.startsWith('- ')) {
+      if (!inUl) { html += '<ul>'; inUl = true; }
+      html += `<li>${inlineFormat(line.slice(2))}</li>`;
+    } else if (line.startsWith('Q:')) {
+      if (inUl) { html += '</ul>'; inUl = false; }
+      html += `<div class="faq-question">${escHtml(line.slice(2).trim())}</div>`;
+    } else if (line.startsWith('A:')) {
+      if (inUl) { html += '</ul>'; inUl = false; }
+      html += `<div class="faq-answer">${escHtml(line.slice(2).trim())}</div>`;
+    } else if (line.trim() === '') {
+      if (inUl) { html += '</ul>'; inUl = false; }
+      // paragraph break — handled below
+    } else {
+      if (inUl) { html += '</ul>'; inUl = false; }
+      html += `<p>${inlineFormat(line)}</p>`;
+    }
+    i++;
+  }
+  if (inUl) html += '</ul>';
+  return html;
+}
+
+function inlineFormat(text) {
+  return escHtml(text)
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>');
+}
+
+// ── EXTRACT FAQs ──
+function extractFAQs(content) {
+  const lines = content.split('\n');
+  const faqs = [];
+  let currentQ = null;
+  lines.forEach(line => {
+    if (line.startsWith('Q:')) currentQ = line.slice(2).trim();
+    else if (line.startsWith('A:') && currentQ) {
+      faqs.push({ q: currentQ, a: line.slice(2).trim() });
+      currentQ = null;
+    }
+  });
+  return faqs;
+}
+
+// ── SCHEMA INJECTION ──
+function injectSchema(schema) {
+  const script = document.createElement('script');
+  script.type = 'application/ld+json';
+  script.textContent = JSON.stringify(schema);
+  document.head.appendChild(script);
+}
+
+// ── FAQ TOGGLE ──
+function toggleFAQ(index) {
+  const btn = document.getElementById(`faq-btn-${index}`);
+  const content = document.getElementById(`faq-content-${index}`);
+  const isOpen = btn.classList.toggle('open');
+  content.classList.toggle('open', isOpen);
+  btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+}
+
+// ── SHARE ──
+function shareWhatsApp(e) {
+  e.preventDefault();
+  const text = encodeURIComponent(`Check out this article from Mevish Eatery: ${document.title}\n${window.location.href}`);
+  window.open(`https://wa.me/?text=${text}`, '_blank');
+}
+function copyLink() {
+  navigator.clipboard.writeText(window.location.href).then(() => {
+    const btn = document.getElementById('copyLinkBtn');
+    btn.textContent = '✅ Copied!';
+    setTimeout(() => btn.textContent = '🔗 Copy Link', 2000);
+  });
+}
+
+// ── RELATED POSTS ──
+async function loadRelated(cat, currentSlug) {
+  try {
+    const apiUrl = (typeof CONFIG !== 'undefined' ? CONFIG.API_URL : '');
+    const res = await fetch(`${apiUrl}?type=blogs`);
+    const data = await res.json();
+    const related = (data.data || []).filter(p => p.category === cat && p.slug !== currentSlug).slice(0, 3);
+    renderRelated(related);
+  } catch { /* silently fail */ }
+}
+
+function renderRelated(posts) {
+  const el = document.getElementById('relatedSection');
+  if (!el || posts.length === 0) return;
+  const catEmoji = { 'Food & Culture':'🌍','Menu Spotlight':'⭐','News & Events':'📰','Recipes & Tips':'👨‍🍳','Behind the Scenes':'🎬' };
+  el.innerHTML = `
+    <h2>Related Articles</h2>
+    <div class="related-grid">
+      ${posts.map(p => {
+        const emoji = catEmoji[p.category] || '✍️';
+        return `
+          <a href="article.html?slug=${encodeURIComponent(p.slug || generateSlug(p.title))}" class="related-card">
+            <div class="related-card-img">
+              ${p.imageUrl ? `<img src="${escHtml(p.imageUrl)}" alt="${escHtml(p.title)}" loading="lazy">` : `<div class="fallback">${emoji}</div>`}
+            </div>
+            <div class="related-card-body">
+              <div class="related-card-cat">${escHtml(p.category)}</div>
+              <div class="related-card-title">${escHtml(p.title)}</div>
+            </div>
+          </a>`;
+      }).join('')}
+    </div>`;
+}
+
+// ── NOT FOUND ──
+function showNotFound() {
+  document.getElementById('loadingState').style.display = 'none';
+  document.getElementById('notFoundState').style.display = 'block';
+}
+
+// ── HELPERS ──
+function escHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function formatDate(d) {
+  if (!d) return '';
+  try { return new Date(d).toLocaleDateString('en-NG', {day:'numeric',month:'long',year:'numeric'}); }
+  catch { return d; }
+}
+function generateSlug(t) {
+  return (t||'').toLowerCase().replace(/[^a-z0-9\s-]/g,'').trim().replace(/\s+/g,'-');
+}
+
+// ── RUN ──
+document.addEventListener('DOMContentLoaded', loadArticle);
+</script>
+</body>
+</html>

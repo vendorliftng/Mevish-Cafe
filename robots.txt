@@ -1,0 +1,16 @@
+User-agent: *
+Allow: /home.html
+Allow: /index.html
+Allow: /blog.html
+Allow: /article.html
+Allow: /track.html
+Allow: /menu-board.html
+Allow: /style.css
+Allow: /config.js
+
+# Block internal ERP tools from indexing
+Disallow: /dashboard.html
+Disallow: /manager.html
+Disallow: /blog-admin.html
+
+Sitemap: sitemap.xml
