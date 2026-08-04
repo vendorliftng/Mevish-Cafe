@@ -19,9 +19,9 @@ const CONFIG = {
     state:    "Adamawa",
     country:  "Nigeria",
     address:  "Yola, Adamawa State, Nigeria",
-    phone:    "+234 XXX XXX XXXX",         // ← Update before go-live
-    email:    "mevisheatery@gmail.com",     // ← Update before go-live
-    whatsapp: "+234XXXXXXXXXX",            // ← Update before go-live
+    phone:    "+234 9036648535",
+    email:    "vendorliftng@gmail.com",
+    whatsapp: "+234 9036648535",
     instagram:"@mevisheatery",
     facebook: "mevisheatery",
     hours:    "Monday – Sunday: 8:00 AM – 09:00 PM",
