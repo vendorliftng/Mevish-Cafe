@@ -218,10 +218,11 @@
       background: rgba(0,0,0,.7);
       z-index: calc(var(--z-modal) - 10);
       opacity: 0;
+      pointer-events: none;
       transition: opacity .3s ease;
     }
 
-    .cart-sheet-overlay.open { opacity: 1; }
+    .cart-sheet-overlay.open { opacity: 1; pointer-events: auto; }
 
     .cart-sheet {
       position: fixed;
@@ -445,19 +446,38 @@
       .cart-sidebar { display: none !important; }
       #cart-fab { display: flex !important; }
       .cart-sheet-overlay { display: block; }
+      /* Extra bottom padding so last menu card isn't hidden behind FAB */
+      .menu-panel { padding-bottom: 100px; }
+      /* Toast repositioned to top-right so it doesn't overlap cart FAB */
+      .toast-container { bottom: auto; top: 76px; right: var(--sp-md); }
+    }
+
+    @media (max-width: 768px) {
+      .hero-carousel { height: 170px; }
+      .hero-text h1 { font-size: 1.35rem; }
+      .hero-text p { font-size: 0.82rem; }
+      .hero-text { bottom: 18px; left: 18px; }
     }
 
     @media (max-width: 480px) {
-      .menu-panel { padding: var(--sp-md) 12px 120px; }
+      .menu-panel { padding: var(--sp-md) 12px 100px; }
       .page-header .logo-text { font-size: 1rem; }
       .page-header .logo-icon { font-size: 22px; }
       .table-badge { font-size: 0.7rem; padding: 3px 8px; }
-      .hero-carousel { height: 160px; }
-      .hero-text h1 { font-size: 1.3rem; }
-      .hero-text p { font-size: 0.8rem; }
+      .hero-carousel { height: 150px; }
+      .hero-text h1 { font-size: 1.2rem; }
+      .hero-text p { font-size: 0.78rem; }
       /* Cart FAB adjustments */
-      .cart-fab { width: 54px; height: 54px; bottom: 16px; right: 16px; }
+      #cart-fab { width: 56px; height: 56px; font-size: 1.4rem; }
       .fab-badge { font-size: 0.6rem; min-width: 18px; height: 18px; }
+      /* Menu card touch-friendly improvements */
+      .btn-add-to-cart { padding: 10px 8px; font-size: var(--fs-sm); }
+      .menu-card-body { padding: 10px; }
+      .menu-card-name { font-size: var(--fs-sm); }
+      .qty-btn { width: 32px; height: 32px; font-size: 18px; }
+      .qty-display { min-width: 28px; font-size: var(--fs-base); }
+      /* Backdate fields single column on small phones */
+      .backdate-fields { grid-template-columns: 1fr; }
       /* Modal full-screen on small phones */
       .modal-overlay { padding: 0; align-items: flex-end; }
       .modal { max-width: 100%; max-height: 95vh; border-radius: var(--r-xl) var(--r-xl) 0 0; }
@@ -471,6 +491,7 @@
       .grid-menu { grid-template-columns: 1fr; }
       .page-header { padding: var(--sp-xs) var(--sp-md); }
       .header-right { gap: 8px; }
+      .hero-text h1 { font-size: 1.1rem; }
     }
 
     /* ── Reviews Section ── */
