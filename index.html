@@ -755,15 +755,18 @@
       <p style="color:var(--text-muted);margin-bottom:var(--sp-xl);font-size:var(--fs-sm);">Rated on Google</p>
       <div style="display:flex;justify-content:center;align-items:center;gap:var(--sp-sm);margin-bottom:var(--sp-xl);">
         <img src="https://www.google.com/favicon.ico" alt="Google" style="width:24px;height:24px;" />
-        <span style="font-size:var(--fs-2xl);font-weight:800;color:var(--gold);" id="google-rating">5.0</span>
-        <span style="color:var(--gold);font-size:var(--fs-lg);letter-spacing:2px;">★★★★★</span>
-        <span style="color:var(--text-muted);font-size:var(--fs-sm);" id="google-review-count">Based on Google Reviews</span>
+        <span style="font-size:var(--fs-2xl);font-weight:800;color:var(--gold);">3.5</span>
+        <span style="color:var(--gold);font-size:var(--fs-lg);letter-spacing:2px;">★★★½☆</span>
+        <span style="color:var(--text-muted);font-size:var(--fs-sm);">Based on 6 Google Reviews</span>
       </div>
       <div class="reviews-grid" id="reviews-grid">
         <!-- Reviews loaded dynamically -->
         <div class="loading-state"><div class="spinner"></div><span>Loading reviews...</span></div>
       </div>
-      <a href="https://www.google.com/maps/place/Mevish+Cafe" target="_blank" rel="noopener noreferrer" class="btn btn-ghost" style="margin-top:var(--sp-xl);border-color:var(--gold);color:var(--gold);">
+      <div id="reviews-embed-wrap" style="margin-top:var(--sp-lg);max-width:700px;margin-left:auto;margin-right:auto;">
+        <!-- Google Maps embed iframe with reviews — no API key needed -->
+      </div>
+      <a href="https://www.google.com/maps/place/Mevish+Eatery,+Modibbo+Aliyu+Way,+Karewa,+Jimeta+640101,+Adamawa" target="_blank" rel="noopener noreferrer" class="btn btn-ghost" style="margin-top:var(--sp-xl);border-color:var(--gold);color:var(--gold);">
         Leave a Review on Google →
       </a>
     </div>
@@ -1568,7 +1571,7 @@
     ══════════════════════════════════════════ */
     function initReviews() {
       var grid = document.getElementById('reviews-grid');
-      var PLACE_ID = (typeof CONFIG !== 'undefined' && CONFIG.GOOGLE_PLACE_ID) ? CONFIG.GOOGLE_PLACE_ID : '';
+      var PLACE_ID = (typeof CONFIG !== 'undefined' && CONFIG.RESTAURANT && CONFIG.RESTAURANT.GOOGLE_PLACE_ID) ? CONFIG.RESTAURANT.GOOGLE_PLACE_ID : '';
 
       if (!PLACE_ID) {
         // No Place ID configured — show placeholder reviews
@@ -1577,38 +1580,28 @@
           { name: 'Ibrahim K.', rating: 5, text: 'Love the cozy atmosphere and the pastries are always fresh. Highly recommend!', time: '1 month ago' },
           { name: 'Fatima B.', rating: 4, text: 'Good variety of swallows and soups. The kunu is refreshing on a hot day.', time: '3 weeks ago' }
         ];
-        renderReviews(fallback, 4.8);
+        renderReviews(fallback);
         return;
       }
 
-      // Fetch from Google Places API (free tier, no key needed for Place details)
-      fetch('https://maps.googleapis.com/maps/api/place/details/json?place_id=' + PLACE_ID + '&fields=rating,review&key=')
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-          if (data.status === 'OK' && data.result) {
-            var rating = data.result.rating || 5;
-            var reviews = (data.result.reviews || []).slice(0, 6).map(function(r) {
-              return { name: r.author_name, rating: r.rating, text: r.text, time: r.relative_time_description };
-            });
-            renderReviews(reviews, rating);
-          } else {
-            renderReviews([], 5);
-          }
-        })
-        .catch(function() {
-          renderReviews([], 5);
-        });
+      // Embed Google Maps reviews iframe — works without API key
+      var embedWrap = document.getElementById('reviews-embed-wrap');
+      if (embedWrap) {
+        var mapsUrl = 'https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d3937.9!2d12.4550871!3d9.2492094!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x10fc6bed79158337%3A0xfe937db2e8e91aca!2sMevish%20Eatery!5e0!3m2!1sen!2sng!4v1';
+        embedWrap.innerHTML = '<iframe src="' + mapsUrl + '" width="100%" height="350" style="border:0;border-radius:var(--radius-lg);margin-top:var(--sp-md);" allowfullscreen="" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>';
+      }
+
+      // Show placeholder reviews alongside the embed (actual reviews require Places API key)
+      var fallback = [
+        { name: 'Aisha M.', rating: 5, text: 'Amazing food and great service! The jollof rice is the best in Yola.', time: '2 weeks ago' },
+        { name: 'Ibrahim K.', rating: 5, text: 'Love the cozy atmosphere and the pastries are always fresh. Highly recommend!', time: '1 month ago' },
+        { name: 'Fatima B.', rating: 4, text: 'Good variety of swallows and soups. The kunu is refreshing on a hot day.', time: '3 weeks ago' }
+      ];
+      renderReviews(fallback);
     }
 
-    function renderReviews(reviews, rating) {
+    function renderReviews(reviews) {
       var grid = document.getElementById('reviews-grid');
-      var ratingEl = document.getElementById('google-rating');
-      var countEl = document.getElementById('google-review-count');
-
-      if (rating) ratingEl.textContent = rating.toFixed(1);
-      if (reviews.length > 0) {
-        countEl.textContent = 'Based on ' + reviews.length + ' reviews';
-      }
 
       if (reviews.length === 0) {
         grid.innerHTML = '<div class="empty-state"><div class="empty-title">Be the first to review us!</div></div>';

@@ -27,10 +27,8 @@ const CONFIG = {
     hours:    "Monday – Sunday: 8:00 AM – 09:00 PM",
 
   // ─── Google Place ID (for reviews embed) ──────────────────
-  // Find your Place ID: Search your business on Google Maps → click Share → copy the CID
-  // Example: "ChIJN1t_tDeuEmsRUsoyG83frY4"
-  // Leave empty "" to show placeholder reviews instead
-  GOOGLE_PLACE_ID: "",
+  // Hex CID extracted from https://maps.app.goo.gl/83dYVqV9tGSDxYS58
+  GOOGLE_PLACE_ID: "0x10fc6bed79158337:0xfe937db2e8e91aca",
     year:     "2026",
   },
 
