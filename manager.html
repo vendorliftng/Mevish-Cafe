@@ -412,12 +412,48 @@
 
     /* ── RESPONSIVE ────────────────────────────────────────── */
     .sidebar-toggle { display: none; }
+    .sidebar-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+      z-index: 199; backdrop-filter: blur(2px);
+    }
+    .sidebar-overlay.show { display: block; }
+
+    @media(max-width:900px){
+      .charts-grid { grid-template-columns: 1fr; }
+    }
+
     @media(max-width:768px){
       .sidebar { position: fixed; z-index: 200; transform: translateX(-100%); transition: transform 0.3s; }
       .sidebar.open { transform: translateX(0); }
       .sidebar-toggle { display: flex; }
-      .page-body { padding: 1rem; }
-      .top-bar { padding: 1rem; }
+      .page-body { padding: 0.75rem; }
+      .top-bar { padding: 0.75rem 1rem; }
+      .card-header { padding: 0.75rem 1rem; flex-wrap: wrap; gap: 0.5rem; }
+      .card-body { padding: 1rem; }
+      .card-header h3 { font-size: 0.8rem; }
+      /* Tables scroll horizontally */
+      .table-wrap { -webkit-overflow-scrolling: touch; margin: 0 -0.75rem; padding: 0 0.75rem; }
+      table { min-width: 500px; }
+      thead th, tbody td { padding: 0.5rem 0.65rem; font-size: 0.78rem; }
+      /* Forms stack */
+      .form-grid { grid-template-columns: 1fr; }
+      /* Cashier avatar smaller */
+      .cashier-avatar { width: 28px; height: 28px; font-size: 0.65rem; }
+      /* QR grid */
+      .qr-grid { grid-template-columns: 1fr 1fr; }
+      /* Theme picker */
+      .theme-grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media(max-width:480px){
+      .kpi-grid { grid-template-columns: 1fr; }
+      .top-bar-title { font-size: 1rem; }
+      .qr-grid { grid-template-columns: 1fr; }
+      .theme-grid { grid-template-columns: 1fr; }
+      .form-actions { flex-direction: column; }
+      .form-actions .btn { width: 100%; justify-content: center; }
+      /* Make modals nearly full-screen on small phones */
+      .modal-content { margin: 0.5rem; max-width: calc(100% - 1rem); }
     }
 
     /* ── PRINT ─────────────────────────────────────────────── */
@@ -474,6 +510,9 @@
 <!--  APP LAYOUT                                             -->
 <!-- ══════════════════════════════════════════════════════════ -->
 <div id="appLayout" class="app-layout" style="display:none;">
+
+  <!-- ─── SIDEBAR OVERLAY (mobile backdrop) ────────────────── -->
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
 
   <!-- ─── SIDEBAR ─────────────────────────────────────────── -->
   <aside class="sidebar" id="sidebar">
@@ -871,7 +910,10 @@ function switchPanel(panelId) {
   renderPanel(panelId);
 
   // Close sidebar on mobile
-  if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('open');
+  if (window.innerWidth <= 768) {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebarOverlay').classList.remove('show');
+  }
 }
 
 function renderPanel(panelId) {
@@ -891,6 +933,7 @@ function renderPanel(panelId) {
 
 function toggleSidebar() {
   document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebarOverlay').classList.toggle('show');
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -1269,7 +1312,11 @@ function renderCashiersTable() {
   if (cashiersData.length === 0) { wrap.innerHTML = '<div class="empty-state"><div class="empty-title">No cashiers</div></div>'; return; }
   let rows = '';
   cashiersData.forEach(c => {
-    rows += `<tr><td><span class="cashier-avatar">${(c.name||'??').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)}</span><strong>${c.name}</strong></td><td>${c.phone||'—'}</td><td>${c.role||'Cashier'}</td><td><span class="badge ${c.active==='Yes'?'badge-success':'badge-muted'}">${c.active==='Yes'?'Active':'Inactive'}</span></td><td><button class="btn btn-danger btn-sm" onclick="removeCashier('${(c.name||'').replace(/'/g,"\\'")}')">Remove</button></td></tr>`;
+    // Normalize: handle both plain-string (legacy API) and object (updated API) formats
+    const obj = (typeof c === 'string') ? { name: c, phone: '', role: 'Cashier', active: 'Yes' } : c;
+    const initials = (obj.name||'??').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+    const safeName = (obj.name||'').replace(/'/g,"\\'");
+    rows += `<tr><td><span class="cashier-avatar">${initials}</span><strong>${obj.name}</strong></td><td>${obj.phone||'—'}</td><td>${obj.role||'Cashier'}</td><td><span class="badge ${obj.active==='Yes'?'badge-success':'badge-muted'}">${obj.active==='Yes'?'Active':'Inactive'}</span></td><td><button class="btn btn-danger btn-sm" onclick="removeCashier('${safeName}')">Remove</button></td></tr>`;
   });
   wrap.innerHTML = `<table><thead><tr><th>Name</th><th>Phone</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table>`;
 }

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head><title>API Test 2</title></head>
+<body>
+<h3>API Test Results</h3>
+<pre id="log"></pre>
+<script>
+const API = "https://script.google.com/macros/s/AKfycby-Ght4h30xNFsu8jjGaEsb9wkmCUVaSECJ9j0Gzn6CXqZJ-4SERFyMh5wuwOE9Xy4Zig/exec";
+const log = document.getElementById('log');
+
+async function test(label, action, payload) {
+  log.textContent += `\n--- ${label} (${action}) ---\n`;
+  try {
+    const res = await fetch(API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action, ...payload }),
+      redirect: 'follow'
+    });
+    const text = await res.text();
+    log.textContent += `Status: ${res.status}\n`;
+    log.textContent += `Response: ${text}\n`;
+  } catch (e) {
+    log.textContent += `ERROR: ${e.message}\n`;
+  }
+}
+
+// Generate proper order ID: ORD-XXXXXXXX-XXXX
+const now = new Date();
+const orderId = "ORD-" + now.getFullYear() +
+  String(now.getMonth()+1).padStart(2,'0') +
+  String(now.getDate()).padStart(2,'0') + "-" +
+  String(Math.floor(1000 + Math.random() * 9000));
+
+async function run() {
+  await test('New Order (correct format)', 'newOrder', {
+    orderId: orderId,
+    customerName: 'Test Customer',
+    orderType: 'Counter',
+    location: 'Counter',
+    cartItems: '1x Jollof Rice | 1x Chicken',
+    totalPrice: 8000,
+    status: 'Active'
+  });
+  await test('Remove Cashier', 'removeCashier', { name: 'Test Cashier', performedBy: 'Manager' });
+  await test('Update Settings (correct format)', 'updateSettings', {
+    settings: { "Test Key": "Test Value" },
+    performedBy: 'Manager'
+  });
+  log.textContent += `\n=== DONE ===\n`;
+}
+run();
+</script>
+</body>
+</html>

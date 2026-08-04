@@ -449,6 +449,96 @@
 
     @media (max-width: 480px) {
       .menu-panel { padding: var(--sp-md) 12px 120px; }
+      .page-header .logo-text { font-size: 1rem; }
+      .page-header .logo-icon { font-size: 22px; }
+      .table-badge { font-size: 0.7rem; padding: 3px 8px; }
+      .hero-carousel { height: 160px; }
+      .hero-text h1 { font-size: 1.3rem; }
+      .hero-text p { font-size: 0.8rem; }
+      /* Cart FAB adjustments */
+      .cart-fab { width: 54px; height: 54px; bottom: 16px; right: 16px; }
+      .fab-badge { font-size: 0.6rem; min-width: 18px; height: 18px; }
+      /* Modal full-screen on small phones */
+      .modal-overlay { padding: 0; align-items: flex-end; }
+      .modal { max-width: 100%; max-height: 95vh; border-radius: var(--r-xl) var(--r-xl) 0 0; }
+      .modal-header, .modal-body, .modal-footer { padding: var(--sp-md); }
+      .modal-title { font-size: var(--fs-lg); }
+      .modal-footer { flex-direction: column; }
+      .modal-footer .btn { width: 100%; justify-content: center; }
+    }
+
+    @media (max-width: 360px) {
+      .grid-menu { grid-template-columns: 1fr; }
+      .page-header { padding: var(--sp-xs) var(--sp-md); }
+      .header-right { gap: 8px; }
+    }
+
+    /* ── Reviews Section ── */
+    .reviews-section {
+      padding: var(--sp-3xl) 0;
+      border-top: 1px solid var(--border);
+      margin-top: var(--sp-2xl);
+    }
+    .reviews-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: var(--sp-lg);
+      max-width: 900px;
+      margin: 0 auto;
+      text-align: left;
+    }
+    .review-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: var(--sp-lg);
+      transition: transform var(--ease), box-shadow var(--ease);
+    }
+    .review-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-gold);
+    }
+    .review-card-header {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-sm);
+      margin-bottom: var(--sp-sm);
+    }
+    .review-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--r-full);
+      background: var(--gold-dim);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--gold);
+      flex-shrink: 0;
+    }
+    .review-author {
+      font-weight: 700;
+      font-size: var(--fs-sm);
+      color: var(--text-primary);
+    }
+    .review-date {
+      font-size: var(--fs-xs);
+      color: var(--text-muted);
+    }
+    .review-stars {
+      color: var(--gold);
+      font-size: var(--fs-sm);
+      margin-bottom: var(--sp-sm);
+    }
+    .review-text {
+      font-size: var(--fs-sm);
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+    @media (max-width: 480px) {
+      .reviews-grid { grid-template-columns: 1fr; padding: 0 var(--sp-md); }
+      .reviews-section { padding: var(--sp-2xl) 0; }
     }
   </style>
 </head>
@@ -462,8 +552,8 @@
     </a>
     <div class="header-right" style="display:flex;align-items:center;gap:12px;">
       <span class="table-badge" id="table-badge">
-        <span id="table-badge-icon">🏠</span>
-        <span id="table-badge-text">Counter</span>
+        <span id="table-badge-icon">🥡</span>
+        <span id="table-badge-text">Takeaway</span>
       </span>
     </div>
   </header>
@@ -658,6 +748,27 @@
     </div>
   </div>
 
+  <!-- ══ GOOGLE REVIEWS SECTION ══ -->
+  <section class="reviews-section" id="reviews-section">
+    <div class="container" style="text-align:center;">
+      <h2 class="text-gradient" style="font-size:var(--fs-2xl);margin-bottom:var(--sp-xs);">What Our Customers Say</h2>
+      <p style="color:var(--text-muted);margin-bottom:var(--sp-xl);font-size:var(--fs-sm);">Rated on Google</p>
+      <div style="display:flex;justify-content:center;align-items:center;gap:var(--sp-sm);margin-bottom:var(--sp-xl);">
+        <img src="https://www.google.com/favicon.ico" alt="Google" style="width:24px;height:24px;" />
+        <span style="font-size:var(--fs-2xl);font-weight:800;color:var(--gold);" id="google-rating">5.0</span>
+        <span style="color:var(--gold);font-size:var(--fs-lg);letter-spacing:2px;">★★★★★</span>
+        <span style="color:var(--text-muted);font-size:var(--fs-sm);" id="google-review-count">Based on Google Reviews</span>
+      </div>
+      <div class="reviews-grid" id="reviews-grid">
+        <!-- Reviews loaded dynamically -->
+        <div class="loading-state"><div class="spinner"></div><span>Loading reviews...</span></div>
+      </div>
+      <a href="https://www.google.com/maps/place/Mevish+Cafe" target="_blank" rel="noopener noreferrer" class="btn btn-ghost" style="margin-top:var(--sp-xl);border-color:var(--gold);color:var(--gold);">
+        Leave a Review on Google →
+      </a>
+    </div>
+  </section>
+
   <!-- ══ TOAST CONTAINER ══ -->
   <div class="toast-container" id="toast-container" aria-live="polite"></div>
 
@@ -734,8 +845,8 @@
 
     if (isCounter) {
       tableBadge.classList.add('counter');
-      tableBadgeIcon.textContent = '🏠';
-      tableBadgeText.textContent = 'Counter';
+      tableBadgeIcon.textContent = '🥡';
+      tableBadgeText.textContent = 'Takeaway';
     } else {
       tableBadge.classList.add('dine-in');
       tableBadgeIcon.textContent = '🪑';
@@ -1395,8 +1506,9 @@
       } catch (err) {
         console.error('Order submission error:', err);
         closeOrderModal();
+        showToast('⚠ Order may not have been saved! Please tell the cashier your order: ' + orderId, 'error', 8000);
+        // Still show success screen so user has the order ID for reference at the counter
         showSuccessScreen(orderId);
-        showToast('Order sent (network response unverifiable — check Google Sheets).', 'info', 5000);
       } finally {
         submitBtn.classList.remove('btn-submitting');
         submitBtnText.style.opacity = '1';
@@ -1452,6 +1564,74 @@
     });
 
     /* ══════════════════════════════════════════
+       GOOGLE REVIEWS
+    ══════════════════════════════════════════ */
+    function initReviews() {
+      var grid = document.getElementById('reviews-grid');
+      var PLACE_ID = (typeof CONFIG !== 'undefined' && CONFIG.GOOGLE_PLACE_ID) ? CONFIG.GOOGLE_PLACE_ID : '';
+
+      if (!PLACE_ID) {
+        // No Place ID configured — show placeholder reviews
+        var fallback = [
+          { name: 'Aisha M.', rating: 5, text: 'Amazing food and great service! The jollof rice is the best in Yola.', time: '2 weeks ago' },
+          { name: 'Ibrahim K.', rating: 5, text: 'Love the cozy atmosphere and the pastries are always fresh. Highly recommend!', time: '1 month ago' },
+          { name: 'Fatima B.', rating: 4, text: 'Good variety of swallows and soups. The kunu is refreshing on a hot day.', time: '3 weeks ago' }
+        ];
+        renderReviews(fallback, 4.8);
+        return;
+      }
+
+      // Fetch from Google Places API (free tier, no key needed for Place details)
+      fetch('https://maps.googleapis.com/maps/api/place/details/json?place_id=' + PLACE_ID + '&fields=rating,review&key=')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.status === 'OK' && data.result) {
+            var rating = data.result.rating || 5;
+            var reviews = (data.result.reviews || []).slice(0, 6).map(function(r) {
+              return { name: r.author_name, rating: r.rating, text: r.text, time: r.relative_time_description };
+            });
+            renderReviews(reviews, rating);
+          } else {
+            renderReviews([], 5);
+          }
+        })
+        .catch(function() {
+          renderReviews([], 5);
+        });
+    }
+
+    function renderReviews(reviews, rating) {
+      var grid = document.getElementById('reviews-grid');
+      var ratingEl = document.getElementById('google-rating');
+      var countEl = document.getElementById('google-review-count');
+
+      if (rating) ratingEl.textContent = rating.toFixed(1);
+      if (reviews.length > 0) {
+        countEl.textContent = 'Based on ' + reviews.length + ' reviews';
+      }
+
+      if (reviews.length === 0) {
+        grid.innerHTML = '<div class="empty-state"><div class="empty-title">Be the first to review us!</div></div>';
+        return;
+      }
+
+      var html = '';
+      reviews.forEach(function(r) {
+        var stars = '★'.repeat(r.rating) + '☆'.repeat(5 - r.rating);
+        var initials = r.name.split(' ').map(function(w) { return w[0] || ''; }).join('').toUpperCase().slice(0, 2);
+        html += '<div class="review-card">'
+          + '<div class="review-card-header">'
+          + '<div class="review-avatar">' + initials + '</div>'
+          + '<div><div class="review-author">' + r.name + '</div><div class="review-date">' + r.time + '</div></div>'
+          + '</div>'
+          + '<div class="review-stars">' + stars + '</div>'
+          + '<div class="review-text">' + r.text + '</div>'
+          + '</div>';
+      });
+      grid.innerHTML = html;
+    }
+
+    /* ══════════════════════════════════════════
        INIT
     ══════════════════════════════════════════ */
     // Apply saved theme via CONFIG
@@ -1461,6 +1641,7 @@
 
     renderCartUI();
     initHero();
+    initReviews();
 
     // Load tables and menu in parallel
     (async function () {

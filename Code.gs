@@ -342,7 +342,14 @@ function doGet(e) {
       var data = sheet.getDataRange().getValues();
       var cashiers = [];
       for (var i = 1; i < data.length; i++) {
-        if (data[i][0] !== "") cashiers.push(data[i][0]);
+        if (data[i][0] !== "") {
+          cashiers.push({
+            name: data[i][0] || "",
+            phone: data[i][1] || "",
+            role: data[i][2] || "Cashier",
+            active: data[i][3] || "Yes"
+          });
+        }
       }
       return jsonResponse({ status: "success", data: cashiers });
     }
@@ -942,7 +949,11 @@ function doPost(e) {
       var sheet = ss.getSheetByName(CASHIERS_SHEET);
       if (!sheet) return errorResponse("Cashiers sheet not found");
       if (!payload.name) return errorResponse("Cashier name required");
-      sheet.appendRow([payload.name]);
+      // Add header row if sheet is empty
+      if (sheet.getLastRow() < 2) {
+        sheet.appendRow(["Name", "Phone", "Role", "Active"]);
+      }
+      sheet.appendRow([payload.name, payload.phone || "", payload.role || "Cashier", "Yes"]);
       logAudit("CASHIER_ADDED", "", payload.name, payload.performedBy || "Manager");
       return jsonResponse({ status: "success" });
     }

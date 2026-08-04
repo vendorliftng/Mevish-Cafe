@@ -25,6 +25,12 @@ const CONFIG = {
     instagram:"@mevisheatery",
     facebook: "mevisheatery",
     hours:    "Monday – Sunday: 8:00 AM – 09:00 PM",
+
+  // ─── Google Place ID (for reviews embed) ──────────────────
+  // Find your Place ID: Search your business on Google Maps → click Share → copy the CID
+  // Example: "ChIJN1t_tDeuEmsRUsoyG83frY4"
+  // Leave empty "" to show placeholder reviews instead
+  GOOGLE_PLACE_ID: "",
     year:     "2026",
   },
 
