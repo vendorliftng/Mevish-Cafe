@@ -818,14 +818,17 @@
         allMenu = cached;
         buildTabs();
         renderMenu();
-        // Background refresh
+        // Background refresh — always replace cached data with live data
         fetchMenu().then(function (fresh) {
           if (fresh && fresh.length > 0) {
             saveMenuToCache(fresh);
             allMenu = fresh;
+            buildTabs();
             renderMenu();
           }
-        }).catch(function () {});
+        }).catch(function () {
+          // If background refresh fails, keep cached data but don't use FALLBACK_MENU
+        });
       } else {
         try {
           var fresh = await fetchMenu();
@@ -838,6 +841,7 @@
         } catch (e) {
           showToast('Could not load menu from server — using local menu.', 'info');
           allMenu = (typeof CONFIG !== 'undefined' && CONFIG.FALLBACK_MENU) ? CONFIG.FALLBACK_MENU : [];
+          // Do NOT cache FALLBACK_MENU so it doesn't persist across reloads
         }
         loadingEl.classList.add('hidden');
         buildTabs();

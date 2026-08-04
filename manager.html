@@ -814,20 +814,31 @@ function initDateDefaults() {
 }
 
 async function loadAllData() {
-  try {
-    const [orders, inv, menu, cashiers, tables, expenses] = await Promise.all([
-      CONFIG.apiGet('orders'), CONFIG.apiGet('inventory'), CONFIG.apiGet('menu'),
-      CONFIG.apiGet('cashiers'), CONFIG.apiGet('tables'), CONFIG.apiGet('expenses')
-    ]);
-    allOrders = orders.data || [];
-    inventoryData = inv.data || [];
-    menuData = menu.data || [];
-    cashiersData = cashiers.data || [];
-    tablesData = tables.data || [];
-    expensesData = expenses.data || [];
-  } catch (err) {
-    console.warn('[Manager] Failed to load data:', err);
-  }
+  // Load each endpoint independently so one failure doesn't block the rest
+  const loaders = [
+    { key: 'orders',    fn: () => CONFIG.apiGet('orders') },
+    { key: 'inventory', fn: () => CONFIG.apiGet('inventory') },
+    { key: 'menu',      fn: () => CONFIG.apiGet('menu') },
+    { key: 'cashiers',  fn: () => CONFIG.apiGet('cashiers') },
+    { key: 'tables',    fn: () => CONFIG.apiGet('tables') },
+    { key: 'expenses',  fn: () => CONFIG.apiGet('expenses') }
+  ];
+  const results = await Promise.allSettled(loaders.map(l => l.fn()));
+  results.forEach((res, i) => {
+    if (res.status === 'fulfilled' && res.value) {
+      const data = res.value.data || [];
+      switch (loaders[i].key) {
+        case 'orders':    allOrders = data; break;
+        case 'inventory': inventoryData = data; break;
+        case 'menu':      menuData = data; break;
+        case 'cashiers':  cashiersData = data; break;
+        case 'tables':    tablesData = data; break;
+        case 'expenses':  expensesData = data; break;
+      }
+    } else {
+      console.warn('[Manager] Failed to load ' + loaders[i].key + ':', res.reason);
+    }
+  });
 }
 
 function refreshCurrentPanel() {

@@ -258,7 +258,9 @@ function doGet(e) {
           price: parseFloat(data[i][MNU.PRICE]) || 0,
           cost: parseFloat(data[i][MNU.COST]) || 0,
           prepTime: parseInt(data[i][MNU.PREP_TIME]) || 10,
+          available: data[i][MNU.AVAILABLE] || "Yes",
           image: data[i][MNU.IMAGE] || "",
+          description: data[i][MNU.DESCRIPTION] || "",
           emoji: data[i][MNU.EMOJI] || ""
         });
       }
