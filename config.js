@@ -8,7 +8,7 @@ const CONFIG = {
   // ─── API ────────────────────────────────────────────────
   // Paste your deployed Google Apps Script Web App URL here.
   // Deploy → Manage Deployments → Copy Web App URL
-  API_URL: "https://script.google.com/macros/s/AKfycbxEpm1qIgup5q6DBF4F9PEzQD3XEZv0Sqz0otqGdzrbXB079afSjD8P_lpZj1_xpMXy1A/exec",
+  API_URL: "https://script.google.com/macros/s/AKfycby-Ght4h30xNFsu8jjGaEsb9wkmCUVaSECJ9j0Gzn6CXqZJ-4SERFyMh5wuwOE9Xy4Zig/exec",
 
   // ─── Restaurant Identity ─────────────────────────────────
   RESTAURANT: {
@@ -36,13 +36,181 @@ const CONFIG = {
     return "₦" + n.toLocaleString("en-NG", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
   },
 
-  // ─── Tables ──────────────────────────────────────────────
-  TABLES: [
+  // ─── GitHub Pages Base URL ──────────────────────────────
+  BASE_URL: "https://vendorliftng.github.io/Mevish-Cafe/",
+
+  // ─── Tables (loaded from API; fallback below) ────────────
+  TABLES: [],
+
+  // Fallback tables used if API is unreachable
+  FALLBACK_TABLES: [
     "T1","T2","T3","T4","T5",
     "T6","T7","T8","T9","T10",
     "T11","T12","T13","T14","T15",
     "Counter"
   ],
+
+  // ─── Theme System ────────────────────────────────────────
+  // Preset themes the manager can choose from.
+  // Each theme defines CSS custom properties.
+  THEMES: {
+    "default": {
+      label: "Classic Teal",
+      primary:      "#0d9488",
+      primaryDark:  "#0f766e",
+      primaryLight: "#ccfbf1",
+      accent:       "#f59e0b",
+      accentDark:   "#d97706",
+      bg:           "#f8fafc",
+      bgCard:       "#ffffff",
+      bgSidebar:    "#0f172a",
+      text:         "#1e293b",
+      textLight:    "#64748b",
+      textOnPrimary:"#ffffff",
+      border:       "#e2e8f0",
+      success:      "#16a34a",
+      danger:       "#dc2626",
+      warning:      "#ea580c",
+      info:         "#2563eb",
+      shadow:       "0 1px 3px rgba(0,0,0,0.08)",
+      radius:       "12px",
+    },
+    "midnight": {
+      label: "Midnight Gold",
+      primary:      "#b8860b",
+      primaryDark:  "#996f09",
+      primaryLight: "#fef3c7",
+      accent:       "#e11d48",
+      accentDark:   "#be123c",
+      bg:           "#0f172a",
+      bgCard:       "#1e293b",
+      bgSidebar:    "#020617",
+      text:         "#f1f5f9",
+      textLight:    "#94a3b8",
+      textOnPrimary:"#0f172a",
+      border:       "#334155",
+      success:      "#22c55e",
+      danger:       "#ef4444",
+      warning:      "#f97316",
+      info:         "#3b82f6",
+      shadow:       "0 1px 3px rgba(0,0,0,0.3)",
+      radius:       "12px",
+    },
+    "sunset": {
+      label: "Sunset Warm",
+      primary:      "#ea580c",
+      primaryDark:  "#c2410c",
+      primaryLight: "#ffedd5",
+      accent:       "#7c3aed",
+      accentDark:   "#6d28d9",
+      bg:           "#fffbeb",
+      bgCard:       "#ffffff",
+      bgSidebar:    "#451a03",
+      text:         "#1c1917",
+      textLight:    "#78716c",
+      textOnPrimary:"#ffffff",
+      border:       "#e7e5e4",
+      success:      "#16a34a",
+      danger:       "#dc2626",
+      warning:      "#ea580c",
+      info:         "#2563eb",
+      shadow:       "0 1px 3px rgba(0,0,0,0.06)",
+      radius:       "16px",
+    },
+    "forest": {
+      label: "Forest Green",
+      primary:      "#15803d",
+      primaryDark:  "#166534",
+      primaryLight: "#dcfce7",
+      accent:       "#ca8a04",
+      accentDark:   "#a16207",
+      bg:           "#f0fdf4",
+      bgCard:       "#ffffff",
+      bgSidebar:    "#14532d",
+      text:         "#1e293b",
+      textLight:    "#64748b",
+      textOnPrimary:"#ffffff",
+      border:       "#bbf7d0",
+      success:      "#16a34a",
+      danger:       "#dc2626",
+      warning:      "#ea580c",
+      info:         "#2563eb",
+      shadow:       "0 1px 3px rgba(0,0,0,0.06)",
+      radius:       "12px",
+    },
+    "royal": {
+      label: "Royal Purple",
+      primary:      "#7c3aed",
+      primaryDark:  "#6d28d9",
+      primaryLight: "#ede9fe",
+      accent:       "#f43f5e",
+      accentDark:   "#e11d48",
+      bg:           "#faf5ff",
+      bgCard:       "#ffffff",
+      bgSidebar:    "#3b0764",
+      text:         "#1e1b4b",
+      textLight:    "#6b7280",
+      textOnPrimary:"#ffffff",
+      border:       "#e9d5ff",
+      success:      "#16a34a",
+      danger:       "#dc2626",
+      warning:      "#ea580c",
+      info:         "#2563eb",
+      shadow:       "0 1px 3px rgba(0,0,0,0.06)",
+      radius:       "14px",
+    },
+  },
+
+  // Apply a theme by name (id string like "default", "midnight", etc.)
+  // Falls back to "default" if theme not found.
+  applyTheme(themeId) {
+    const theme = this.THEMES[themeId] || this.THEMES["default"];
+    const root = document.documentElement;
+    root.style.setProperty("--c-primary",      theme.primary);
+    root.style.setProperty("--c-primary-dark",  theme.primaryDark);
+    root.style.setProperty("--c-primary-light", theme.primaryLight);
+    root.style.setProperty("--c-accent",        theme.accent);
+    root.style.setProperty("--c-accent-dark",   theme.accentDark);
+    root.style.setProperty("--c-bg",            theme.bg);
+    root.style.setProperty("--c-bg-card",       theme.bgCard);
+    root.style.setProperty("--c-bg-sidebar",    theme.bgSidebar);
+    root.style.setProperty("--c-text",          theme.text);
+    root.style.setProperty("--c-text-light",    theme.textLight);
+    root.style.setProperty("--c-text-on-primary",theme.textOnPrimary);
+    root.style.setProperty("--c-border",        theme.border);
+    root.style.setProperty("--c-success",       theme.success);
+    root.style.setProperty("--c-danger",        theme.danger);
+    root.style.setProperty("--c-warning",       theme.warning);
+    root.style.setProperty("--c-info",          theme.info);
+    root.style.setProperty("--c-shadow",        theme.shadow);
+    root.style.setProperty("--c-radius",        theme.radius);
+    localStorage.setItem("mevish_theme", themeId);
+  },
+
+  // Load theme: try localStorage first, then fall back to "default"
+  loadSavedTheme() {
+    const saved = localStorage.getItem("mevish_theme");
+    if (saved && this.THEMES[saved]) {
+      this.applyTheme(saved);
+      return saved;
+    }
+    this.applyTheme("default");
+    return "default";
+  },
+
+  // Fetch tables from API, fall back to FALLBACK_TABLES
+  async fetchTables() {
+    try {
+      const res = await fetch(CONFIG.API_URL + "?type=tables");
+      const json = await res.json();
+      if (json.status === "success" && json.data.length > 0) {
+        CONFIG.TABLES = json.data.map(t => t.id);
+        return CONFIG.TABLES;
+      }
+    } catch (e) { /* ignore */ }
+    CONFIG.TABLES = [...CONFIG.FALLBACK_TABLES];
+    return CONFIG.TABLES;
+  },
 
   // ─── Security PINs ───────────────────────────────────────
   MANAGER_PIN:    "1234",   // ← CHANGE before go-live
@@ -126,6 +294,28 @@ const CONFIG = {
 
   // ─── Receipt ─────────────────────────────────────────────
   RECEIPT_FOOTER: "Thank you for dining at Mevish Eatery!\nFollow us @mevisheatery",
+
+  // ─── API Helpers ───────────────────────────────────────
+  // Standard GET wrapper
+  async apiGet(type, params) {
+    let url = CONFIG.API_URL + "?type=" + type;
+    if (params) {
+      Object.keys(params).forEach(k => { url += "&" + encodeURIComponent(k) + "=" + encodeURIComponent(params[k]); });
+    }
+    const res = await fetch(url);
+    return await res.json();
+  },
+
+  // Standard POST wrapper with CORS workaround for Google Apps Script
+  async apiPost(action, payload) {
+    const res = await fetch(CONFIG.API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action: action, ...payload }),
+      redirect: "follow",
+    });
+    return await res.json();
+  },
 
   // ─── Order ID Generator ──────────────────────────────────
   generateOrderId() {

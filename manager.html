@@ -3,901 +3,752 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Analytics | Mevish Eatery Manager Dashboard</title>
-  <meta name="description" content="Executive Analytics Dashboard for Mevish Eatery – KPI metrics, cashier audit, credit log, and inventory alerts." />
+  <title>Manager Panel | Mevish Eatery</title>
+  <meta name="description" content="Admin control panel for Mevish Eatery restaurant management system." />
   <link rel="stylesheet" href="style.css" />
   <script src="config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <style>
-    /* ── PIN Gate ─────────────────────────────────────── */
+    /* ═══════════════════════════════════════════════════════
+       THEME SYSTEM — CSS Custom Properties
+       ═══════════════════════════════════════════════════════ */
+    :root {
+      --c-primary: #0d9488;
+      --c-primary-dark: #0f766e;
+      --c-primary-light: #ccfbf1;
+      --c-accent: #f59e0b;
+      --c-accent-dark: #d97706;
+      --c-bg: #f8fafc;
+      --c-bg-card: #ffffff;
+      --c-bg-sidebar: #0f172a;
+      --c-text: #1e293b;
+      --c-text-light: #64748b;
+      --c-text-on-primary: #ffffff;
+      --c-border: #e2e8f0;
+      --c-success: #16a34a;
+      --c-danger: #dc2626;
+      --c-warning: #ea580c;
+      --c-info: #2563eb;
+      --c-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      --c-radius: 12px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--c-bg);
+      color: var(--c-text);
+      line-height: 1.5;
+      min-height: 100vh;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    /* ── PIN GATE ──────────────────────────────────────────── */
     .pin-gate {
-      position: fixed;
-      inset: 0;
-      z-index: 9999;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: radial-gradient(ellipse at 50% 0%, rgba(245,166,35,0.12) 0%, transparent 60%),
-                  linear-gradient(180deg, #0b0c14 0%, #11121e 100%);
-      backdrop-filter: blur(4px);
+      position: fixed; inset: 0; z-index: 9999;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--c-bg-sidebar);
     }
-
-    .pin-branding {
-      text-align: center;
-      margin-bottom: 2rem;
+    .pin-gate-brand { text-align: center; margin-bottom: 2rem; }
+    .pin-gate-brand .logo-text {
+      font-size: 2.4rem; font-weight: 800; letter-spacing: -1px;
+      background: linear-gradient(135deg, var(--c-primary), var(--c-accent));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
     }
-
-    .pin-branding .pin-logo {
-      font-size: 2.6rem;
-      font-weight: 800;
-      letter-spacing: -1px;
-      background: linear-gradient(135deg, #f5a623 0%, #ffcf6b 50%, #f5a623 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      line-height: 1;
+    .pin-gate-brand .logo-sub {
+      font-size: 0.8rem; letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--c-text-light); margin-top: 0.3rem;
     }
-
-    .pin-branding .pin-subtitle {
-      font-size: 0.82rem;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      color: #6b6f87;
-      margin-top: 0.35rem;
+    .pin-card {
+      background: var(--c-bg-card); border: 1px solid var(--c-border);
+      border-radius: 20px; padding: 2.5rem 2rem; width: 340px; max-width: 95vw;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+      display: flex; flex-direction: column; align-items: center;
     }
-
-    .pin-gate-card {
-      background: rgba(22, 23, 37, 0.92);
-      border: 1px solid rgba(245, 166, 35, 0.18);
-      border-radius: 24px;
-      padding: 2.5rem 2rem 2rem;
-      width: 340px;
-      max-width: 95vw;
-      box-shadow: 0 40px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(245,166,35,0.08);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0;
-      animation: pinCardIn 0.5s cubic-bezier(0.34,1.56,0.64,1);
-    }
-
-    @keyframes pinCardIn {
-      from { opacity: 0; transform: scale(0.88) translateY(24px); }
-      to   { opacity: 1; transform: scale(1) translateY(0); }
-    }
-
     .pin-label {
-      font-size: 0.78rem;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      color: #6b6f87;
-      margin-bottom: 1.4rem;
+      font-size: 0.78rem; letter-spacing: 0.15em; text-transform: uppercase;
+      color: var(--c-text-light); margin-bottom: 1.2rem;
     }
-
-    .pin-dots {
-      display: flex;
-      gap: 1rem;
-      margin-bottom: 2rem;
-    }
-
+    .pin-dots { display: flex; gap: 1rem; margin-bottom: 1.5rem; }
     .pin-dot {
-      width: 14px;
-      height: 14px;
-      border-radius: 50%;
-      border: 2px solid #3a3c52;
-      background: transparent;
-      transition: all 0.18s ease;
+      width: 14px; height: 14px; border-radius: 50%;
+      border: 2px solid var(--c-border); background: transparent; transition: all 0.18s;
     }
-
     .pin-dot.filled {
-      background: #f5a623;
-      border-color: #f5a623;
-      box-shadow: 0 0 10px rgba(245,166,35,0.5);
-      transform: scale(1.1);
+      background: var(--c-primary); border-color: var(--c-primary);
+      box-shadow: 0 0 10px rgba(13,148,136,0.4);
     }
-
     .pin-dot.error {
-      background: #ef4444;
-      border-color: #ef4444;
-      box-shadow: 0 0 10px rgba(239,68,68,0.5);
+      background: var(--c-danger); border-color: var(--c-danger);
       animation: pinShake 0.4s ease;
     }
-
     @keyframes pinShake {
-      0%,100% { transform: translateX(0); }
-      20%      { transform: translateX(-6px); }
-      40%      { transform: translateX(6px); }
-      60%      { transform: translateX(-4px); }
-      80%      { transform: translateX(4px); }
+      0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)}
+      40%{transform:translateX(6px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)}
     }
-
-    .pin-keypad {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 0.75rem;
-      width: 100%;
-    }
-
+    .pin-pad { display: grid; grid-template-columns: repeat(3,1fr); gap: 0.7rem; width: 100%; }
     .pin-key {
-      aspect-ratio: 1;
-      border-radius: 14px;
-      border: 1px solid rgba(255,255,255,0.06);
-      background: rgba(255,255,255,0.04);
-      color: #e2e4f0;
-      font-size: 1.35rem;
-      font-weight: 600;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: background 0.15s, transform 0.12s, box-shadow 0.15s;
-      user-select: none;
-      -webkit-user-select: none;
+      aspect-ratio: 1; border-radius: 14px;
+      border: 1px solid var(--c-border); background: var(--c-bg);
+      color: var(--c-text); font-size: 1.3rem; font-weight: 600;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s; user-select: none;
     }
-
-    .pin-key:hover {
-      background: rgba(245,166,35,0.15);
-      border-color: rgba(245,166,35,0.35);
-      color: #f5a623;
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(245,166,35,0.15);
+    .pin-key:hover { background: var(--c-primary-light); border-color: var(--c-primary); color: var(--c-primary-dark); }
+    .pin-key:active { transform: scale(0.93); }
+    .pin-key.empty { background: transparent; border-color: transparent; cursor: default; pointer-events: none; }
+    .pin-key.back { color: var(--c-text-light); font-size: 1.1rem; }
+    .pin-error {
+      font-size: 0.78rem; color: var(--c-danger); margin-top: 1rem;
+      min-height: 1.1em; text-align: center; opacity: 0; transition: opacity 0.2s;
     }
+    .pin-error.visible { opacity: 1; }
 
-    .pin-key:active {
-      transform: scale(0.93);
-      background: rgba(245,166,35,0.25);
+    /* ── LAYOUT ────────────────────────────────────────────── */
+    .app-layout { display: flex; min-height: 100vh; }
+
+    /* ── SIDEBAR ───────────────────────────────────────────── */
+    .sidebar {
+      width: 240px; min-height: 100vh; background: var(--c-bg-sidebar);
+      color: #e2e8f0; display: flex; flex-direction: column;
+      position: sticky; top: 0; flex-shrink: 0;
+      transition: background 0.3s;
     }
-
-    .pin-key.pin-key-empty {
-      background: transparent;
-      border-color: transparent;
-      cursor: default;
-      pointer-events: none;
+    .sidebar-header {
+      padding: 1.5rem 1.25rem; border-bottom: 1px solid rgba(255,255,255,0.08);
     }
-
-    .pin-key.pin-key-back {
-      color: #a8abbe;
-      font-size: 1.1rem;
+    .sidebar-brand {
+      font-size: 1.1rem; font-weight: 800; color: #fff;
+      background: linear-gradient(135deg, var(--c-primary), var(--c-accent));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
     }
-
-    .pin-error-msg {
-      font-size: 0.78rem;
-      color: #ef4444;
-      margin-top: 1rem;
-      min-height: 1.1em;
-      letter-spacing: 0.05em;
-      text-align: center;
-      opacity: 0;
-      transition: opacity 0.2s;
+    .sidebar-sub { font-size: 0.65rem; letter-spacing: 0.15em; text-transform: uppercase; color: #94a3b8; margin-top: 2px; }
+    .sidebar-nav { flex: 1; padding: 1rem 0.75rem; overflow-y: auto; }
+    .nav-section-label {
+      font-size: 0.65rem; letter-spacing: 0.15em; text-transform: uppercase;
+      color: #64748b; padding: 0.75rem 0.5rem 0.4rem; font-weight: 700;
     }
-
-    .pin-error-msg.visible { opacity: 1; }
-
-    /* ── Dashboard Layout ─────────────────────────────── */
-    .manager-wrap {
-      min-height: 100vh;
-      padding: 0 0 4rem;
+    .nav-item {
+      display: flex; align-items: center; gap: 0.7rem;
+      padding: 0.65rem 0.75rem; border-radius: 10px; cursor: pointer;
+      font-size: 0.85rem; font-weight: 500; color: #94a3b8;
+      transition: all 0.15s; text-decoration: none; margin-bottom: 2px;
     }
-
-    .page-header {
-      display: flex;
-      align-items: center;
-      gap: 1.5rem;
-      padding: 1.5rem 2rem;
-      border-bottom: 1px solid rgba(255,255,255,0.06);
-      background: rgba(17,18,30,0.95);
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      backdrop-filter: blur(12px);
+    .nav-item:hover { background: rgba(255,255,255,0.06); color: #e2e8f0; }
+    .nav-item.active { background: var(--c-primary); color: var(--c-text-on-primary); font-weight: 600; }
+    .nav-item .nav-icon { font-size: 1.1rem; width: 24px; text-align: center; flex-shrink: 0; }
+    .sidebar-footer {
+      padding: 1rem 1.25rem; border-top: 1px solid rgba(255,255,255,0.08);
+      font-size: 0.72rem; color: #64748b;
     }
+    .sidebar-footer a { color: var(--c-primary); text-decoration: none; }
 
-    .page-header .logo {
-      display: flex;
-      flex-direction: column;
-      min-width: 160px;
+    /* ── MAIN CONTENT ─────────────────────────────────────── */
+    .main-area { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    .top-bar {
+      padding: 1rem 2rem; border-bottom: 1px solid var(--c-border);
+      background: var(--c-bg-card); display: flex; align-items: center;
+      justify-content: space-between; gap: 1rem; position: sticky; top: 0; z-index: 50;
     }
+    .top-bar-title { font-size: 1.15rem; font-weight: 700; }
+    .top-bar-actions { display: flex; gap: 0.5rem; align-items: center; }
+    .page-body { padding: 2rem; flex: 1; }
 
-    .page-header .logo-name {
-      font-size: 1.15rem;
-      font-weight: 800;
-      background: linear-gradient(135deg, #f5a623, #ffcf6b);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      line-height: 1;
-    }
+    /* ── PANELS ───────────────────────────────────────────── */
+    .panel { display: none; }
+    .panel.active { display: block; }
 
-    .page-header .logo-sub {
-      font-size: 0.68rem;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
-      color: #6b6f87;
-      margin-top: 2px;
-    }
-
-    .header-filters {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.75rem;
-    }
-
-    .header-filters .filter-label {
-      font-size: 0.76rem;
-      color: #6b6f87;
-      letter-spacing: 0.08em;
-    }
-
-    .header-filters input[type="date"] {
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 10px;
-      color: #e2e4f0;
-      padding: 0.45rem 0.75rem;
-      font-size: 0.82rem;
-      outline: none;
-      transition: border-color 0.2s;
-      cursor: pointer;
-    }
-
-    .header-filters input[type="date"]:focus {
-      border-color: rgba(245,166,35,0.5);
-    }
-
-    .header-actions {
-      display: flex;
-      gap: 0.6rem;
-    }
-
-    /* ── Dashboard Content ────────────────────────────── */
-    .dash-content {
-      padding: 2rem;
-      max-width: 1400px;
-      margin: 0 auto;
-    }
-
-    /* ── KPI Cards ────────────────────────────────────── */
-    .kpi-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 1.25rem;
-      margin-bottom: 2rem;
-    }
-
-    @media (max-width: 1100px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
-    @media (max-width: 600px)  { .kpi-grid { grid-template-columns: 1fr; } }
-
-    .stat-card {
-      background: rgba(22, 23, 37, 0.8);
-      border: 1px solid rgba(255,255,255,0.07);
-      border-radius: 18px;
-      padding: 1.5rem 1.6rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.25rem;
-      position: relative;
-      overflow: hidden;
-      transition: transform 0.2s, box-shadow 0.2s;
-    }
-
-    .stat-card::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      border-radius: inherit;
-      opacity: 0;
-      transition: opacity 0.25s;
-    }
-
-    .stat-card:hover { transform: translateY(-3px); box-shadow: 0 16px 40px rgba(0,0,0,0.35); }
-
-    .stat-card.stat-success { border-color: rgba(16,185,129,0.25); }
-    .stat-card.stat-success::before { background: radial-gradient(circle at 80% 0%, rgba(16,185,129,0.12) 0%, transparent 60%); opacity: 1; }
-    .stat-card.stat-danger  { border-color: rgba(239,68,68,0.25); }
-    .stat-card.stat-danger::before  { background: radial-gradient(circle at 80% 0%, rgba(239,68,68,0.12) 0%, transparent 60%); opacity: 1; }
-    .stat-card.stat-warning { border-color: rgba(245,166,35,0.25); }
-    .stat-card.stat-warning::before { background: radial-gradient(circle at 80% 0%, rgba(245,166,35,0.12) 0%, transparent 60%); opacity: 1; }
-    .stat-card.stat-info    { border-color: rgba(99,102,241,0.25); }
-    .stat-card.stat-info::before    { background: radial-gradient(circle at 80% 0%, rgba(99,102,241,0.12) 0%, transparent 60%); opacity: 1; }
-
-    .stat-icon {
-      font-size: 1.6rem;
-      margin-bottom: 0.5rem;
-      display: block;
-    }
-
-    .stat-value {
-      font-size: 1.75rem;
-      font-weight: 800;
-      letter-spacing: -0.5px;
-      line-height: 1.1;
-      color: #f0f1fa;
-    }
-
-    .stat-label {
-      font-size: 0.76rem;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: #6b6f87;
-      margin-top: 0.2rem;
-    }
-
-    .stat-sub {
-      font-size: 0.78rem;
-      color: #ef4444;
-      margin-top: 0.2rem;
-    }
-
-    /* ── Charts ───────────────────────────────────────── */
-    .charts-grid {
-      display: grid;
-      grid-template-columns: 1fr 1.8fr;
-      gap: 1.25rem;
-      margin-bottom: 2rem;
-    }
-
-    @media (max-width: 900px) { .charts-grid { grid-template-columns: 1fr; } }
-
+    /* ── CARDS ────────────────────────────────────────────── */
     .card {
-      background: rgba(22, 23, 37, 0.8);
-      border: 1px solid rgba(255,255,255,0.07);
-      border-radius: 18px;
-      overflow: hidden;
+      background: var(--c-bg-card); border: 1px solid var(--c-border);
+      border-radius: var(--c-radius); box-shadow: var(--c-shadow);
+      margin-bottom: 1.5rem; overflow: hidden;
     }
-
     .card-header {
-      padding: 1.2rem 1.6rem;
-      border-bottom: 1px solid rgba(255,255,255,0.06);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+      padding: 1rem 1.5rem; border-bottom: 1px solid var(--c-border);
+      display: flex; align-items: center; justify-content: space-between;
     }
-
     .card-header h3 {
-      font-size: 0.9rem;
-      font-weight: 700;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      color: #a8abbe;
+      font-size: 0.88rem; font-weight: 700; letter-spacing: 0.04em;
+      text-transform: uppercase; color: var(--c-text);
     }
+    .card-body { padding: 1.5rem; }
 
-    .card-body {
-      padding: 1.5rem 1.6rem;
+    /* ── KPI GRID ─────────────────────────────────────────── */
+    .kpi-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.25rem; margin-bottom: 1.5rem;
     }
-
-    .card-body-sm { padding: 1rem 1.2rem; }
-
-    .chart-container {
-      position: relative;
-      height: 280px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    @media(max-width:1100px){.kpi-grid{grid-template-columns:repeat(2,1fr)}}
+    @media(max-width:600px){.kpi-grid{grid-template-columns:1fr}}
+    .kpi-card {
+      background: var(--c-bg-card); border: 1px solid var(--c-border);
+      border-radius: var(--c-radius); padding: 1.25rem 1.5rem;
+      box-shadow: var(--c-shadow); transition: transform 0.2s;
     }
+    .kpi-card:hover { transform: translateY(-2px); }
+    .kpi-value { font-size: 1.6rem; font-weight: 800; color: var(--c-text); }
+    .kpi-label { font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--c-text-light); margin-top: 0.15rem; }
+    .kpi-sub { font-size: 0.78rem; color: var(--c-danger); margin-top: 0.15rem; }
+    .kpi-card.kpi-success { border-left: 4px solid var(--c-success); }
+    .kpi-card.kpi-warning { border-left: 4px solid var(--c-accent); }
+    .kpi-card.kpi-info    { border-left: 4px solid var(--c-info); }
+    .kpi-card.kpi-danger  { border-left: 4px solid var(--c-danger); }
 
-    .donut-center {
-      position: absolute;
-      text-align: center;
-      pointer-events: none;
-    }
+    /* ── CHARTS ─────────────────────────────────────────────── */
+    .charts-grid { display: grid; grid-template-columns: 1fr 1.8fr; gap: 1.25rem; margin-bottom: 1.5rem; }
+    @media(max-width:900px){.charts-grid{grid-template-columns:1fr}}
+    .chart-box { position: relative; height: 280px; display: flex; align-items: center; justify-content: center; }
 
-    .donut-center-val {
-      font-size: 1.2rem;
-      font-weight: 800;
-      color: #f0f1fa;
-    }
-
-    .donut-center-lbl {
-      font-size: 0.65rem;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: #6b6f87;
-    }
-
-    /* ── Section Divider ──────────────────────────────── */
-    .section-divider {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      margin: 2rem 0 1.25rem;
-    }
-
-    .section-divider h2 {
-      font-size: 0.78rem;
-      font-weight: 700;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      color: #6b6f87;
-      white-space: nowrap;
-    }
-
-    .section-divider::after {
-      content: '';
-      flex: 1;
-      height: 1px;
-      background: rgba(255,255,255,0.06);
-    }
-
-    /* ── Tables ───────────────────────────────────────── */
-    .table-responsive {
-      overflow-x: auto;
-      border-radius: 0 0 18px 18px;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-
+    /* ── TABLES ────────────────────────────────────────────── */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
     thead th {
-      padding: 0.85rem 1.2rem;
-      text-align: left;
-      font-size: 0.7rem;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: #6b6f87;
-      font-weight: 600;
-      border-bottom: 1px solid rgba(255,255,255,0.06);
-      white-space: nowrap;
-      background: rgba(255,255,255,0.02);
+      padding: 0.75rem 1rem; text-align: left; font-size: 0.7rem;
+      letter-spacing: 0.1em; text-transform: uppercase; color: var(--c-text-light);
+      font-weight: 600; border-bottom: 1px solid var(--c-border);
+      background: rgba(0,0,0,0.02); white-space: nowrap;
     }
-
     tbody td {
-      padding: 0.9rem 1.2rem;
-      font-size: 0.87rem;
-      color: #c8cade;
-      border-bottom: 1px solid rgba(255,255,255,0.04);
-      vertical-align: middle;
+      padding: 0.75rem 1rem; font-size: 0.85rem; color: var(--c-text);
+      border-bottom: 1px solid var(--c-border); vertical-align: middle;
     }
-
     tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: rgba(0,0,0,0.02); }
 
-    tbody tr:hover td {
-      background: rgba(255,255,255,0.02);
-    }
-
-    tfoot td {
-      padding: 0.9rem 1.2rem;
-      font-size: 0.87rem;
-      font-weight: 700;
-      color: #f5a623;
-      border-top: 1px solid rgba(245,166,35,0.2);
-      background: rgba(245,166,35,0.04);
-    }
-
-    /* ── Badges ───────────────────────────────────────── */
+    /* ── BADGES ────────────────────────────────────────────── */
     .badge {
-      display: inline-flex;
-      align-items: center;
-      padding: 0.25em 0.7em;
-      border-radius: 999px;
-      font-size: 0.72rem;
-      font-weight: 600;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
+      display: inline-flex; align-items: center; padding: 0.2em 0.6em;
+      border-radius: 999px; font-size: 0.7rem; font-weight: 600;
+      letter-spacing: 0.04em; text-transform: uppercase;
     }
+    .badge-success { background: rgba(22,163,74,0.12); color: var(--c-success); }
+    .badge-danger  { background: rgba(220,38,38,0.12); color: var(--c-danger); }
+    .badge-warning { background: rgba(234,88,12,0.12); color: var(--c-warning); }
+    .badge-info    { background: rgba(37,99,235,0.12); color: var(--c-info); }
+    .badge-muted   { background: rgba(100,116,139,0.12); color: var(--c-text-light); }
 
-    .badge-paid   { background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.25); }
-    .badge-credit { background: rgba(239,68,68,0.15);  color: #ef4444; border: 1px solid rgba(239,68,68,0.25); }
-    .badge-void   { background: rgba(107,114,128,0.15); color: #6b7280; border: 1px solid rgba(107,114,128,0.2); }
-
-    .label-backdated {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.3em;
-      padding: 0.2em 0.6em;
-      border-radius: 6px;
-      font-size: 0.7rem;
-      font-weight: 700;
-      background: rgba(239,68,68,0.12);
-      color: #f87171;
-      border: 1px solid rgba(239,68,68,0.2);
+    /* ── BUTTONS ──────────────────────────────────────────── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 0.4em;
+      padding: 0.55rem 1.1rem; border-radius: 10px; font-size: 0.82rem;
+      font-weight: 600; cursor: pointer; border: none; outline: none;
+      transition: all 0.18s; text-decoration: none; white-space: nowrap;
     }
-
-    .label-credit {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.3em;
-      padding: 0.2em 0.6em;
-      border-radius: 6px;
-      font-size: 0.7rem;
-      font-weight: 700;
-      background: rgba(245,166,35,0.12);
-      color: #f5a623;
-      border: 1px solid rgba(245,166,35,0.25);
+    .btn-primary { background: var(--c-primary); color: var(--c-text-on-primary); }
+    .btn-primary:hover { background: var(--c-primary-dark); transform: translateY(-1px); }
+    .btn-accent  { background: var(--c-accent); color: var(--c-text-on-primary); }
+    .btn-accent:hover { background: var(--c-accent-dark); }
+    .btn-danger  { background: var(--c-danger); color: #fff; }
+    .btn-danger:hover { opacity: 0.9; }
+    .btn-ghost {
+      background: transparent; border: 1px solid var(--c-border);
+      color: var(--c-text-light);
     }
+    .btn-ghost:hover { background: var(--c-bg); color: var(--c-text); border-color: var(--c-primary); }
+    .btn-sm { padding: 0.35rem 0.75rem; font-size: 0.76rem; border-radius: 8px; }
+    .btn-icon { padding: 0.45rem; min-width: 34px; justify-content: center; }
 
-    /* ── Inventory Alerts ─────────────────────────────── */
+    /* ── FORMS ─────────────────────────────────────────────── */
+    .form-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 1rem; margin-bottom: 1rem;
+    }
+    .form-group { display: flex; flex-direction: column; gap: 0.35rem; }
+    .form-group label {
+      font-size: 0.75rem; font-weight: 600; letter-spacing: 0.05em;
+      text-transform: uppercase; color: var(--c-text-light);
+    }
+    .form-group input, .form-group select, .form-group textarea {
+      padding: 0.6rem 0.85rem; border: 1px solid var(--c-border);
+      border-radius: 10px; font-size: 0.88rem; color: var(--c-text);
+      background: var(--c-bg); outline: none; transition: border-color 0.2s;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+      border-color: var(--c-primary);
+    }
+    .form-group textarea { resize: vertical; min-height: 80px; }
+    .form-actions { display: flex; gap: 0.75rem; margin-top: 0.5rem; flex-wrap: wrap; }
+    .form-full { grid-column: 1 / -1; }
+
+    /* ── THEME PICKER ──────────────────────────────────────── */
+    .theme-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 1rem;
+    }
+    .theme-card {
+      border: 2px solid var(--c-border); border-radius: var(--c-radius);
+      padding: 1rem; cursor: pointer; transition: all 0.2s; text-align: center;
+    }
+    .theme-card:hover { border-color: var(--c-primary); transform: translateY(-2px); }
+    .theme-card.active { border-color: var(--c-primary); box-shadow: 0 0 0 3px rgba(13,148,136,0.2); }
+    .theme-preview {
+      display: flex; gap: 4px; justify-content: center; margin-bottom: 0.75rem;
+    }
+    .theme-swatch { width: 28px; height: 28px; border-radius: 50%; border: 2px solid rgba(0,0,0,0.08); }
+    .theme-card-name { font-size: 0.85rem; font-weight: 700; }
+
+    /* ── QR CODE SECTION ────────────────────────────────────── */
+    .qr-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1.25rem;
+    }
+    .qr-card {
+      background: var(--c-bg-card); border: 1px solid var(--c-border);
+      border-radius: var(--c-radius); padding: 1.25rem; text-align: center;
+      box-shadow: var(--c-shadow); transition: transform 0.2s;
+    }
+    .qr-card:hover { transform: translateY(-2px); }
+    .qr-card .qr-label { font-size: 1rem; font-weight: 700; margin-bottom: 0.75rem; }
+    .qr-card .qr-code { display: flex; justify-content: center; margin-bottom: 0.5rem; }
+    .qr-card .qr-code canvas, .qr-card .qr-code img { border-radius: 8px; }
+    .qr-card .qr-seats { font-size: 0.75rem; color: var(--c-text-light); }
+    .qr-actions { display: flex; gap: 0.5rem; justify-content: center; margin-top: 0.75rem; }
+
+    /* ── INVENTORY ALERTS ──────────────────────────────────── */
     .alerts-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-      gap: 1rem;
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem;
     }
-
     .alert-card {
-      background: rgba(239,68,68,0.06);
-      border: 1px solid rgba(239,68,68,0.2);
-      border-radius: 14px;
-      padding: 1.1rem 1.2rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.4rem;
-      transition: transform 0.2s, box-shadow 0.2s;
+      border-radius: var(--c-radius); padding: 1.1rem 1.2rem;
+      border: 1px solid var(--c-border); background: var(--c-bg-card);
+      transition: transform 0.2s;
     }
+    .alert-card:hover { transform: translateY(-2px); }
+    .alert-card.critical { border-color: rgba(220,38,38,0.3); background: rgba(220,38,38,0.04); }
+    .alert-card.warning { border-color: rgba(234,88,12,0.3); background: rgba(234,88,12,0.04); }
+    .alert-name { font-size: 0.88rem; font-weight: 700; margin-bottom: 0.3rem; }
+    .alert-stock { font-size: 0.78rem; color: var(--c-text-light); }
+    .alert-qty { font-size: 0.78rem; font-weight: 700; margin-top: 0.2rem; }
+    .alert-qty.critical { color: var(--c-danger); }
+    .alert-qty.warning { color: var(--c-warning); }
 
-    .alert-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(239,68,68,0.15);
+    /* ── TOAST NOTIFICATION ────────────────────────────────── */
+    .toast-container {
+      position: fixed; top: 1rem; right: 1rem; z-index: 10000;
+      display: flex; flex-direction: column; gap: 0.5rem;
     }
-
-    .alert-card.alert-orange {
-      background: rgba(245,166,35,0.06);
-      border-color: rgba(245,166,35,0.25);
+    .toast {
+      padding: 0.75rem 1.25rem; border-radius: 10px; font-size: 0.85rem;
+      font-weight: 500; color: #fff; box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+      animation: toastIn 0.3s ease; min-width: 250px;
     }
+    .toast.success { background: var(--c-success); }
+    .toast.error   { background: var(--c-danger); }
+    .toast.info    { background: var(--c-info); }
+    @keyframes toastIn { from{opacity:0;transform:translateX(40px)} to{opacity:1;transform:translateX(0)} }
 
-    .alert-card.alert-orange:hover {
-      box-shadow: 0 8px 24px rgba(245,166,35,0.12);
+    /* ── MODAL ─────────────────────────────────────────────── */
+    .modal-overlay {
+      position: fixed; inset: 0; z-index: 9000; background: rgba(0,0,0,0.5);
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none; transition: opacity 0.2s;
     }
+    .modal-overlay.open { opacity: 1; pointer-events: auto; }
+    .modal {
+      background: var(--c-bg-card); border-radius: 16px; padding: 2rem;
+      width: 480px; max-width: 95vw; max-height: 90vh; overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+      transform: scale(0.95); transition: transform 0.2s;
+    }
+    .modal-overlay.open .modal { transform: scale(1); }
+    .modal-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 1.25rem; }
+    .modal-actions { display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1.25rem; }
 
-    .alert-card-icon { font-size: 1.4rem; }
-    .alert-card-name { font-size: 0.88rem; font-weight: 700; color: #e2e4f0; }
-    .alert-card-stock { font-size: 0.78rem; color: #6b6f87; }
-    .alert-card-qty   { font-size: 0.78rem; font-weight: 700; }
-    .alert-card-qty.qty-red    { color: #ef4444; }
-    .alert-card-qty.qty-orange { color: #f5a623; }
+    /* ── STATUS DOT ────────────────────────────────────────── */
+    .status-dot {
+      width: 8px; height: 8px; border-radius: 50%; display: inline-block;
+      margin-right: 0.4rem; vertical-align: middle;
+    }
+    .status-dot.green { background: var(--c-success); }
+    .status-dot.red   { background: var(--c-danger); }
+    .status-dot.yellow { background: var(--c-warning); }
 
-    /* ── Loading / Empty States ───────────────────────── */
+    /* ── LOADING / EMPTY ────────────────────────────────────── */
     .loading-state, .empty-state {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 3rem 1rem;
-      gap: 1rem;
-      color: #6b6f87;
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; padding: 3rem 1rem; gap: 0.75rem;
+      color: var(--c-text-light);
     }
-
-    .empty-icon { font-size: 2.5rem; }
-    .empty-title { font-size: 0.95rem; font-weight: 600; color: #a8abbe; }
-    .empty-text  { font-size: 0.8rem; color: #6b6f87; text-align: center; }
-
     .spinner {
-      width: 36px;
-      height: 36px;
-      border: 3px solid rgba(245,166,35,0.15);
-      border-top-color: #f5a623;
-      border-radius: 50%;
+      width: 32px; height: 32px; border: 3px solid var(--c-border);
+      border-top-color: var(--c-primary); border-radius: 50%;
       animation: spin 0.8s linear infinite;
     }
-
     @keyframes spin { to { transform: rotate(360deg); } }
+    .empty-title { font-size: 0.95rem; font-weight: 600; color: var(--c-text); }
+    .empty-text { font-size: 0.8rem; text-align: center; }
 
-    /* ── Buttons ──────────────────────────────────────── */
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4em;
-      padding: 0.5rem 1rem;
-      border-radius: 10px;
-      font-size: 0.82rem;
-      font-weight: 600;
-      cursor: pointer;
-      border: none;
-      outline: none;
-      transition: all 0.18s;
-      text-decoration: none;
-      white-space: nowrap;
+    /* ── SECTION DIVIDER ───────────────────────────────────── */
+    .section-divider {
+      display: flex; align-items: center; gap: 1rem;
+      margin: 2rem 0 1.25rem;
+    }
+    .section-divider h2 {
+      font-size: 0.78rem; font-weight: 700; letter-spacing: 0.15em;
+      text-transform: uppercase; color: var(--c-text-light); white-space: nowrap;
+    }
+    .section-divider::after {
+      content: ''; flex: 1; height: 1px; background: var(--c-border);
     }
 
-    .btn-primary {
-      background: linear-gradient(135deg, #f5a623, #ffcf6b);
-      color: #1a0e00;
-    }
-
-    .btn-primary:hover {
-      background: linear-gradient(135deg, #ffb73e, #ffe08a);
-      transform: translateY(-1px);
-      box-shadow: 0 8px 20px rgba(245,166,35,0.3);
-    }
-
-    .btn-ghost {
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.1);
-      color: #a8abbe;
-    }
-
-    .btn-ghost:hover {
-      background: rgba(255,255,255,0.08);
-      border-color: rgba(255,255,255,0.18);
-      color: #e2e4f0;
-    }
-
-    .btn-sm { padding: 0.35rem 0.75rem; font-size: 0.76rem; }
-
-    /* ── Print ────────────────────────────────────────── */
-    .print-header { display: none; }
-
-    @media print {
-      .pin-gate    { display: none !important; }
-      .page-header { position: static; }
-      .no-print    { display: none !important; }
-      .print-header {
-        display: block;
-        padding: 1rem 0 0.5rem;
-        border-bottom: 2px solid #000;
-        margin-bottom: 1rem;
-        text-align: center;
-      }
-
-      .stat-card, .card { break-inside: avoid; }
-      body { background: #fff !important; color: #000 !important; }
-      .stat-value, .card-header h3, .section-divider h2 { color: #000 !important; }
-      thead th, tbody td { color: #000 !important; border-color: #ccc !important; }
-      .badge-paid   { background: #d1fae5 !important; color: #065f46 !important; }
-      .badge-credit { background: #fee2e2 !important; color: #991b1b !important; }
-      .charts-grid  { grid-template-columns: 1fr 1fr; }
-      .kpi-grid     { grid-template-columns: repeat(4,1fr); }
-    }
-
-    /* ── Misc ─────────────────────────────────────────── */
-    .text-gradient {
-      background: linear-gradient(135deg, #f5a623, #ffcf6b);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    .text-muted    { color: #6b6f87; }
-    .text-secondary { color: #a8abbe; }
-    .text-gold     { color: #f5a623; }
-    .text-danger   { color: #ef4444; }
-    .text-success  { color: #10b981; }
-
-    .flex-between {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
-    }
-
-    .chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.3em;
-      padding: 0.2em 0.65em;
-      border-radius: 999px;
-      font-size: 0.7rem;
-      font-weight: 600;
-      background: rgba(245,166,35,0.12);
-      color: #f5a623;
-      border: 1px solid rgba(245,166,35,0.2);
-    }
-
+    /* ── MISC ──────────────────────────────────────────────── */
+    .text-muted { color: var(--c-text-light); }
+    .text-success { color: var(--c-success); }
+    .text-danger { color: var(--c-danger); }
+    .text-accent { color: var(--c-accent); }
     .cashier-avatar {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #f5a623, #ffcf6b);
-      color: #1a0e00;
-      font-size: 0.72rem;
-      font-weight: 800;
-      margin-right: 0.5em;
-      flex-shrink: 0;
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 28px; height: 28px; border-radius: 50%;
+      background: var(--c-primary); color: var(--c-text-on-primary);
+      font-size: 0.72rem; font-weight: 800; margin-right: 0.5em; flex-shrink: 0;
+    }
+    .chip {
+      display: inline-flex; align-items: center; gap: 0.3em;
+      padding: 0.2em 0.6em; border-radius: 999px; font-size: 0.7rem;
+      font-weight: 600; background: var(--c-primary-light); color: var(--c-primary-dark);
+      border: 1px solid var(--c-primary);
     }
 
-    .cashier-cell {
-      display: flex;
-      align-items: center;
+    /* ── RESPONSIVE ────────────────────────────────────────── */
+    .sidebar-toggle { display: none; }
+    @media(max-width:768px){
+      .sidebar { position: fixed; z-index: 200; transform: translateX(-100%); transition: transform 0.3s; }
+      .sidebar.open { transform: translateX(0); }
+      .sidebar-toggle { display: flex; }
+      .page-body { padding: 1rem; }
+      .top-bar { padding: 1rem; }
     }
 
-    /* Health badge for inventory */
-    .stock-bar-wrap {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .stock-bar {
-      flex: 1;
-      height: 4px;
-      background: rgba(255,255,255,0.08);
-      border-radius: 999px;
-      overflow: hidden;
-    }
-
-    .stock-bar-fill {
-      height: 100%;
-      border-radius: 999px;
-      transition: width 0.4s ease;
+    /* ── PRINT ─────────────────────────────────────────────── */
+    @media print {
+      .sidebar, .pin-gate, .top-bar, .toast-container { display: none !important; }
+      .main-area { margin: 0; }
+      body { background: #fff !important; }
+      .kpi-card, .card { break-inside: avoid; box-shadow: none; }
     }
   </style>
 </head>
 <body>
 
-<!-- ════════════════════════════════════════════════════ -->
-<!--  PIN GATE                                           -->
-<!-- ════════════════════════════════════════════════════ -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  TOAST CONTAINER                                         -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  PIN GATE                                                -->
+<!-- ══════════════════════════════════════════════════════════ -->
 <div id="pinGate" class="pin-gate">
-  <div style="display:flex; flex-direction:column; align-items:center;">
-    <div class="pin-branding">
-      <div class="pin-logo" id="pinRestaurantName">Mevish Eatery</div>
-      <div class="pin-subtitle">Manager Dashboard</div>
+  <div style="display:flex;flex-direction:column;align-items:center;">
+    <div class="pin-gate-brand">
+      <div class="logo-text" id="pinRestName">Mevish Eatery</div>
+      <div class="logo-sub">Manager Panel</div>
     </div>
-
-    <div class="pin-gate-card">
+    <div class="pin-card">
       <div class="pin-label">Enter Manager PIN</div>
-
-      <div class="pin-dots" id="pinDots">
-        <div class="pin-dot" id="dot0"></div>
-        <div class="pin-dot" id="dot1"></div>
-        <div class="pin-dot" id="dot2"></div>
-        <div class="pin-dot" id="dot3"></div>
+      <div class="pin-dots">
+        <div class="pin-dot"></div><div class="pin-dot"></div>
+        <div class="pin-dot"></div><div class="pin-dot"></div>
       </div>
-
-      <div class="pin-keypad" id="pinKeypad">
-        <!-- Row 1 -->
+      <div class="pin-pad">
         <button class="pin-key" onclick="addDigit(1)">1</button>
         <button class="pin-key" onclick="addDigit(2)">2</button>
         <button class="pin-key" onclick="addDigit(3)">3</button>
-        <!-- Row 2 -->
         <button class="pin-key" onclick="addDigit(4)">4</button>
         <button class="pin-key" onclick="addDigit(5)">5</button>
         <button class="pin-key" onclick="addDigit(6)">6</button>
-        <!-- Row 3 -->
         <button class="pin-key" onclick="addDigit(7)">7</button>
         <button class="pin-key" onclick="addDigit(8)">8</button>
         <button class="pin-key" onclick="addDigit(9)">9</button>
-        <!-- Row 4 -->
-        <button class="pin-key pin-key-back" onclick="backspace()" title="Backspace">⌫</button>
+        <button class="pin-key back" onclick="backspace()">&#9003;</button>
         <button class="pin-key" onclick="addDigit(0)">0</button>
-        <button class="pin-key pin-key-empty"></button>
+        <button class="pin-key empty"></button>
       </div>
-
-      <div class="pin-error-msg" id="pinError">Incorrect PIN. Try again.</div>
+      <div class="pin-error" id="pinError">Incorrect PIN. Try again.</div>
     </div>
   </div>
 </div>
 
-<!-- ════════════════════════════════════════════════════ -->
-<!--  PRINT HEADER (hidden on screen)                    -->
-<!-- ════════════════════════════════════════════════════ -->
-<div class="print-header" id="printHeader">
-  <h1 id="printRestName" style="font-size:1.4rem; font-weight:800; margin:0;">Mevish Eatery</h1>
-  <p style="margin:0.3rem 0 0; font-size:0.85rem; color:#555;">Analytics Report &mdash;
-    <span id="printDateRange">–</span>
-  </p>
-  <p style="margin:0.2rem 0 0; font-size:0.75rem; color:#888;">Generated: <span id="printGenTime">–</span></p>
-</div>
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  APP LAYOUT                                             -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div id="appLayout" class="app-layout" style="display:none;">
 
-<!-- ════════════════════════════════════════════════════ -->
-<!--  DASHBOARD                                          -->
-<!-- ════════════════════════════════════════════════════ -->
-<div id="dashboard" class="manager-wrap" style="display:none;">
-
-  <!-- PAGE HEADER -->
-  <header class="page-header no-print">
-    <div class="logo">
-      <span class="logo-name" id="headerRestName">Mevish Eatery</span>
-      <span class="logo-sub">Analytics Dashboard</span>
+  <!-- ─── SIDEBAR ─────────────────────────────────────────── -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-brand" id="sidebarBrand">Mevish Eatery</div>
+      <div class="sidebar-sub">Manager Panel</div>
     </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Main</div>
+      <a class="nav-item active" data-panel="analytics" onclick="switchPanel('analytics')">
+        <span class="nav-icon">&#9632;</span> Analytics
+      </a>
+      <a class="nav-item" data-panel="orders" onclick="switchPanel('orders')">
+        <span class="nav-icon">&#9998;</span> Orders
+      </a>
 
-    <div class="header-filters">
-      <span class="filter-label">From</span>
-      <input type="date" id="startDate" onchange="applyFilters()" />
-      <span class="filter-label">To</span>
-      <input type="date" id="endDate" onchange="applyFilters()" />
+      <div class="nav-section-label">Manage</div>
+      <a class="nav-item" data-panel="menu" onclick="switchPanel('menu')">
+        <span class="nav-icon">&#9733;</span> Menu Items
+      </a>
+      <a class="nav-item" data-panel="inventory" onclick="switchPanel('inventory')">
+        <span class="nav-icon">&#9878;</span> Inventory
+      </a>
+      <a class="nav-item" data-panel="cashiers" onclick="switchPanel('cashiers')">
+        <span class="nav-icon">&#9823;</span> Cashiers
+      </a>
+      <a class="nav-item" data-panel="tables" onclick="switchPanel('tables')">
+        <span class="nav-icon">&#9635;</span> Tables &amp; QR
+      </a>
+      <a class="nav-item" data-panel="expenses" onclick="switchPanel('expenses')">
+        <span class="nav-icon">&#9830;</span> Expenses
+      </a>
+
+      <div class="nav-section-label">System</div>
+      <a class="nav-item" data-panel="settings" onclick="switchPanel('settings')">
+        <span class="nav-icon">&#9881;</span> Settings
+      </a>
+      <a class="nav-item" data-panel="theme" onclick="switchPanel('theme')">
+        <span class="nav-icon">&#127912;</span> Themes
+      </a>
+      <a class="nav-item" data-panel="audit" onclick="switchPanel('audit')">
+        <span class="nav-icon">&#128203;</span> Audit Log
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="dashboard.html">Kitchen Dashboard</a> &middot;
+      <a href="index.html">Order Portal</a>
     </div>
+  </aside>
 
-    <div class="header-actions">
-      <button class="btn btn-ghost btn-sm" onclick="loadDashboard()" id="refreshBtn" title="Refresh data">
-        🔄 Refresh
-      </button>
-      <button class="btn btn-primary btn-sm" onclick="exportReport()" title="Print / Export PDF">
-        🖨️ Export Report
-      </button>
-    </div>
-  </header>
+  <!-- ─── MAIN ────────────────────────────────────────────── -->
+  <div class="main-area">
+    <header class="top-bar">
+      <div style="display:flex;align-items:center;gap:0.75rem;">
+        <button class="btn btn-ghost btn-icon sidebar-toggle" onclick="toggleSidebar()">&#9776;</button>
+        <span class="top-bar-title" id="topBarTitle">Analytics</span>
+      </div>
+      <div class="top-bar-actions">
+        <button class="btn btn-ghost btn-sm" onclick="refreshCurrentPanel()">
+          &#8635; Refresh
+        </button>
+        <button class="btn btn-primary btn-sm" onclick="exportReport()">
+          &#9113; Export
+        </button>
+      </div>
+    </header>
 
-  <div class="dash-content">
+    <div class="page-body">
 
-    <!-- KPI CARDS -->
-    <div class="kpi-grid" id="kpiGrid">
-      <!-- Loading skeleton -->
-      <div class="stat-card stat-success">
-        <span class="stat-icon">💰</span>
-        <div class="stat-value" id="kpiRevenue">—</div>
-        <div class="stat-label">Total Revenue</div>
-      </div>
-      <div class="stat-card stat-warning">
-        <span class="stat-icon">📋</span>
-        <div class="stat-value" id="kpiOrders">—</div>
-        <div class="stat-label">Total Orders</div>
-      </div>
-      <div class="stat-card stat-info">
-        <span class="stat-icon">📊</span>
-        <div class="stat-value" id="kpiAvg">—</div>
-        <div class="stat-label">Avg Order Value</div>
-      </div>
-      <div class="stat-card stat-danger">
-        <span class="stat-icon">⚠️</span>
-        <div class="stat-value" id="kpiCredit">—</div>
-        <div class="stat-label">Outstanding Credit</div>
-        <div class="stat-sub" id="kpiCreditSub"></div>
-      </div>
-    </div>
-
-    <!-- CHARTS -->
-    <div class="charts-grid">
-      <!-- Donut: Cash vs POS -->
-      <div class="card">
-        <div class="card-header">
-          <h3>💳 Revenue Split</h3>
-          <div id="revenueChipArea" style="display:flex; gap:0.5rem;"></div>
+      <!-- ════════════════════════════════════════════════════ -->
+      <!--  PANEL: ANALYTICS                                    -->
+      <!-- ════════════════════════════════════════════════════ -->
+      <div id="panel-analytics" class="panel active">
+        <div style="display:flex;gap:0.75rem;margin-bottom:1.5rem;flex-wrap:wrap;align-items:center;">
+          <label class="text-muted" style="font-size:0.82rem;">From</label>
+          <input type="date" id="startDate" onchange="applyFilters()" style="padding:0.45rem 0.75rem;border:1px solid var(--c-border);border-radius:10px;font-size:0.82rem;background:var(--c-bg-card);color:var(--c-text);" />
+          <label class="text-muted" style="font-size:0.82rem;">To</label>
+          <input type="date" id="endDate" onchange="applyFilters()" style="padding:0.45rem 0.75rem;border:1px solid var(--c-border);border-radius:10px;font-size:0.82rem;background:var(--c-bg-card);color:var(--c-text);" />
         </div>
-        <div class="card-body">
-          <div class="chart-container">
-            <canvas id="revenueChart"></canvas>
-            <div class="donut-center" id="donutCenter">
-              <div class="donut-center-val" id="donutTotal">—</div>
-              <div class="donut-center-lbl">Total</div>
+
+        <div class="kpi-grid">
+          <div class="kpi-card kpi-success">
+            <div class="kpi-value" id="kpiRevenue">&#8212;</div>
+            <div class="kpi-label">Total Revenue</div>
+          </div>
+          <div class="kpi-card kpi-warning">
+            <div class="kpi-value" id="kpiOrders">&#8212;</div>
+            <div class="kpi-label">Total Orders</div>
+          </div>
+          <div class="kpi-card kpi-info">
+            <div class="kpi-value" id="kpiAvg">&#8212;</div>
+            <div class="kpi-label">Avg Order Value</div>
+          </div>
+          <div class="kpi-card kpi-danger">
+            <div class="kpi-value" id="kpiCredit">&#8212;</div>
+            <div class="kpi-label">Outstanding Credit</div>
+            <div class="kpi-sub" id="kpiCreditSub"></div>
+          </div>
+        </div>
+
+        <div class="charts-grid">
+          <div class="card">
+            <div class="card-header"><h3>Revenue Split</h3></div>
+            <div class="card-body">
+              <div class="chart-box"><canvas id="revenueChart"></canvas></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><h3>Daily Revenue</h3><span class="text-muted" style="font-size:0.75rem;" id="dailyChartLabel">Last 7 days</span></div>
+            <div class="card-body">
+              <div class="chart-box"><canvas id="dailyChart"></canvas></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-divider"><h2>Cashier Audit</h2></div>
+        <div class="card"><div class="table-wrap" id="cashierTableWrap"><div class="loading-state"><div class="spinner"></div></div></div></div>
+
+        <div class="section-divider"><h2>Credit &amp; Flagged Orders</h2></div>
+        <div class="card"><div class="table-wrap" id="creditTableWrap"><div class="loading-state"><div class="spinner"></div></div></div></div>
+
+        <div class="section-divider"><h2>Inventory Alerts</h2></div>
+        <div class="card"><div class="card-body" id="inventoryAlertsWrap"><div class="loading-state"><div class="spinner"></div></div></div></div>
+      </div>
+
+      <!-- ════════════════════════════════════════════════════ -->
+      <!--  PANEL: ORDERS                                        -->
+      <!-- ════════════════════════════════════════════════════ -->
+      <div id="panel-orders" class="panel">
+        <div class="card">
+          <div class="card-header">
+            <h3>All Orders</h3>
+            <input type="text" id="orderSearch" placeholder="Search orders..." oninput="renderOrdersList()"
+              style="padding:0.4rem 0.8rem;border:1px solid var(--c-border);border-radius:8px;font-size:0.82rem;width:220px;background:var(--c-bg);color:var(--c-text);" />
+          </div>
+          <div class="table-wrap" id="ordersTableWrap"><div class="loading-state"><div class="spinner"></div></div></div>
+        </div>
+      </div>
+
+      <!-- ════════════════════════════════════════════════════ -->
+      <!--  PANEL: MENU MANAGEMENT                               -->
+      <!-- ════════════════════════════════════════════════════ -->
+      <div id="panel-menu" class="panel">
+        <div class="card">
+          <div class="card-header">
+            <h3>Menu Items</h3>
+            <button class="btn btn-primary btn-sm" onclick="openMenuModal()">+ Add Item</button>
+          </div>
+          <div class="table-wrap" id="menuTableWrap"><div class="loading-state"><div class="spinner"></div></div></div>
+        </div>
+      </div>
+
+      <!-- ════════════════════════════════════════════════════ -->
+      <!--  PANEL: INVENTORY                                     -->
+      <!-- ════════════════════════════════════════════════════ -->
+      <div id="panel-inventory" class="panel">
+        <div class="card">
+          <div class="card-header">
+            <h3>Inventory</h3>
+            <button class="btn btn-primary btn-sm" onclick="openInventoryModal()">+ Add Item</button>
+          </div>
+          <div class="table-wrap" id="inventoryTableWrap"><div class="loading-state"><div class="spinner"></div></div></div>
+        </div>
+      </div>
+
+      <!-- ════════════════════════════════════════════════════ -->
+      <!--  PANEL: CASHIERS                                      -->
+      <!-- ════════════════════════════════════════════════════ -->
+      <div id="panel-cashiers" class="panel">
+        <div class="card">
+          <div class="card-header">
+            <h3>Cashiers</h3>
+            <button class="btn btn-primary btn-sm" onclick="openCashierModal()">+ Add Cashier</button>
+          </div>
+          <div class="table-wrap" id="cashiersTableWrap"><div class="loading-state"><div class="spinner"></div></div></div>
+        </div>
+      </div>
+
+      <!-- ════════════════════════════════════════════════════ -->
+      <!--  PANEL: TABLES & QR                                   -->
+      <!-- ════════════════════════════════════════════════════ -->
+      <div id="panel-tables" class="panel">
+        <div class="card">
+          <div class="card-header">
+            <h3>Tables &amp; QR Codes</h3>
+            <button class="btn btn-primary btn-sm" onclick="openTableModal()">+ Add Table</button>
+          </div>
+          <div class="table-wrap" id="tablesTableWrap"><div class="loading-state"><div class="spinner"></div></div></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3>QR Code Generator</h3>
+            <button class="btn btn-accent btn-sm" onclick="generateAllQRCodes()">Generate All QR Codes</button>
+          </div>
+          <div class="card-body">
+            <div id="qrGrid" class="qr-grid"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ════════════════════════════════════════════════════ -->
+      <!--  PANEL: EXPENSES                                     -->
+      <!-- ════════════════════════════════════════════════════ -->
+      <div id="panel-expenses" class="panel">
+        <div class="card">
+          <div class="card-header">
+            <h3>Expenses</h3>
+            <button class="btn btn-primary btn-sm" onclick="openExpenseModal()">+ Add Expense</button>
+          </div>
+          <div class="table-wrap" id="expensesTableWrap"><div class="loading-state"><div class="spinner"></div></div></div>
+        </div>
+      </div>
+
+      <!-- ════════════════════════════════════════════════════ -->
+      <!--  PANEL: SETTINGS                                      -->
+      <!-- ════════════════════════════════════════════════════ -->
+      <div id="panel-settings" class="panel">
+        <div class="card">
+          <div class="card-header"><h3>Restaurant Settings</h3></div>
+          <div class="card-body">
+            <div class="form-grid" id="settingsForm"></div>
+            <div class="form-actions">
+              <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
+              <button class="btn btn-ghost" onclick="loadSettings()">Cancel</button>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Bar: Daily Revenue -->
-      <div class="card">
-        <div class="card-header">
-          <h3>📈 Daily Revenue</h3>
-          <span class="text-muted" style="font-size:0.75rem;" id="dailyChartLabel">Last 7 days</span>
-        </div>
-        <div class="card-body">
-          <div class="chart-container">
-            <canvas id="dailyChart"></canvas>
+      <!-- ════════════════════════════════════════════════════ -->
+      <!--  PANEL: THEME PICKER                                  -->
+      <!-- ════════════════════════════════════════════════════ -->
+      <div id="panel-theme" class="panel">
+        <div class="card">
+          <div class="card-header"><h3>Choose Theme</h3></div>
+          <div class="card-body">
+            <div class="theme-grid" id="themeGrid"></div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- CASHIER AUDIT -->
-    <div class="section-divider"><h2>👤 Cashier Audit</h2></div>
-    <div class="card">
-      <div class="table-responsive" id="cashierTableWrap">
-        <div class="loading-state"><div class="spinner"></div><span>Loading audit…</span></div>
+      <!-- ════════════════════════════════════════════════════ -->
+      <!--  PANEL: AUDIT LOG                                     -->
+      <!-- ════════════════════════════════════════════════════ -->
+      <div id="panel-audit" class="panel">
+        <div class="card">
+          <div class="card-header"><h3>Audit Log</h3></div>
+          <div class="table-wrap" id="auditTableWrap"><div class="loading-state"><div class="spinner"></div></div></div>
+        </div>
       </div>
-    </div>
 
-    <!-- CREDIT & BACKDATE LOG -->
-    <div class="section-divider"><h2>🚩 Credit &amp; Backdate Log</h2></div>
-    <div class="card">
-      <div class="table-responsive" id="creditTableWrap">
-        <div class="loading-state"><div class="spinner"></div><span>Loading log…</span></div>
-      </div>
-    </div>
+    </div><!-- /.page-body -->
+  </div><!-- /.main-area -->
+</div><!-- /#appLayout -->
 
-    <!-- INVENTORY ALERTS -->
-    <div class="section-divider"><h2>📦 Inventory Alerts</h2></div>
-    <div class="card">
-      <div class="card-body" id="inventoryWrap">
-        <div class="loading-state"><div class="spinner"></div><span>Loading inventory…</span></div>
-      </div>
-    </div>
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  MODAL CONTAINER                                         -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-title" id="modalTitle">Modal</div>
+    <div id="modalBody"></div>
+    <div class="modal-actions" id="modalActions"></div>
+  </div>
+</div>
 
-  </div><!-- /.dash-content -->
-</div><!-- /#dashboard -->
 
-<!-- ════════════════════════════════════════════════════ -->
-<!--  SCRIPTS                                            -->
-<!-- ════════════════════════════════════════════════════ -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  SCRIPTS                                                 -->
+<!-- ══════════════════════════════════════════════════════════ -->
 <script>
-/* ── PIN GATE ─────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════
+   PIN GATE
+   ═══════════════════════════════════════════════════════════ */
 let pin = '';
-const CORRECT_PIN = (typeof CONFIG !== 'undefined' && CONFIG.MANAGER_PIN) ? CONFIG.MANAGER_PIN : '1234';
+const CORRECT_PIN = CONFIG.MANAGER_PIN || '1234';
 
 function addDigit(d) {
   if (pin.length >= 4) return;
@@ -905,673 +756,720 @@ function addDigit(d) {
   updateDots();
   if (pin.length === 4) setTimeout(verifyPin, 200);
 }
-
 function backspace() {
   pin = pin.slice(0, -1);
   updateDots();
   document.getElementById('pinError').classList.remove('visible');
 }
-
 function updateDots() {
   document.querySelectorAll('.pin-dot').forEach((dot, i) => {
     dot.classList.toggle('filled', i < pin.length);
     dot.classList.remove('error');
   });
 }
-
 function verifyPin() {
   if (pin === CORRECT_PIN) {
-    const gate = document.getElementById('pinGate');
-    gate.style.transition = 'opacity 0.4s ease';
-    gate.style.opacity = '0';
+    document.getElementById('pinGate').style.transition = 'opacity 0.4s';
+    document.getElementById('pinGate').style.opacity = '0';
     setTimeout(() => {
-      gate.style.display = 'none';
-      document.getElementById('dashboard').style.display = 'block';
-      initDateDefaults();
-      loadDashboard();
+      document.getElementById('pinGate').style.display = 'none';
+      document.getElementById('appLayout').style.display = 'flex';
+      CONFIG.loadSavedTheme();
+      initApp();
     }, 380);
   } else {
-    document.querySelectorAll('.pin-dot').forEach(d => {
-      d.classList.add('error');
-    });
+    document.querySelectorAll('.pin-dot').forEach(d => d.classList.add('error'));
     document.getElementById('pinError').classList.add('visible');
-    setTimeout(() => {
-      pin = '';
-      updateDots();
-      document.getElementById('pinError').classList.remove('visible');
-    }, 900);
+    setTimeout(() => { pin = ''; updateDots(); document.getElementById('pinError').classList.remove('visible'); }, 900);
   }
 }
-
-/* Keyboard support */
 document.addEventListener('keydown', (e) => {
-  const gate = document.getElementById('pinGate');
-  if (gate.style.display === 'none') return;
+  if (document.getElementById('pinGate').style.display === 'none') return;
   if (e.key >= '0' && e.key <= '9') addDigit(parseInt(e.key));
   if (e.key === 'Backspace') backspace();
 });
 
-/* Populate restaurant name in PIN branding */
-document.addEventListener('DOMContentLoaded', () => {
-  const rName = (typeof CONFIG !== 'undefined' && CONFIG.RESTAURANT && CONFIG.RESTAURANT.name)
-    ? CONFIG.RESTAURANT.name : 'Mevish Eatery';
-  document.getElementById('pinRestaurantName').textContent = rName;
-  document.getElementById('headerRestName').textContent    = rName;
-  document.getElementById('printRestName').textContent     = rName;
-});
+/* ═══════════════════════════════════════════════════════════
+   APP INIT
+   ═══════════════════════════════════════════════════════════ */
+const rName = CONFIG.RESTAURANT ? CONFIG.RESTAURANT.name : 'Mevish Eatery';
+document.getElementById('pinRestName').textContent = rName;
+document.getElementById('sidebarBrand').textContent = rName;
 
-/* ── DATE DEFAULTS ────────────────────────────────────── */
+let allOrders = [], inventoryData = [], menuData = [], cashiersData = [];
+let tablesData = [], expensesData = [], auditData = [];
+let currentSettings = {};
+let revenueChartInstance = null, dailyChartInstance = null;
+
+async function initApp() {
+  initDateDefaults();
+  await loadAllData();
+  switchPanel('analytics');
+}
+
 function initDateDefaults() {
   const now = new Date();
-  document.getElementById('startDate').value =
-    `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+  document.getElementById('startDate').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`;
   document.getElementById('endDate').value = now.toISOString().split('T')[0];
 }
 
-/* ── DATA ─────────────────────────────────────────────── */
-let allOrders    = [];
-let inventoryData = [];
-let revenueChartInstance = null;
-let dailyChartInstance   = null;
-
-async function loadDashboard() {
-  const btn = document.getElementById('refreshBtn');
-  if (btn) { btn.textContent = '⏳ Loading…'; btn.disabled = true; }
-
+async function loadAllData() {
   try {
-    const apiUrl = (typeof CONFIG !== 'undefined') ? CONFIG.API_URL : '';
-
-    /* Orders */
-    const res  = await fetch(apiUrl + '?type=orders');
-    const data = await res.json();
-    allOrders  = data.data || [];
-
-    /* Inventory */
-    const invRes  = await fetch(apiUrl + '?type=inventory');
-    const invData = await invRes.json();
-    inventoryData = invData.data || [];
-
+    const [orders, inv, menu, cashiers, tables, expenses] = await Promise.all([
+      CONFIG.apiGet('orders'), CONFIG.apiGet('inventory'), CONFIG.apiGet('menu'),
+      CONFIG.apiGet('cashiers'), CONFIG.apiGet('tables'), CONFIG.apiGet('expenses')
+    ]);
+    allOrders = orders.data || [];
+    inventoryData = inv.data || [];
+    menuData = menu.data || [];
+    cashiersData = cashiers.data || [];
+    tablesData = tables.data || [];
+    expensesData = expenses.data || [];
   } catch (err) {
-    console.warn('[Manager] Fetch failed, using demo data:', err.message);
-    allOrders     = DEMO_ORDERS;
-    inventoryData = DEMO_INVENTORY;
+    console.warn('[Manager] Failed to load data:', err);
   }
-
-  if (btn) { btn.textContent = '🔄 Refresh'; btn.disabled = false; }
-  applyFilters();
 }
 
-function applyFilters() {
-  const startDate = document.getElementById('startDate').value;
-  const endDate   = document.getElementById('endDate').value;
+function refreshCurrentPanel() {
+  loadAllData().then(() => {
+    const active = document.querySelector('.nav-item.active');
+    if (active) {
+      const panel = active.dataset.panel;
+      renderPanel(panel);
+    }
+  });
+}
 
+/* ═══════════════════════════════════════════════════════════
+   NAVIGATION
+   ═══════════════════════════════════════════════════════════ */
+function switchPanel(panelId) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const panel = document.getElementById('panel-' + panelId);
+  const navItem = document.querySelector(`.nav-item[data-panel="${panelId}"]`);
+  if (panel) panel.classList.add('active');
+  if (navItem) navItem.classList.add('active');
+
+  const titles = {
+    analytics: 'Analytics', orders: 'Orders', menu: 'Menu Management',
+    inventory: 'Inventory', cashiers: 'Cashiers', tables: 'Tables & QR',
+    expenses: 'Expenses', settings: 'Settings', theme: 'Themes', audit: 'Audit Log'
+  };
+  document.getElementById('topBarTitle').textContent = titles[panelId] || panelId;
+  renderPanel(panelId);
+
+  // Close sidebar on mobile
+  if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('open');
+}
+
+function renderPanel(panelId) {
+  switch (panelId) {
+    case 'analytics': applyFilters(); break;
+    case 'orders': renderOrdersList(); break;
+    case 'menu': renderMenuTable(); break;
+    case 'inventory': renderInventoryTable(); break;
+    case 'cashiers': renderCashiersTable(); break;
+    case 'tables': renderTablesTable(); generateAllQRCodes(); break;
+    case 'expenses': renderExpensesTable(); break;
+    case 'settings': loadSettings(); break;
+    case 'theme': renderThemePicker(); break;
+    case 'audit': loadAuditLog(); break;
+  }
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   TOAST
+   ═══════════════════════════════════════════════════════════ */
+function toast(message, type) {
+  type = type || 'info';
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.textContent = message;
+  document.getElementById('toastContainer').appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }, 3000);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MODAL
+   ═══════════════════════════════════════════════════════════ */
+function openModal(title, bodyHtml, actionsHtml) {
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalBody').innerHTML = bodyHtml;
+  document.getElementById('modalActions').innerHTML = actionsHtml;
+  document.getElementById('modalOverlay').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+}
+document.getElementById('modalOverlay').addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) closeModal();
+});
+
+/* ═══════════════════════════════════════════════════════════
+   ANALYTICS
+   ═══════════════════════════════════════════════════════════ */
+function applyFilters() {
+  const start = document.getElementById('startDate').value;
+  const end = document.getElementById('endDate').value;
   const filtered = allOrders.filter(o => {
     if (!o.status) return false;
-    if (typeof CONFIG !== 'undefined' && CONFIG.STATUS.isVoid(o.status)) return false;
-    if (o.status.toLowerCase().includes('void')) return false;
-
+    if (CONFIG.STATUS && CONFIG.STATUS.isVoid(o.status)) return false;
+    if (o.status.toLowerCase && o.status.toLowerCase().includes('void')) return false;
     const d = new Date(o.timestamp);
-    if (startDate && d < new Date(startDate)) return false;
-    if (endDate   && d > new Date(endDate + 'T23:59:59')) return false;
+    if (start && d < new Date(start)) return false;
+    if (end && d > new Date(end + 'T23:59:59')) return false;
     return true;
   });
-
-  renderAll(filtered);
-}
-
-/* ── RENDER ALL ───────────────────────────────────────── */
-function renderAll(filtered) {
   renderKPIs(filtered);
   renderCharts(filtered);
   renderCashierAudit(filtered);
   renderCreditLog(filtered);
   renderInventoryAlerts(inventoryData);
-  updatePrintHeader();
 }
 
-/* ── COUNT-UP ANIMATION ───────────────────────────────── */
-function countUp(element, target, prefix = '', suffix = '') {
-  const duration = 1200;
-  const start    = performance.now();
-  function update(time) {
-    const progress = Math.min((time - start) / duration, 1);
-    const ease     = 1 - Math.pow(1 - progress, 3);
-    const current  = Math.floor(target * ease);
-    element.textContent = prefix + current.toLocaleString('en-NG') + suffix;
-    if (progress < 1) requestAnimationFrame(update);
-    else element.textContent = prefix + target.toLocaleString('en-NG') + suffix;
+function countUp(el, target, prefix, suffix) {
+  prefix = prefix || ''; suffix = suffix || '';
+  const dur = 1200, st = performance.now();
+  function up(time) {
+    const p = Math.min((time - st) / dur, 1);
+    const ease = 1 - Math.pow(1 - p, 3);
+    el.textContent = prefix + Math.floor(target * ease).toLocaleString('en-NG') + suffix;
+    if (p < 1) requestAnimationFrame(up);
+    else el.textContent = prefix + target.toLocaleString('en-NG') + suffix;
   }
-  requestAnimationFrame(update);
+  requestAnimationFrame(up);
 }
 
-/* ── KPIs ─────────────────────────────────────────────── */
 function renderKPIs(orders) {
-  const fmt = (v) => (typeof CONFIG !== 'undefined' ? CONFIG.formatCurrency(v) : '₦' + v.toLocaleString('en-NG'));
-  const isPaid   = (s) => typeof CONFIG !== 'undefined' ? CONFIG.STATUS.isPaid(s)   : s.toLowerCase().includes('paid');
-  const isCredit = (s) => typeof CONFIG !== 'undefined' ? CONFIG.STATUS.isCredit(s) : s.toLowerCase().includes('credit');
-
-  let revenue    = 0, paidCount = 0;
-  let creditAmt  = 0, creditCount = 0;
-
+  const isPaid = (s) => CONFIG.STATUS ? CONFIG.STATUS.isPaid(s) : s.includes('Paid');
+  const isCredit = (s) => CONFIG.STATUS ? CONFIG.STATUS.isCredit(s) : s.includes('Credit');
+  let revenue = 0, paidCount = 0, creditAmt = 0, creditCount = 0;
   orders.forEach(o => {
     const amt = parseFloat(o.total) || 0;
-    if (isPaid(o.status))   { revenue   += amt; paidCount++; }
+    if (isPaid(o.status)) { revenue += amt; paidCount++; }
     if (isCredit(o.status)) { creditAmt += amt; creditCount++; }
   });
-
-  const avgVal = paidCount > 0 ? revenue / paidCount : 0;
-
-  /* Revenue */
-  const revenueEl = document.getElementById('kpiRevenue');
-  countUp(revenueEl, Math.floor(revenue), '₦');
-
-  /* Orders */
-  const ordersEl = document.getElementById('kpiOrders');
-  countUp(ordersEl, orders.length, '', '');
-
-  /* Avg */
-  const avgEl = document.getElementById('kpiAvg');
-  countUp(avgEl, Math.floor(avgVal), '₦');
-
-  /* Credit */
-  const creditEl  = document.getElementById('kpiCredit');
-  const creditSub = document.getElementById('kpiCreditSub');
-  countUp(creditEl, Math.floor(creditAmt), '₦');
-  creditSub.textContent = creditCount > 0 ? `(${creditCount} order${creditCount > 1 ? 's' : ''} pending)` : '';
+  countUp(document.getElementById('kpiRevenue'), Math.floor(revenue), '\u20A6');
+  countUp(document.getElementById('kpiOrders'), orders.length);
+  countUp(document.getElementById('kpiAvg'), Math.floor(paidCount > 0 ? revenue / paidCount : 0), '\u20A6');
+  countUp(document.getElementById('kpiCredit'), Math.floor(creditAmt), '\u20A6');
+  document.getElementById('kpiCreditSub').textContent = creditCount > 0 ? `(${creditCount} pending)` : '';
 }
 
-/* ── CHARTS ───────────────────────────────────────────── */
 function renderCharts(orders) {
-  const isPaid  = (s) => typeof CONFIG !== 'undefined' ? CONFIG.STATUS.isPaid(s)  : s.toLowerCase().includes('paid');
-  const getMethod = (s) => typeof CONFIG !== 'undefined' ? CONFIG.STATUS.getMethod(s) : (s.toLowerCase().includes('pos') ? 'POS' : 'Cash');
-
-  let cashTotal = 0, posTotal = 0;
-  orders.forEach(o => {
-    if (!isPaid(o.status)) return;
-    const amt = parseFloat(o.total) || 0;
-    if (getMethod(o.status) === 'Cash') cashTotal += amt;
-    else posTotal += amt;
-  });
-
-  /* Donut */
-  const totalPaid = cashTotal + posTotal;
-  document.getElementById('donutTotal').textContent =
-    typeof CONFIG !== 'undefined' ? CONFIG.formatCurrency(totalPaid) : '₦' + totalPaid.toLocaleString('en-NG');
-
-  /* Chips */
-  const chipArea = document.getElementById('revenueChipArea');
-  chipArea.innerHTML = '';
-  if (totalPaid > 0) {
-    const cashPct = Math.round(cashTotal / totalPaid * 100);
-    const posPct  = 100 - cashPct;
-    chipArea.innerHTML = `
-      <span class="chip" style="background:rgba(16,185,129,0.12);color:#10b981;border-color:rgba(16,185,129,0.25);">💵 Cash ${cashPct}%</span>
-      <span class="chip" style="background:rgba(245,166,35,0.12);color:#f5a623;border-color:rgba(245,166,35,0.25);">💳 POS ${posPct}%</span>
-    `;
-  }
+  const isPaid = (s) => CONFIG.STATUS ? CONFIG.STATUS.isPaid(s) : s.includes('Paid');
+  const getMethod = (s) => CONFIG.STATUS ? CONFIG.STATUS.getMethod(s) : (s.includes('POS') ? 'POS' : 'Cash');
+  let cash = 0, pos = 0;
+  orders.forEach(o => { if (!isPaid(o.status)) return; const a = parseFloat(o.total)||0; if(getMethod(o.status)==='Cash') cash+=a; else pos+=a; });
 
   if (revenueChartInstance) revenueChartInstance.destroy();
-  const revenueCtx = document.getElementById('revenueChart').getContext('2d');
-
-  if (cashTotal === 0 && posTotal === 0) {
-    revenueCtx.clearRect(0, 0, 1000, 1000);
-  }
-
-  revenueChartInstance = new Chart(revenueCtx, {
+  revenueChartInstance = new Chart(document.getElementById('revenueChart').getContext('2d'), {
     type: 'doughnut',
-    data: {
-      labels: ['Cash', 'POS'],
-      datasets: [{
-        data: [cashTotal || 0.001, posTotal || 0.001],
-        backgroundColor: ['#10b981', '#f5a623'],
-        borderColor: ['#0d9668', '#c98a1a'],
-        borderWidth: 2,
-        hoverOffset: 14,
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      cutout: '72%',
-      plugins: {
-        legend: {
-          position: 'bottom',
-          labels: { color: '#a8abbe', padding: 20, font: { size: 13 }, boxWidth: 12, boxHeight: 12 }
-        },
-        tooltip: {
-          callbacks: {
-            label: ctx => {
-              const val = (cashTotal === 0 && posTotal === 0) ? 0 : ctx.raw;
-              return ` ${typeof CONFIG !== 'undefined' ? CONFIG.formatCurrency(val) : '₦' + val.toLocaleString('en-NG')}`;
-            }
-          },
-          backgroundColor: 'rgba(17,18,30,0.95)',
-          borderColor: 'rgba(255,255,255,0.08)',
-          borderWidth: 1,
-          titleColor: '#e2e4f0',
-          bodyColor: '#a8abbe',
-          padding: 12,
-          cornerRadius: 10,
-        }
-      },
-      animation: { animateRotate: true, duration: 1000 }
-    }
+    data: { labels: ['Cash', 'POS'], datasets: [{ data: [cash||0.001, pos||0.001], backgroundColor: ['#10b981', '#f59e0b'], borderWidth: 2 }] },
+    options: { responsive: true, maintainAspectRatio: false, cutout: '72%', plugins: { legend: { position: 'bottom', labels: { color: getComputedStyle(document.documentElement).getPropertyValue('--c-text-light').trim(), padding: 16, font: { size: 12 } } } } }
   });
 
-  /* Daily Bar Chart */
-  const startVal = document.getElementById('startDate').value;
-  const endVal   = document.getElementById('endDate').value;
-  const { labels, data: dailyData, rangeLabel } = computeDailyData(orders, startVal, endVal);
+  // Daily bar
+  const startV = document.getElementById('startDate').value;
+  const endV = document.getElementById('endDate').value;
+  const sDate = startV ? new Date(startV) : new Date(Date.now() - 6*86400000);
+  const eDate = endV ? new Date(endV + 'T23:59:59') : new Date();
+  const numDays = Math.min(Math.max(Math.ceil((eDate - sDate) / 86400000), 1), 31);
+  const days = [];
+  for (let i = numDays - 1; i >= 0; i--) { const d = new Date(eDate); d.setDate(d.getDate() - i); days.push(d); }
+  const dayLabels = days.map(d => numDays <= 14 ? ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()] : `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`);
+  const dailyMap = {};
+  days.forEach(d => { dailyMap[`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`] = 0; });
+  orders.forEach(o => { if (!isPaid(o.status)) return; const k = new Date(o.timestamp); const key = `${k.getFullYear()}-${String(k.getMonth()+1).padStart(2,'0')}-${String(k.getDate()).padStart(2,'0')}`; if (dailyMap.hasOwnProperty(key)) dailyMap[key] += parseFloat(o.total)||0; });
+  const dailyData = days.map(d => dailyMap[`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`]);
 
-  document.getElementById('dailyChartLabel').textContent = rangeLabel;
-
+  document.getElementById('dailyChartLabel').textContent = numDays <= 7 ? 'Last 7 days' : `Last ${numDays} days`;
   if (dailyChartInstance) dailyChartInstance.destroy();
-  const dailyCtx = document.getElementById('dailyChart').getContext('2d');
-
-  /* Gradient fill */
-  const gradient = dailyCtx.createLinearGradient(0, 0, 0, 280);
-  gradient.addColorStop(0,   'rgba(245,166,35,0.85)');
-  gradient.addColorStop(1,   'rgba(245,166,35,0.15)');
-
-  dailyChartInstance = new Chart(dailyCtx, {
+  const dCtx = document.getElementById('dailyChart').getContext('2d');
+  const grad = dCtx.createLinearGradient(0, 0, 0, 280);
+  grad.addColorStop(0, 'rgba(13,148,136,0.85)');
+  grad.addColorStop(1, 'rgba(13,148,136,0.15)');
+  dailyChartInstance = new Chart(dCtx, {
     type: 'bar',
-    data: {
-      labels,
-      datasets: [{
-        label: 'Revenue',
-        data: dailyData,
-        backgroundColor: gradient,
-        borderColor: '#f5a623',
-        borderWidth: 1,
-        borderRadius: 7,
-        borderSkipped: false,
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: ctx => ' ' + (typeof CONFIG !== 'undefined' ? CONFIG.formatCurrency(ctx.raw) : '₦' + ctx.raw.toLocaleString('en-NG'))
-          },
-          backgroundColor: 'rgba(17,18,30,0.95)',
-          borderColor: 'rgba(255,255,255,0.08)',
-          borderWidth: 1,
-          titleColor: '#e2e4f0',
-          bodyColor: '#a8abbe',
-          padding: 12,
-          cornerRadius: 10,
-        }
-      },
-      scales: {
-        x: {
-          grid: { color: 'rgba(255,255,255,0.04)' },
-          ticks: { color: '#6b6f87', font: { size: 11 } }
-        },
-        y: {
-          grid: { color: 'rgba(255,255,255,0.04)' },
-          ticks: {
-            color: '#6b6f87',
-            font: { size: 11 },
-            callback: v => {
-              if (v >= 1000000) return '₦' + (v / 1000000).toFixed(1) + 'M';
-              if (v >= 1000)    return '₦' + (v / 1000).toFixed(0) + 'k';
-              return '₦' + v;
-            }
-          }
-        }
-      },
-      animation: { duration: 1000 }
-    }
+    data: { labels: dayLabels, datasets: [{ label: 'Revenue', data: dailyData, backgroundColor: grad, borderColor: '#0d9488', borderWidth: 1, borderRadius: 7, borderSkipped: false }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--c-text-light').trim(), font: { size: 11 } } }, y: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--c-text-light').trim(), font: { size: 11 }, callback: v => v >= 1000 ? '\u20A6' + (v/1000).toFixed(0) + 'k' : '\u20A6' + v } } } }
   });
-}
-
-/* Compute daily revenue grouped by day within range */
-function computeDailyData(orders, startStr, endStr) {
-  const isPaid = (s) => typeof CONFIG !== 'undefined' ? CONFIG.STATUS.isPaid(s) : s.toLowerCase().includes('paid');
-
-  const startDate = startStr ? new Date(startStr) : subDays(new Date(), 6);
-  const endDate   = endStr   ? new Date(endStr + 'T23:59:59') : new Date();
-
-  const diffMs   = endDate - startDate;
-  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-
-  /* Cap at 31 days for readability */
-  let numDays = Math.min(Math.max(diffDays, 1), 31);
-  const days  = [];
-
-  for (let i = numDays - 1; i >= 0; i--) {
-    const d = new Date(endDate);
-    d.setDate(d.getDate() - i);
-    days.push(d);
-  }
-
-  const labels  = days.map(d => formatDayLabel(d, numDays));
-  const dataMap = {};
-  days.forEach(d => { dataMap[toDateKey(d)] = 0; });
-
-  orders.forEach(o => {
-    if (!isPaid(o.status)) return;
-    const key = toDateKey(new Date(o.timestamp));
-    if (dataMap.hasOwnProperty(key)) {
-      dataMap[key] += parseFloat(o.total) || 0;
-    }
-  });
-
-  const data = days.map(d => dataMap[toDateKey(d)]);
-  const rangeLabel = numDays <= 7 ? 'Last 7 days' : `Last ${numDays} days`;
-  return { labels, data, rangeLabel };
-}
-
-function toDateKey(d) {
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-}
-
-function formatDayLabel(d, totalDays) {
-  if (totalDays <= 14) return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];
-  return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`;
-}
-
-function subDays(date, n) {
-  const d = new Date(date);
-  d.setDate(d.getDate() - n);
-  return d;
-}
-
-/* ── CASHIER AUDIT ────────────────────────────────────── */
-function buildCashierAudit(orders) {
-  const isPaid    = (s) => typeof CONFIG !== 'undefined' ? CONFIG.STATUS.isPaid(s)       : s.toLowerCase().includes('paid');
-  const getMethod = (s) => typeof CONFIG !== 'undefined' ? CONFIG.STATUS.getMethod(s)    : (s.toLowerCase().includes('pos') ? 'POS' : 'Cash');
-  const getCashier= (s) => typeof CONFIG !== 'undefined' ? CONFIG.STATUS.getCashier(s)   : extractCashier(s);
-
-  const audit = {};
-  orders.forEach(o => {
-    if (!isPaid(o.status)) return;
-    const cashier = getCashier(o.status);
-    const method  = getMethod(o.status);
-    if (!cashier) return;
-    if (!audit[cashier]) audit[cashier] = { cash: 0, pos: 0, orders: 0 };
-    if (method === 'Cash') audit[cashier].cash += parseFloat(o.total) || 0;
-    if (method === 'POS')  audit[cashier].pos  += parseFloat(o.total) || 0;
-    audit[cashier].orders++;
-  });
-  return audit;
-}
-
-function extractCashier(status) {
-  /* Fallback if CONFIG not available */
-  const match = status.match(/by\s+([A-Za-z\s]+)/i);
-  return match ? match[1].trim() : 'Unknown';
 }
 
 function renderCashierAudit(orders) {
-  const audit = buildCashierAudit(orders);
-  const wrap  = document.getElementById('cashierTableWrap');
-  const fmt   = (v) => typeof CONFIG !== 'undefined' ? CONFIG.formatCurrency(v) : '₦' + v.toLocaleString('en-NG');
-  const keys  = Object.keys(audit);
-
-  if (keys.length === 0) {
-    wrap.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-icon">👤</div>
-        <div class="empty-title">No cashier data</div>
-        <div class="empty-text">No paid orders found in this date range.</div>
-      </div>`;
-    return;
-  }
-
-  /* Sort by total descending */
-  keys.sort((a, b) => (audit[b].cash + audit[b].pos) - (audit[a].cash + audit[a].pos));
-
-  let grandCash = 0, grandPos = 0, grandOrders = 0;
-  let rows = '';
-
-  keys.forEach(cashier => {
-    const { cash, pos, orders: cnt } = audit[cashier];
-    const total = cash + pos;
-    grandCash   += cash;
-    grandPos    += pos;
-    grandOrders += cnt;
-
-    const initials = cashier.split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2);
-    rows += `
-      <tr>
-        <td>
-          <div class="cashier-cell">
-            <div class="cashier-avatar">${initials}</div>
-            ${cashier}
-          </div>
-        </td>
-        <td class="text-success">${fmt(cash)}</td>
-        <td class="text-gold">${fmt(pos)}</td>
-        <td style="font-weight:700; color:#f0f1fa;">${fmt(total)}</td>
-        <td><span class="chip">${cnt}</span></td>
-      </tr>`;
-  });
-
-  const grandTotal = grandCash + grandPos;
-
-  wrap.innerHTML = `
-    <table>
-      <thead>
-        <tr>
-          <th>Cashier</th>
-          <th>Cash Collected</th>
-          <th>POS Collected</th>
-          <th>Total</th>
-          <th># Orders</th>
-        </tr>
-      </thead>
-      <tbody>${rows}</tbody>
-      <tfoot>
-        <tr>
-          <td>Grand Total</td>
-          <td>${fmt(grandCash)}</td>
-          <td>${fmt(grandPos)}</td>
-          <td>${fmt(grandTotal)}</td>
-          <td>${grandOrders}</td>
-        </tr>
-      </tfoot>
-    </table>`;
+  const isPaid = (s) => CONFIG.STATUS ? CONFIG.STATUS.isPaid(s) : s.includes('Paid');
+  const getMethod = (s) => CONFIG.STATUS ? CONFIG.STATUS.getMethod(s) : (s.includes('POS') ? 'POS' : 'Cash');
+  const getCashier = (s) => CONFIG.STATUS ? CONFIG.STATUS.getCashier(s) : null;
+  const fmt = (v) => CONFIG.formatCurrency(v);
+  const audit = {};
+  orders.forEach(o => { if (!isPaid(o.status)) return; const c = getCashier(o.status); if (!c) return; if (!audit[c]) audit[c] = { cash: 0, pos: 0, orders: 0 }; const a = parseFloat(o.total)||0; if (getMethod(o.status)==='Cash') audit[c].cash+=a; else audit[c].pos+=a; audit[c].orders++; });
+  const keys = Object.keys(audit).sort((a,b) => (audit[b].cash+audit[b].pos) - (audit[a].cash+audit[a].pos));
+  const wrap = document.getElementById('cashierTableWrap');
+  if (keys.length === 0) { wrap.innerHTML = '<div class="empty-state"><div class="empty-title">No cashier data</div></div>'; return; }
+  let gc=0, gp=0, go=0, rows='';
+  keys.forEach(c => { const d = audit[c]; const t = d.cash+d.pos; gc+=d.cash; gp+=d.pos; go+=d.orders; const init = c.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2); rows += `<tr><td><span class="cashier-avatar">${init}</span>${c}</td><td class="text-success">${fmt(d.cash)}</td><td class="text-accent">${fmt(d.pos)}</td><td style="font-weight:700">${fmt(t)}</td><td><span class="chip">${d.orders}</span></td></tr>`; });
+  wrap.innerHTML = `<table><thead><tr><th>Cashier</th><th>Cash</th><th>POS</th><th>Total</th><th>Orders</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td>Grand Total</td><td>${fmt(gc)}</td><td>${fmt(gp)}</td><td>${fmt(gc+gp)}</td><td>${go}</td></tr></tfoot></table>`;
 }
 
-/* ── CREDIT & BACKDATE LOG ────────────────────────────── */
 function renderCreditLog(orders) {
-  const isCredit  = (s) => typeof CONFIG !== 'undefined' ? CONFIG.STATUS.isCredit(s) : s.toLowerCase().includes('credit');
-  const fmt       = (v) => typeof CONFIG !== 'undefined' ? CONFIG.formatCurrency(v)  : '₦' + v.toLocaleString('en-NG');
-  const wrap      = document.getElementById('creditTableWrap');
-
-  const flagged = orders.filter(o => {
-    const credit    = isCredit(o.status);
-    const backdated = o.items && o.items.includes('⚠️ BACKDATED');
-    return credit || backdated;
-  });
-
-  if (flagged.length === 0) {
-    wrap.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-icon">✅</div>
-        <div class="empty-title">No flagged orders</div>
-        <div class="empty-text">No credit or backdated orders found in this date range.</div>
-      </div>`;
-    return;
-  }
-
-  /* Sort by newest first */
-  flagged.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-
+  const isCredit = (s) => CONFIG.STATUS ? CONFIG.STATUS.isCredit(s) : s.includes('Credit');
+  const fmt = (v) => CONFIG.formatCurrency(v);
+  const wrap = document.getElementById('creditTableWrap');
+  const flagged = orders.filter(o => isCredit(o.status));
+  if (flagged.length === 0) { wrap.innerHTML = '<div class="empty-state"><div class="empty-title">No flagged orders</div></div>'; return; }
+  flagged.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
   let rows = '';
   flagged.forEach(o => {
-    const credit    = isCredit(o.status);
-    const backdated = o.items && o.items.includes('⚠️ BACKDATED');
-    const d         = new Date(o.timestamp);
-    const dateStr   = d.toLocaleDateString('en-NG', { day:'2-digit', month:'short', year:'numeric' });
-    const timeStr   = d.toLocaleTimeString('en-NG', { hour:'2-digit', minute:'2-digit' });
+    const d = new Date(o.timestamp);
+    rows += `<tr><td style="font-family:monospace;font-size:0.78rem;color:var(--c-text-light);">#${o.id||o.orderId||'—'}</td><td>${d.toLocaleDateString('en-NG',{day:'2-digit',month:'short'})} ${d.toLocaleTimeString('en-NG',{hour:'2-digit',minute:'2-digit'})}</td><td>${o.customerName||o.customer||'—'}</td><td><span class="chip">${o.tableNo||o.location||'—'}</span></td><td style="font-weight:700">${fmt(parseFloat(o.total)||0)}</td><td><span class="badge badge-warning">Credit</span></td></tr>`;
+  });
+  wrap.innerHTML = `<table><thead><tr><th>Order</th><th>Date</th><th>Customer</th><th>Table</th><th>Amount</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
 
-    let statusBadge = '';
-    if (credit) statusBadge = `<span class="badge badge-credit">Credit</span>`;
-    else        statusBadge = `<span class="badge badge-paid">Paid</span>`;
+function renderInventoryAlerts(inv) {
+  const wrap = document.getElementById('inventoryAlertsWrap');
+  const alerts = inv.filter(i => parseFloat(i.currentStock) <= parseFloat(i.alertThreshold));
+  if (alerts.length === 0) { wrap.innerHTML = '<div class="empty-state"><div class="empty-title">All stock levels healthy</div></div>'; return; }
+  alerts.sort((a,b) => (parseFloat(a.currentStock)/parseFloat(a.alertThreshold)) - (parseFloat(b.currentStock)/parseFloat(b.alertThreshold)));
+  let html = '<div class="alerts-grid">';
+  alerts.forEach(i => {
+    const s = parseFloat(i.currentStock), t = parseFloat(i.alertThreshold);
+    const crit = s/t <= 0.5;
+    html += `<div class="alert-card ${crit?'critical':'warning'}"><div class="alert-name">${i.name}</div><div class="alert-stock">Threshold: ${t} ${i.unit||''}</div><div class="alert-qty ${crit?'critical':'warning'}">${s} ${i.unit||''} remaining</div></div>`;
+  });
+  html += '</div>';
+  wrap.innerHTML = html;
+}
 
-    let flags = '';
-    if (credit)    flags += `<span class="label-credit">⚠ Credit</span> `;
-    if (backdated) flags += `<span class="label-backdated">⏮ Backdated</span>`;
+function exportReport() { window.print(); }
 
-    const customer  = o.customerName || o.customer || '—';
-    const tableNo   = o.tableNo || o.table || '—';
-    const orderId   = o.id || o.orderId || '—';
+/* ═══════════════════════════════════════════════════════════
+   ORDERS LIST
+   ═══════════════════════════════════════════════════════════ */
+function renderOrdersList() {
+  const wrap = document.getElementById('ordersTableWrap');
+  const search = (document.getElementById('orderSearch').value || '').toLowerCase();
+  let orders = allOrders;
+  if (search) orders = orders.filter(o => (o.id||'').toLowerCase().includes(search) || (o.customerName||'').toLowerCase().includes(search) || (o.location||'').toLowerCase().includes(search));
+  orders.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+  if (orders.length === 0) { wrap.innerHTML = '<div class="empty-state"><div class="empty-title">No orders found</div></div>'; return; }
+  const fmt = (v) => CONFIG.formatCurrency(v);
+  let rows = '';
+  orders.forEach(o => {
+    const d = new Date(o.timestamp);
+    const badge = getBadgeClass(o.status);
+    rows += `<tr><td style="font-family:monospace;font-size:0.78rem;">#${o.id||o.orderId||''}</td><td>${d.toLocaleDateString('en-NG',{day:'2-digit',month:'short'})} ${d.toLocaleTimeString('en-NG',{hour:'2-digit',minute:'2-digit'})}</td><td>${o.customerName||'—'}</td><td><span class="chip">${o.location||'—'}</span></td><td style="font-weight:700">${fmt(parseFloat(o.total)||0)}</td><td><span class="badge ${badge}">${CONFIG.STATUS ? CONFIG.STATUS.getLabel(o.status) : o.status}</span></td></tr>`;
+  });
+  wrap.innerHTML = `<table><thead><tr><th>Order ID</th><th>Time</th><th>Customer</th><th>Location</th><th>Total</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
 
-    rows += `
-      <tr>
-        <td style="font-family:monospace; font-size:0.78rem; color:#6b6f87;">#${orderId}</td>
-        <td>
-          <div style="font-size:0.84rem;">${dateStr}</div>
-          <div style="font-size:0.72rem; color:#6b6f87;">${timeStr}</div>
-        </td>
-        <td>${customer}</td>
-        <td><span class="chip">${tableNo}</span></td>
-        <td style="font-weight:700; color:#f0f1fa;">${fmt(parseFloat(o.total) || 0)}</td>
-        <td>${statusBadge}</td>
-        <td>${flags}</td>
-      </tr>`;
+function getBadgeClass(s) {
+  if (!s) return 'badge-muted';
+  if (s.includes('Paid')) return 'badge-success';
+  if (s.includes('Credit')) return 'badge-warning';
+  if (s.includes('Void')) return 'badge-muted';
+  if (s === 'Preparing') return 'badge-info';
+  if (s === 'Ready' || s === 'Served') return 'badge-success';
+  return 'badge-muted';
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MENU MANAGEMENT
+   ═══════════════════════════════════════════════════════════ */
+function renderMenuTable() {
+  const wrap = document.getElementById('menuTableWrap');
+  if (menuData.length === 0) { wrap.innerHTML = '<div class="empty-state"><div class="empty-title">No menu items</div></div>'; return; }
+  const fmt = (v) => CONFIG.formatCurrency(v);
+  let rows = '';
+  menuData.forEach(item => {
+    const avail = item.available === 'Yes';
+    rows += `<tr><td><strong>${item.name}</strong></td><td>${item.category||''}</td><td>${fmt(parseFloat(item.price)||0)}</td><td>${item.prepTime||10} min</td><td><span class="badge ${avail?'badge-success':'badge-danger'}">${avail?'Available':'Unavailable'}</span></td><td><button class="btn btn-ghost btn-sm" onclick="openMenuModal(${item.id})">Edit</button> <button class="btn btn-danger btn-sm" onclick="deleteMenuItem(${item.id},'${(item.name||'').replace(/'/g,"\\'")}')">Delete</button></td></tr>`;
+  });
+  wrap.innerHTML = `<table><thead><tr><th>Name</th><th>Category</th><th>Price</th><th>Prep Time</th><th>Status</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+function openMenuModal(editId) {
+  const item = editId ? menuData.find(m => String(m.id) === String(editId)) : null;
+  const title = item ? 'Edit Menu Item' : 'Add Menu Item';
+  const body = `
+    <div class="form-grid">
+      <div class="form-group"><label>Name</label><input id="mf_name" value="${item?item.name:''}" /></div>
+      <div class="form-group"><label>Category</label><select id="mf_category">${CONFIG.CATEGORIES.filter(c=>c!=='All').map(c=>`<option ${item&&item.category===c?'selected':''}>${c}</option>`).join('')}</select></div>
+      <div class="form-group"><label>Price (₦)</label><input type="number" id="mf_price" value="${item?item.price:''}" /></div>
+      <div class="form-group"><label>Cost (₦)</label><input type="number" id="mf_cost" value="${item?item.cost:''}" /></div>
+      <div class="form-group"><label>Prep Time (min)</label><input type="number" id="mf_prepTime" value="${item?item.prepTime:10}" /></div>
+      <div class="form-group"><label>Available</label><select id="mf_available"><option value="true" ${!item||item.available==='Yes'?'selected':''}>Yes</option><option value="false" ${item&&item.available==='No'?'selected':''}>No</option></select></div>
+      <div class="form-group form-full"><label>Description</label><textarea id="mf_desc">${item?item.description:''}</textarea></div>
+    </div>`;
+  const actions = `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveMenuItem(${editId||'null'})">${item?'Update':'Add'}</button>`;
+  openModal(title, body, actions);
+}
+
+async function saveMenuItem(editId) {
+  const payload = {
+    name: document.getElementById('mf_name').value.trim(),
+    category: document.getElementById('mf_category').value,
+    price: document.getElementById('mf_price').value,
+    cost: document.getElementById('mf_cost').value,
+    prepTime: document.getElementById('mf_prepTime').value,
+    available: document.getElementById('mf_available').value === 'true',
+    description: document.getElementById('mf_desc').value.trim(),
+    performedBy: 'Manager'
+  };
+  if (!payload.name) return toast('Name is required', 'error');
+  if (editId) {
+    payload.id = editId;
+    const res = await CONFIG.apiPost('updateMenuItem', payload);
+    if (res.status === 'success') { toast('Menu item updated', 'success'); closeModal(); await loadAllData(); renderMenuTable(); }
+    else toast(res.message || 'Failed to update', 'error');
+  } else {
+    payload.id = Date.now();
+    const res = await CONFIG.apiPost('addMenuItem', payload);
+    if (res.status === 'success') { toast('Menu item added', 'success'); closeModal(); await loadAllData(); renderMenuTable(); }
+    else toast(res.message || 'Failed to add', 'error');
+  }
+}
+
+async function deleteMenuItem(id, name) {
+  if (!confirm('Delete "' + name + '"? This cannot be undone.')) return;
+  const res = await CONFIG.apiPost('deleteMenuItem', { id: id, performedBy: 'Manager' });
+  if (res.status === 'success') { toast('Menu item deleted', 'success'); await loadAllData(); renderMenuTable(); }
+  else toast(res.message || 'Failed to delete', 'error');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   INVENTORY MANAGEMENT
+   ═══════════════════════════════════════════════════════════ */
+function renderInventoryTable() {
+  const wrap = document.getElementById('inventoryTableWrap');
+  if (inventoryData.length === 0) { wrap.innerHTML = '<div class="empty-state"><div class="empty-title">No inventory items</div></div>'; return; }
+  let rows = '';
+  inventoryData.forEach(item => {
+    const s = parseFloat(item.currentStock) || 0;
+    const t = parseFloat(item.alertThreshold) || 5;
+    const low = s <= t;
+    rows += `<tr><td><strong>${item.name}</strong></td><td>${item.category||''}</td><td>${s} ${item.unit||''}</td><td>${t} ${item.unit||''}</td><td><span class="status-dot ${low?'red':'green'}"></span>${low?'LOW':'OK'}</td><td>${item.supplier||'—'}</td><td><button class="btn btn-ghost btn-sm" onclick="restockItem('${(item.name||'').replace(/'/g,"\\'")}')">Restock</button> <button class="btn btn-ghost btn-sm" onclick="openInventoryEditModal('${(item.name||'').replace(/'/g,"\\'")}')">Edit</button> <button class="btn btn-danger btn-sm" onclick="deleteInventoryItem('${(item.name||'').replace(/'/g,"\\'")}')">Delete</button></td></tr>`;
+  });
+  wrap.innerHTML = `<table><thead><tr><th>Name</th><th>Category</th><th>Stock</th><th>Threshold</th><th>Status</th><th>Supplier</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+function openInventoryModal() {
+  const body = `<div class="form-grid">
+    <div class="form-group"><label>Name</label><input id="invf_name" /></div>
+    <div class="form-group"><label>Category</label><input id="invf_category" placeholder="e.g. Proteins, Grains" /></div>
+    <div class="form-group"><label>Stock</label><input type="number" id="invf_stock" value="0" /></div>
+    <div class="form-group"><label>Threshold</label><input type="number" id="invf_threshold" value="5" /></div>
+    <div class="form-group"><label>Unit</label><input id="invf_unit" placeholder="kg, L, pcs" /></div>
+    <div class="form-group"><label>Cost per Unit (₦)</label><input type="number" id="invf_cost" value="0" /></div>
+    <div class="form-group"><label>Supplier</label><input id="invf_supplier" /></div>
+    <div class="form-group"><label>Min Order Qty</label><input type="number" id="invf_minOrder" value="0" /></div>
+  </div>`;
+  const actions = `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveNewInventory()">Add Item</button>`;
+  openModal('Add Inventory Item', body, actions);
+}
+
+async function saveNewInventory() {
+  const payload = {
+    name: document.getElementById('invf_name').value.trim(),
+    category: document.getElementById('invf_category').value.trim(),
+    stock: document.getElementById('invf_stock').value,
+    alertThreshold: document.getElementById('invf_threshold').value,
+    unit: document.getElementById('invf_unit').value.trim(),
+    costPerUnit: document.getElementById('invf_cost').value,
+    supplier: document.getElementById('invf_supplier').value.trim(),
+    minOrderQty: document.getElementById('invf_minOrder').value,
+    performedBy: 'Manager'
+  };
+  if (!payload.name) return toast('Name is required', 'error');
+  const res = await CONFIG.apiPost('addInventoryItem', payload);
+  if (res.status === 'success') { toast('Inventory item added', 'success'); closeModal(); await loadAllData(); renderInventoryTable(); }
+  else toast(res.message || 'Failed', 'error');
+}
+
+function openInventoryEditModal(name) {
+  const item = inventoryData.find(i => i.name === name);
+  if (!item) return;
+  const body = `<div class="form-grid">
+    <div class="form-group"><label>Name</label><input id="inve_name" value="${item.name}" /></div>
+    <div class="form-group"><label>Category</label><input id="inve_category" value="${item.category||''}" /></div>
+    <div class="form-group"><label>Stock</label><input type="number" id="inve_stock" value="${item.currentStock}" /></div>
+    <div class="form-group"><label>Threshold</label><input type="number" id="inve_threshold" value="${item.alertThreshold}" /></div>
+    <div class="form-group"><label>Unit</label><input id="inve_unit" value="${item.unit||''}" /></div>
+    <div class="form-group"><label>Cost per Unit (₦)</label><input type="number" id="inve_cost" value="${item.costPerUnit||0}" /></div>
+    <div class="form-group"><label>Supplier</label><input id="inve_supplier" value="${item.supplier||''}" /></div>
+    <div class="form-group"><label>Min Order Qty</label><input type="number" id="inve_minOrder" value="${item.minOrderQty||0}" /></div>
+  </div>`;
+  const actions = `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveInventoryEdit('${name.replace(/'/g,"\\'")}')">Update</button>`;
+  openModal('Edit: ' + name, body, actions);
+}
+
+async function saveInventoryEdit(oldName) {
+  const payload = {
+    name: oldName,
+    newName: document.getElementById('inve_name').value.trim(),
+    category: document.getElementById('inve_category').value.trim(),
+    stock: document.getElementById('inve_stock').value,
+    alertThreshold: document.getElementById('inve_threshold').value,
+    unit: document.getElementById('inve_unit').value.trim(),
+    costPerUnit: document.getElementById('inve_cost').value,
+    supplier: document.getElementById('inve_supplier').value.trim(),
+    minOrderQty: document.getElementById('inve_minOrder').value,
+    performedBy: 'Manager'
+  };
+  const res = await CONFIG.apiPost('updateInventoryItem', payload);
+  if (res.status === 'success') { toast('Inventory updated', 'success'); closeModal(); await loadAllData(); renderInventoryTable(); }
+  else toast(res.message || 'Failed', 'error');
+}
+
+function restockItem(name) {
+  const body = `<div class="form-grid">
+    <div class="form-group"><label>Item</label><input value="${name}" disabled /></div>
+    <div class="form-group"><label>Quantity to Add</label><input type="number" id="restock_qty" value="10" /></div>
+  </div>`;
+  const actions = `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="doRestock('${name.replace(/'/g,"\\'")}')">Restock</button>`;
+  openModal('Restock: ' + name, body, actions);
+}
+
+async function doRestock(name) {
+  const qty = parseFloat(document.getElementById('restock_qty').value) || 0;
+  if (qty <= 0) return toast('Enter a valid quantity', 'error');
+  const res = await CONFIG.apiPost('restockInventory', { itemName: name, quantity: qty, performedBy: 'Manager' });
+  if (res.status === 'success') { toast('Restocked ' + qty + ' ' + name, 'success'); closeModal(); await loadAllData(); renderInventoryTable(); }
+  else toast(res.message || 'Failed', 'error');
+}
+
+async function deleteInventoryItem(name) {
+  if (!confirm('Delete "' + name + '" from inventory?')) return;
+  const res = await CONFIG.apiPost('deleteInventoryItem', { name: name, performedBy: 'Manager' });
+  if (res.status === 'success') { toast('Inventory item deleted', 'success'); await loadAllData(); renderInventoryTable(); }
+  else toast(res.message || 'Failed', 'error');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CASHIERS MANAGEMENT
+   ═══════════════════════════════════════════════════════════ */
+function renderCashiersTable() {
+  const wrap = document.getElementById('cashiersTableWrap');
+  if (cashiersData.length === 0) { wrap.innerHTML = '<div class="empty-state"><div class="empty-title">No cashiers</div></div>'; return; }
+  let rows = '';
+  cashiersData.forEach(c => {
+    rows += `<tr><td><span class="cashier-avatar">${(c.name||'??').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)}</span><strong>${c.name}</strong></td><td>${c.phone||'—'}</td><td>${c.role||'Cashier'}</td><td><span class="badge ${c.active==='Yes'?'badge-success':'badge-muted'}">${c.active==='Yes'?'Active':'Inactive'}</span></td><td><button class="btn btn-danger btn-sm" onclick="removeCashier('${(c.name||'').replace(/'/g,"\\'")}')">Remove</button></td></tr>`;
+  });
+  wrap.innerHTML = `<table><thead><tr><th>Name</th><th>Phone</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+function openCashierModal() {
+  const body = `<div class="form-grid">
+    <div class="form-group"><label>Full Name</label><input id="cf_name" /></div>
+    <div class="form-group"><label>Phone</label><input id="cf_phone" /></div>
+    <div class="form-group"><label>Role</label><select id="cf_role"><option>Cashier</option><option>Senior Cashier</option><option>Manager</option></select></div>
+  </div>`;
+  const actions = `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveCashier()">Add Cashier</button>`;
+  openModal('Add Cashier', body, actions);
+}
+
+async function saveCashier() {
+  const name = document.getElementById('cf_name').value.trim();
+  if (!name) return toast('Name is required', 'error');
+  const res = await CONFIG.apiPost('addCashier', { name: name, phone: document.getElementById('cf_phone').value.trim(), role: document.getElementById('cf_role').value, performedBy: 'Manager' });
+  if (res.status === 'success') { toast('Cashier added', 'success'); closeModal(); await loadAllData(); renderCashiersTable(); }
+  else toast(res.message || 'Failed', 'error');
+}
+
+async function removeCashier(name) {
+  if (!confirm('Remove cashier "' + name + '"?')) return;
+  const res = await CONFIG.apiPost('removeCashier', { name: name, performedBy: 'Manager' });
+  if (res.status === 'success') { toast('Cashier removed', 'success'); await loadAllData(); renderCashiersTable(); }
+  else toast(res.message || 'Failed', 'error');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   TABLES & QR CODES
+   ═══════════════════════════════════════════════════════════ */
+function renderTablesTable() {
+  const wrap = document.getElementById('tablesTableWrap');
+  if (tablesData.length === 0) { wrap.innerHTML = '<div class="empty-state"><div class="empty-title">No tables</div></div>'; return; }
+  let rows = '';
+  tablesData.forEach(t => {
+    rows += `<tr><td><strong>${t.id}</strong></td><td>${t.seats||'—'} seats</td><td><span class="badge ${t.status==='Available'?'badge-success':'badge-warning'}">${t.status||'Available'}</span></td><td>${t.notes||'—'}</td><td><button class="btn btn-danger btn-sm" onclick="removeTable('${t.id}')">Remove</button></td></tr>`;
+  });
+  wrap.innerHTML = `<table><thead><tr><th>Table ID</th><th>Seats</th><th>Status</th><th>Notes</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+function openTableModal() {
+  const body = `<div class="form-grid">
+    <div class="form-group"><label>Table ID</label><input id="tf_id" placeholder="e.g. T16" /></div>
+    <div class="form-group"><label>Seats</label><input type="number" id="tf_seats" value="4" /></div>
+    <div class="form-group"><label>Notes</label><input id="tf_notes" /></div>
+  </div>`;
+  const actions = `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveTable()">Add Table</button>`;
+  openModal('Add Table', body, actions);
+}
+
+async function saveTable() {
+  const id = document.getElementById('tf_id').value.trim().toUpperCase();
+  if (!id) return toast('Table ID is required', 'error');
+  const res = await CONFIG.apiPost('addTable', { tableId: id, seats: document.getElementById('tf_seats').value, notes: document.getElementById('tf_notes').value.trim(), performedBy: 'Manager' });
+  if (res.status === 'success') { toast('Table added', 'success'); closeModal(); await loadAllData(); renderTablesTable(); generateAllQRCodes(); }
+  else toast(res.message || 'Failed', 'error');
+}
+
+async function removeTable(id) {
+  if (!confirm('Remove table "' + id + '"?')) return;
+  const res = await CONFIG.apiPost('removeTable', { tableId: id, performedBy: 'Manager' });
+  if (res.status === 'success') { toast('Table removed', 'success'); await loadAllData(); renderTablesTable(); generateAllQRCodes(); }
+  else toast(res.message || 'Failed', 'error');
+}
+
+function generateAllQRCodes() {
+  const grid = document.getElementById('qrGrid');
+  grid.innerHTML = '';
+  const baseUrl = CONFIG.BASE_URL || '';
+  tablesData.forEach(t => {
+    const url = baseUrl + 'index.html?table=' + encodeURIComponent(t.id);
+    const card = document.createElement('div');
+    card.className = 'qr-card';
+    card.innerHTML = `<div class="qr-label">${t.id}</div><div class="qr-code" id="qr_${t.id}"></div><div class="qr-seats">${t.seats||4} seats</div><div class="qr-actions"><button class="btn btn-ghost btn-sm" onclick="downloadQR('${t.id}')">Download</button></div>`;
+    grid.appendChild(card);
+    setTimeout(() => {
+      const qrEl = document.getElementById('qr_' + t.id);
+      if (qrEl && typeof QRCode !== 'undefined') {
+        new QRCode(qrEl, { text: url, width: 160, height: 160, colorDark: '#1e293b', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
+      }
+    }, 100);
+  });
+}
+
+function downloadQR(tableId) {
+  const qrEl = document.getElementById('qr_' + tableId);
+  if (!qrEl) return;
+  const canvas = qrEl.querySelector('canvas');
+  if (canvas) {
+    const link = document.createElement('a');
+    link.download = 'QR_' + tableId + '.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    toast('QR code downloaded', 'success');
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   EXPENSES
+   ═══════════════════════════════════════════════════════════ */
+function renderExpensesTable() {
+  const wrap = document.getElementById('expensesTableWrap');
+  if (expensesData.length === 0) { wrap.innerHTML = '<div class="empty-state"><div class="empty-title">No expenses recorded</div></div>'; return; }
+  const fmt = (v) => CONFIG.formatCurrency(v);
+  let rows = '';
+  expensesData.forEach(e => {
+    rows += `<tr><td>${e.date ? new Date(e.date).toLocaleDateString('en-NG',{day:'2-digit',month:'short',year:'numeric'}) : '—'}</td><td>${e.category||'—'}</td><td>${e.description||'—'}</td><td style="font-weight:700">${fmt(parseFloat(e.amount)||0)}</td><td>${e.paymentMethod||'—'}</td></tr>`;
+  });
+  wrap.innerHTML = `<table><thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Amount</th><th>Method</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+function openExpenseModal() {
+  const body = `<div class="form-grid">
+    <div class="form-group"><label>Date</label><input type="date" id="ef_date" value="${new Date().toISOString().split('T')[0]}" /></div>
+    <div class="form-group"><label>Category</label><input id="ef_category" placeholder="e.g. Utilities, Supplies" /></div>
+    <div class="form-group form-full"><label>Description</label><input id="ef_desc" /></div>
+    <div class="form-group"><label>Amount (₦)</label><input type="number" id="ef_amount" /></div>
+    <div class="form-group"><label>Payment Method</label><select id="ef_method"><option>Cash</option><option>Transfer</option><option>POS</option></select></div>
+  </div>`;
+  const actions = `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveExpense()">Record Expense</button>`;
+  openModal('Add Expense', body, actions);
+}
+
+async function saveExpense() {
+  const payload = {
+    date: document.getElementById('ef_date').value,
+    category: document.getElementById('ef_category').value.trim(),
+    description: document.getElementById('ef_desc').value.trim(),
+    amount: document.getElementById('ef_amount').value,
+    paymentMethod: document.getElementById('ef_method').value,
+    recordedBy: 'Manager'
+  };
+  if (!payload.amount || parseFloat(payload.amount) <= 0) return toast('Enter a valid amount', 'error');
+  const res = await CONFIG.apiPost('addExpense', payload);
+  if (res.status === 'success') { toast('Expense recorded', 'success'); closeModal(); await loadAllData(); renderExpensesTable(); }
+  else toast(res.message || 'Failed', 'error');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SETTINGS
+   ═══════════════════════════════════════════════════════════ */
+async function loadSettings() {
+  try {
+    const res = await CONFIG.apiGet('settings');
+    currentSettings = res.data || {};
+  } catch (e) {
+    currentSettings = {};
+  }
+  renderSettingsForm();
+}
+
+function renderSettingsForm() {
+  const wrap = document.getElementById('settingsForm');
+  const skipKeys = ['Manager PIN', 'Blog Admin PIN', 'Date Created', 'Last Updated'];
+  let html = '';
+  Object.keys(currentSettings).forEach(key => {
+    if (skipKeys.includes(key)) return;
+    html += `<div class="form-group"><label>${key}</label><input id="sf_${CSS.escape(key)}" value="${currentSettings[key] || ''}" /></div>`;
+  });
+  wrap.innerHTML = html;
+}
+
+async function saveSettings() {
+  const changes = {};
+  const skipKeys = ['Manager PIN', 'Blog Admin PIN', 'Date Created', 'Last Updated'];
+  Object.keys(currentSettings).forEach(key => {
+    if (skipKeys.includes(key)) return;
+    const el = document.getElementById('sf_' + CSS.escape(key));
+    if (el) changes[key] = el.value;
   });
 
-  wrap.innerHTML = `
-    <table>
-      <thead>
-        <tr>
-          <th>Order ID</th>
-          <th>Date &amp; Time</th>
-          <th>Customer</th>
-          <th>Table</th>
-          <th>Amount</th>
-          <th>Status</th>
-          <th>Flags</th>
-        </tr>
-      </thead>
-      <tbody>${rows}</tbody>
-    </table>`;
+  const res = await CONFIG.apiPost('updateSettings', { settings: changes, performedBy: 'Manager' });
+  if (res.status === 'success') { toast('Settings saved (' + (res.updated || 0) + ' updated)', 'success'); }
+  else toast(res.message || 'Failed to save', 'error');
 }
 
-/* ── INVENTORY ALERTS ─────────────────────────────────── */
-function renderInventoryAlerts(inventory) {
-  const wrap   = document.getElementById('inventoryWrap');
-  const alerts = inventory.filter(item =>
-    parseFloat(item.currentStock) <= parseFloat(item.alertThreshold)
-  );
+/* ═══════════════════════════════════════════════════════════
+   THEME PICKER
+   ═══════════════════════════════════════════════════════════ */
+function renderThemePicker() {
+  const grid = document.getElementById('themeGrid');
+  const saved = localStorage.getItem('mevish_theme') || 'default';
+  let html = '';
+  Object.keys(CONFIG.THEMES).forEach(id => {
+    const t = CONFIG.THEMES[id];
+    html += `<div class="theme-card ${id===saved?'active':''}" onclick="selectTheme('${id}')">
+      <div class="theme-preview">
+        <div class="theme-swatch" style="background:${t.primary}"></div>
+        <div class="theme-swatch" style="background:${t.accent}"></div>
+        <div class="theme-swatch" style="background:${t.bg}"></div>
+        <div class="theme-swatch" style="background:${t.bgSidebar}"></div>
+        <div class="theme-swatch" style="background:${t.bgCard}"></div>
+      </div>
+      <div class="theme-card-name">${t.label}</div>
+    </div>`;
+  });
+  grid.innerHTML = html;
+}
 
-  if (alerts.length === 0) {
-    wrap.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-icon">✅</div>
-        <div class="empty-title">All stock levels healthy</div>
-        <div class="empty-text">No items are below their alert threshold right now.</div>
-      </div>`;
-    return;
+async function selectTheme(id) {
+  CONFIG.applyTheme(id);
+  // Save to Google Sheet so all pages pick it up
+  try {
+    await CONFIG.apiPost('updateSettings', { settings: { Theme: id }, performedBy: 'Manager' });
+    toast('Theme applied: ' + CONFIG.THEMES[id].label, 'success');
+  } catch (e) {
+    toast('Theme applied locally', 'info');
   }
-
-  /* Sort most critical first */
-  alerts.sort((a, b) =>
-    (parseFloat(a.currentStock) / parseFloat(a.alertThreshold)) -
-    (parseFloat(b.currentStock) / parseFloat(b.alertThreshold))
-  );
-
-  const cards = alerts.map(item => {
-    const stock     = parseFloat(item.currentStock);
-    const threshold = parseFloat(item.alertThreshold);
-    const ratio     = stock / threshold;
-    const isCritical = ratio <= 0.5;
-    const unit       = item.unit || '';
-
-    const pct        = Math.max(0, Math.min(100, ratio * 100));
-    const barColor   = isCritical ? '#ef4444' : '#f5a623';
-    const cardClass  = isCritical ? '' : 'alert-orange';
-    const qtyClass   = isCritical ? 'qty-red' : 'qty-orange';
-
-    return `
-      <div class="alert-card ${cardClass}">
-        <div class="alert-card-icon">${isCritical ? '🔴' : '🟠'}</div>
-        <div class="alert-card-name">${item.name || item.itemName || 'Unknown'}</div>
-        <div class="stock-bar-wrap">
-          <div class="stock-bar">
-            <div class="stock-bar-fill" style="width:${pct}%; background:${barColor};"></div>
-          </div>
-          <span style="font-size:0.7rem; color:#6b6f87; white-space:nowrap;">${pct.toFixed(0)}%</span>
-        </div>
-        <div class="alert-card-qty ${qtyClass}">
-          ${stock} ${unit} remaining
-        </div>
-        <div class="alert-card-stock">Threshold: ${threshold} ${unit}</div>
-      </div>`;
-  }).join('');
-
-  wrap.innerHTML = `<div class="alerts-grid">${cards}</div>`;
-}
-
-/* ── PRINT EXPORT ─────────────────────────────────────── */
-function exportReport() {
-  updatePrintHeader();
-  document.body.classList.add('printing-report');
-  window.print();
-  document.body.classList.remove('printing-report');
-}
-
-function updatePrintHeader() {
-  const startDate = document.getElementById('startDate').value;
-  const endDate   = document.getElementById('endDate').value;
-  const fmt       = (s) => s ? new Date(s).toLocaleDateString('en-NG', { day:'2-digit', month:'short', year:'numeric' }) : '–';
-
-  document.getElementById('printDateRange').textContent = `${fmt(startDate)} – ${fmt(endDate)}`;
-  document.getElementById('printGenTime').textContent   = new Date().toLocaleString('en-NG');
-}
-
-/* ── DEMO DATA (fallback when API unavailable) ─────────── */
-const DEMO_ORDERS = [
-  { id:'1001', timestamp: new Date(Date.now()-0*86400000).toISOString(),          total:12500, status:'Paid | Cash | Amina',     customerName:'Bello F.', tableNo:'T1', items:'Jollof Rice x2' },
-  { id:'1002', timestamp: new Date(Date.now()-0*86400000).toISOString(),          total:8700,  status:'Paid | POS | Chidi',      customerName:'Ngozi A.', tableNo:'T3', items:'Pepper Soup' },
-  { id:'1003', timestamp: new Date(Date.now()-1*86400000).toISOString(),          total:15000, status:'Credit | Amina',          customerName:'Fatima B.', tableNo:'T5', items:'Grilled Fish' },
-  { id:'1004', timestamp: new Date(Date.now()-1*86400000).toISOString(),          total:6200,  status:'Paid | Cash | Amina',     customerName:'Emeka O.', tableNo:'T2', items:'Fried Rice' },
-  { id:'1005', timestamp: new Date(Date.now()-2*86400000).toISOString(),          total:22000, status:'Paid | POS | Chidi',      customerName:'Halima D.', tableNo:'T4', items:'Assorted Meat' },
-  { id:'1006', timestamp: new Date(Date.now()-2*86400000).toISOString(),          total:4500,  status:'Paid | Cash | Chidi',     customerName:'Sunday K.', tableNo:'T6', items:'Moi Moi x3' },
-  { id:'1007', timestamp: new Date(Date.now()-3*86400000).toISOString(),          total:11000, status:'Credit | Amina',          customerName:'Mrs Ade', tableNo:'T1', items:'⚠️ BACKDATED | Suya' },
-  { id:'1008', timestamp: new Date(Date.now()-4*86400000).toISOString(),          total:9300,  status:'Paid | Cash | Amina',     customerName:'Ibrahim Y.', tableNo:'T7', items:'Egusi Soup' },
-  { id:'1009', timestamp: new Date(Date.now()-5*86400000).toISOString(),          total:17800, status:'Paid | POS | Chidi',      customerName:'Aisha M.', tableNo:'T3', items:'Ofe Onugbu' },
-  { id:'1010', timestamp: new Date(Date.now()-6*86400000).toISOString(),          total:3400,  status:'Void',                   customerName:'—', tableNo:'—', items:'Cancelled' },
-  { id:'1011', timestamp: new Date(Date.now()-6*86400000).toISOString(),          total:7600,  status:'Paid | Cash | Zara',      customerName:'Okeke P.', tableNo:'T8', items:'Eba + Banga' },
-  { id:'1012', timestamp: new Date(Date.now()-0*86400000).toISOString(),          total:19500, status:'Paid | POS | Zara',       customerName:'VIP Table', tableNo:'VIP', items:'Full spread' },
-];
-
-const DEMO_INVENTORY = [
-  { name:'Palm Oil',        currentStock:1.5,  alertThreshold:5,   unit:'L'  },
-  { name:'Tomatoes (Crate)',currentStock:2,    alertThreshold:4,   unit:'crates' },
-  { name:'Rice (50kg bags)',currentStock:0.5,  alertThreshold:3,   unit:'bags' },
-  { name:'Frozen Fish',     currentStock:3,    alertThreshold:5,   unit:'kg' },
-  { name:'Pepper Mix',      currentStock:4,    alertThreshold:4,   unit:'kg' },
-  { name:'Stockfish',       currentStock:0.8,  alertThreshold:2,   unit:'kg' },
-];
-
-/* Override CONFIG STATUS helpers with demo fallbacks if CONFIG isn't loaded */
-if (typeof CONFIG === 'undefined') {
-  window.CONFIG = {
-    API_URL: '',
-    MANAGER_PIN: '1234',
-    formatCurrency: (v) => '₦' + parseFloat(v).toLocaleString('en-NG', { minimumFractionDigits: 0 }),
-    RESTAURANT: { name: 'Mevish Eatery' },
-    STATUS: {
-      isPaid:    (s) => s.toLowerCase().startsWith('paid'),
-      isCredit:  (s) => s.toLowerCase().startsWith('credit'),
-      isVoid:    (s) => s.toLowerCase().startsWith('void'),
-      getMethod: (s) => {
-        const p = s.split('|');
-        return (p[1] && p[1].trim() === 'POS') ? 'POS' : 'Cash';
-      },
-      getCashier:(s) => {
-        const p = s.split('|');
-        return p[2] ? p[2].trim() : '';
-      }
-    }
-  };
+  renderThemePicker();
 }
 </script>
 </body>

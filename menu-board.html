@@ -198,6 +198,7 @@
       justify-content: space-between;
       gap: 16px;
       transition: border-color 0.3s ease, transform 0.3s ease;
+      animation: mbItemIn 0.45s ease both;
     }
 
     .mb-item:hover {
@@ -276,10 +277,6 @@
     }
 
     /* ── Item slide-in ── */
-    .mb-item {
-      animation: mbItemIn 0.45s ease both;
-    }
-
     @keyframes mbItemIn {
       from { opacity: 0; transform: translateX(-16px); }
       to   { opacity: 1; transform: translateX(0); }
@@ -322,9 +319,26 @@
     .mb-notice.show {
       top: calc(100% - 44px);
     }
+
+    /* ── Item count display ── */
+    .mb-item-total {
+      font-size: clamp(0.6rem, 0.85vw, 0.75rem);
+      color: var(--text-muted);
+      text-align: center;
+      padding: 16px 0 0;
+      opacity: 0.6;
+    }
+
+    /* ── Responsive (smaller screens) ── */
+    @media (max-width: 768px) {
+      .mb-header { padding: 16px 20px; }
+      .mb-cat-pills { padding: 10px 20px; gap: 8px; }
+      .mb-cat-pill { padding: 4px 14px; font-size: 0.65rem; }
+      .mb-right-info { display: none; }
+    }
   </style>
 </head>
-<body class="menu-board-page">
+<body>
 
   <div class="mb-ambient" aria-hidden="true"></div>
 
@@ -336,7 +350,7 @@
         <div class="mb-brand-icon">🍽️</div>
         <div>
           <div class="mb-restaurant" id="mbRestaurant">Mevish Eatery</div>
-          <div class="mb-slogan">Premium Food. Fast Service. Real Flavour.</div>
+          <div class="mb-slogan" id="mbSlogan">Premium Food. Fast Service. Real Flavour.</div>
         </div>
       </div>
 
@@ -369,6 +383,9 @@
       </div>
     </div>
 
+    <!-- ITEM COUNT -->
+    <div class="mb-item-total" id="mbItemCount"></div>
+
     <!-- PROGRESS TRACK -->
     <div class="mb-progress-track">
       <div class="mb-progress" id="mbProgress"></div>
@@ -377,37 +394,72 @@
   </div><!-- /mb-wrapper -->
 
   <!-- Connection status -->
-  <div class="mb-status" id="mbStatus">⬤ Live</div>
+  <div class="mb-status" id="mbStatus">⬤ Connecting…</div>
 
   <!-- Fallback notice -->
   <div class="mb-notice" id="mbNotice">⚠ Showing fallback menu — check internet connection</div>
 
   <script>
-    // ── Config ─────────────────────────────
-    const CATEGORIES  = ['Foods', 'Swallows', 'Pastries', 'Drinks'];
-    const CYCLE_MS    = 10000;     // 10 seconds per category
-    const CATEGORY_ICONS = CONFIG.CATEGORY_ICONS;
+  (function () {
+    'use strict';
 
-    let currentCatIndex = 0;
-    let menuData        = [];
-    let cycleInterval   = null;
-    let progressInterval = null;
-    let progressStart   = null;
+    // ── CONFIG helpers with fallbacks ──────────────
+    var C            = (typeof CONFIG !== 'undefined') ? CONFIG : {};
+    var API_URL      = C.API_URL || '';
+    var RESTAURANT   = C.RESTAURANT || { name: 'Mevish Eatery', slogan: 'Premium Food. Fast Service. Real Flavour.' };
+    var CATEGORIES   = C.CATEGORIES || ['All', 'Foods', 'Swallows', 'Pastries', 'Drinks'];
+    var CAT_ICONS    = C.CATEGORY_ICONS || { Foods: '🍽️', Swallows: '🥘', Pastries: '🥐', Drinks: '🥤', All: '🍴' };
+    var FALLBACK_MENU = C.FALLBACK_MENU || [];
 
-    // ── Helpers ─────────────────────────────
-    function fmt(price) {
-      return CONFIG.formatCurrency(price);
+    var apiGet = C.apiGet || function (type, params) {
+      var url = API_URL + '?type=' + type;
+      if (params) {
+        Object.keys(params).forEach(function (k) {
+          url += '&' + encodeURIComponent(k) + '=' + encodeURIComponent(params[k]);
+        });
+      }
+      return fetch(url).then(function (r) { return r.json(); });
+    };
+
+    var formatCurrency = C.formatCurrency || function (n) {
+      return '\u20A6' + (Number(n) || 0).toLocaleString();
+    };
+
+    // ── Apply saved theme ────────────────────────
+    if (C.loadSavedTheme) C.loadSavedTheme();
+
+    // ── Set dynamic brand ─────────────────────────
+    document.title = RESTAURANT.name + ' — Menu Board';
+    document.getElementById('mbRestaurant').textContent = RESTAURANT.name;
+    document.getElementById('mbSlogan').textContent = RESTAURANT.slogan;
+
+    // ── Filter out "All" from display categories ───
+    var DISPLAY_CATS = CATEGORIES.filter(function (c) { return c !== 'All'; });
+
+    // ── State ────────────────────────────────────
+    var currentCatIndex = 0;
+    var menuData        = [];
+    var cycleInterval   = null;
+    var progressInterval = null;
+    var progressStart   = null;
+    var CYCLE_MS        = 10000; // 10 seconds per category
+
+    // ── Helpers ─────────────────────────────────
+    function esc(str) {
+      var d = document.createElement('div');
+      d.textContent = str;
+      return d.innerHTML;
     }
 
-    // ── Date label ──────────────────────────
+    // ── Date label ──────────────────────────────
     function updateDate() {
-      const d = new Date();
+      var d = new Date();
       document.getElementById('mbDate').textContent = d.toLocaleDateString('en-NG', {
         weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
       });
     }
 
-    // ── Clock ───────────────────────────────
+    // ── Clock ───────────────────────────────────
     function updateClock() {
       document.getElementById('mbClock').textContent = new Date().toLocaleTimeString('en-NG', {
         hour: '2-digit', minute: '2-digit'
@@ -417,19 +469,19 @@
     updateClock();
     updateDate();
 
-    // ── Category pills ───────────────────────
+    // ── Category pills ──────────────────────────
     function renderPills(activeIndex) {
-      const container = document.getElementById('mbCatPills');
-      container.innerHTML = CATEGORIES.map((cat, i) => `
-        <div class="mb-cat-pill ${i === activeIndex ? 'active' : ''}" id="pill-${i}">
-          ${CATEGORY_ICONS[cat] || '🍴'} ${cat}
-        </div>
-      `).join('');
+      var container = document.getElementById('mbCatPills');
+      container.innerHTML = DISPLAY_CATS.map(function (cat, i) {
+        return '<div class="mb-cat-pill ' + (i === activeIndex ? 'active' : '') + '">' +
+          (CAT_ICONS[cat] || '🍴') + ' ' + esc(cat) +
+        '</div>';
+      }).join('');
     }
 
-    // ── Progress bar ─────────────────────────
+    // ── Progress bar ───────────────────────────
     function startProgress() {
-      const bar = document.getElementById('mbProgress');
+      var bar = document.getElementById('mbProgress');
       clearInterval(progressInterval);
       progressStart = Date.now();
 
@@ -439,25 +491,32 @@
       // Force reflow
       bar.getBoundingClientRect();
 
-      bar.style.transition = `width ${CYCLE_MS}ms linear`;
+      bar.style.transition = 'width ' + CYCLE_MS + 'ms linear';
       bar.style.width = '0%';
     }
 
-    // ── Next label ───────────────────────────
+    // ── Next label ─────────────────────────────
     function updateNextLabel(activeIndex) {
-      const nextIdx  = (activeIndex + 1) % CATEGORIES.length;
-      const nextCat  = CATEGORIES[nextIdx];
-      document.getElementById('mbNextLabel').textContent = `Next: ${CATEGORY_ICONS[nextCat] || ''} ${nextCat}`;
+      var nextIdx = (activeIndex + 1) % DISPLAY_CATS.length;
+      var nextCat = DISPLAY_CATS[nextIdx];
+      document.getElementById('mbNextLabel').textContent = 'Next: ' + (CAT_ICONS[nextCat] || '') + ' ' + nextCat;
     }
 
-    // ── Show category ────────────────────────
-    function showCategory(index, skipFade = false) {
-      const cat   = CATEGORIES[index];
-      const items = menuData.filter(i => i.category === cat);
+    // ── Get emoji for an item ───────────────────
+    function getItemEmoji(item) {
+      // Prefer item-level emoji, fall back to category icon
+      if (item.emoji) return item.emoji;
+      return CAT_ICONS[item.category] || '🍴';
+    }
+
+    // ── Show category ──────────────────────────
+    function showCategory(index, skipFade) {
+      var cat   = DISPLAY_CATS[index];
+      var items = menuData.filter(function (i) { return i.category === cat; });
 
       // Update header
       document.getElementById('mbCategory').textContent = cat;
-      document.getElementById('mbCategoryIcon').textContent = CATEGORY_ICONS[cat] || '🍴';
+      document.getElementById('mbCategoryIcon').textContent = CAT_ICONS[cat] || '🍴';
 
       // Update pills
       renderPills(index);
@@ -465,27 +524,33 @@
       // Update next label
       updateNextLabel(index);
 
-      // Render items with stagger
-      const body = document.getElementById('mbBody');
+      // Update item count
+      document.getElementById('mbItemCount').textContent = items.length + ' item' + (items.length !== 1 ? 's' : '');
 
-      const doRender = () => {
-        body.innerHTML = items.length > 0
-          ? items.map((item, idx) => `
-              <div class="mb-item" style="animation-delay: ${idx * 0.045}s">
-                <div class="mb-item-left">
-                  <span class="mb-item-emoji">${CATEGORY_ICONS[item.category] || '🍴'}</span>
-                  <span class="mb-item-name">${item.name}</span>
-                </div>
-                <span class="mb-item-price">${fmt(item.price)}</span>
-              </div>
-            `).join('')
-          : `<div style="grid-column:1/-1; text-align:center; padding:60px; opacity:0.4;">
-               <div style="font-size:3rem;">🍴</div>
-               <div style="margin-top:12px; font-size:1.1rem;">No items in this category</div>
-             </div>`;
+      // Render items with stagger
+      var body = document.getElementById('mbBody');
+
+      var doRender = function () {
+        if (items.length > 0) {
+          body.innerHTML = items.map(function (item, idx) {
+            return '<div class="mb-item" style="animation-delay: ' + (idx * 0.045) + 's">' +
+              '<div class="mb-item-left">' +
+                '<span class="mb-item-emoji">' + getItemEmoji(item) + '</span>' +
+                '<span class="mb-item-name">' + esc(item.name) + '</span>' +
+              '</div>' +
+              '<span class="mb-item-price">' + formatCurrency(item.price) + '</span>' +
+            '</div>';
+          }).join('');
+        } else {
+          body.innerHTML =
+            '<div style="grid-column:1/-1; text-align:center; padding:60px; opacity:0.4;">' +
+              '<div style="font-size:3rem;">🍴</div>' +
+              '<div style="margin-top:12px; font-size:1.1rem;">No items in this category</div>' +
+            '</div>';
+        }
         body.classList.remove('fading');
         body.classList.add('fading-in');
-        setTimeout(() => body.classList.remove('fading-in'), 500);
+        setTimeout(function () { body.classList.remove('fading-in'); }, 500);
       };
 
       if (skipFade) {
@@ -499,43 +564,55 @@
       startProgress();
     }
 
-    // ── Auto cycle ───────────────────────────
+    // ── Auto cycle ─────────────────────────────
     function startCycle() {
       clearInterval(cycleInterval);
-      cycleInterval = setInterval(() => {
-        currentCatIndex = (currentCatIndex + 1) % CATEGORIES.length;
-        showCategory(currentCatIndex);
+      cycleInterval = setInterval(function () {
+        currentCatIndex = (currentCatIndex + 1) % DISPLAY_CATS.length;
+        showCategory(currentCatIndex, false);
       }, CYCLE_MS);
     }
 
-    // ── Load menu ────────────────────────────
-    async function loadMenu() {
-      try {
-        const res  = await fetch(CONFIG.API_URL);
-        const data = await res.json();
-        if (data && Array.isArray(data.data)) {
-          menuData = data.data;
-          document.getElementById('mbStatus').textContent = '⬤ Live';
-          document.getElementById('mbStatus').style.color = 'var(--success)';
-        } else {
-          throw new Error('bad data');
-        }
-      } catch {
-        // Fall back to local menu
-        menuData = CONFIG.FALLBACK_MENU;
-        const notice = document.getElementById('mbNotice');
-        notice.classList.add('show');
-        setTimeout(() => notice.classList.remove('show'), 6000);
-        document.getElementById('mbStatus').textContent = '⬤ Offline';
-        document.getElementById('mbStatus').style.color = 'var(--warning)';
-      }
-
-      showCategory(0, true);
-      startCycle();
+    // ── Load menu ──────────────────────────────
+    function loadMenu() {
+      apiGet('menu')
+        .then(function (data) {
+          if (data && data.status === 'success' && Array.isArray(data.data)) {
+            menuData = data.data;
+            document.getElementById('mbStatus').textContent = '⬤ Live';
+            document.getElementById('mbStatus').style.color = 'var(--success)';
+          } else {
+            throw new Error('bad data');
+          }
+        })
+        .catch(function () {
+          // Fall back to local menu
+          menuData = FALLBACK_MENU;
+          var notice = document.getElementById('mbNotice');
+          notice.classList.add('show');
+          setTimeout(function () { notice.classList.remove('show'); }, 6000);
+          document.getElementById('mbStatus').textContent = '⬤ Offline';
+          document.getElementById('mbStatus').style.color = 'var(--warning)';
+        })
+        .then(function () {
+          // Render regardless of success/failure
+          if (DISPLAY_CATS.length > 0) {
+            showCategory(0, true);
+            startCycle();
+          }
+        });
     }
 
-    // ── Init ─────────────────────────────────
+    // ── Periodic refresh (every 5 minutes) ──────
+    setInterval(function () {
+      loadMenu();
+    }, 300000);
+
+    // ── Init ──────────────────────────────────
     loadMenu();
+
+  })();
   </script>
+
 </body>
 </html>

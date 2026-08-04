@@ -136,7 +136,7 @@
       margin-top: 4px;
     }
 
-    /* ── Step tracker ── */
+    /* ── Step tracker (4 steps) ── */
     .tracker-steps {
       display: flex;
       align-items: flex-start;
@@ -190,7 +190,7 @@
       transition: all 0.5s ease;
     }
 
-    .tracker-step.done   .tracker-dot { background: var(--success); border-color: var(--success); box-shadow: var(--shadow-success); }
+    .tracker-step.done   .tracker-dot { background: var(--success); border-color: var(--success); box-shadow: 0 0 12px rgba(16,185,129,0.4); }
     .tracker-step.active .tracker-dot { background: var(--gold-dim); border-color: var(--gold); animation: pulse 2s infinite; }
 
     .tracker-label {
@@ -203,6 +203,68 @@
 
     .tracker-step.done   .tracker-label { color: var(--success); }
     .tracker-step.active .tracker-label { color: var(--gold); }
+
+    /* ── Prep countdown timer ── */
+    .tracker-prep-timer {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--sp-sm);
+      padding: var(--sp-md) var(--sp-lg);
+      margin-bottom: var(--sp-lg);
+      background: var(--bg-surface);
+      border-radius: var(--r-md);
+      border: 1px solid var(--border);
+    }
+
+    .tracker-prep-timer-icon {
+      font-size: 1.5rem;
+    }
+
+    .tracker-prep-timer-body {
+      text-align: center;
+    }
+
+    .tracker-prep-timer-label {
+      font-size: var(--fs-xs);
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+
+    .tracker-prep-timer-value {
+      font-size: var(--fs-xl);
+      font-weight: 800;
+      color: var(--gold);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .tracker-prep-timer-value.urgent {
+      color: var(--danger);
+    }
+
+    .tracker-prep-timer-bar {
+      width: 100%;
+      max-width: 200px;
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-top: var(--sp-xs);
+    }
+
+    .tracker-prep-timer-bar-fill {
+      height: 100%;
+      background: var(--gold);
+      border-radius: 2px;
+      transition: width 1s linear;
+    }
+
+    .tracker-prep-timer-bar-fill.urgent {
+      background: var(--danger);
+    }
 
     /* ── Status message ── */
     .tracker-status-msg {
@@ -259,7 +321,51 @@
       vertical-align: middle;
     }
 
-    /* ── Order another link ── */
+    /* ── Order total ── */
+    .tracker-total {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--sp-md) var(--sp-lg);
+      background: var(--bg-surface);
+      border-radius: var(--r-md);
+      margin-bottom: var(--sp-lg);
+      border: 1px solid var(--border);
+    }
+
+    .tracker-total-label {
+      font-size: var(--fs-sm);
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .tracker-total-amount {
+      font-size: var(--fs-lg);
+      font-weight: 800;
+      color: var(--gold);
+    }
+
+    /* ── Order items summary ── */
+    .tracker-items-list {
+      background: var(--bg-surface);
+      border-radius: var(--r-md);
+      padding: var(--sp-md);
+      margin-bottom: var(--sp-lg);
+      font-size: var(--fs-sm);
+      color: var(--text-secondary);
+      line-height: 1.9;
+    }
+
+    .tracker-items-list-title {
+      font-size: var(--fs-xs);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      margin-bottom: var(--sp-xs);
+    }
+
+    /* ── Footer links ── */
     .tracker-footer-links {
       display: flex;
       align-items: center;
@@ -300,24 +406,31 @@
       font-size: var(--fs-sm);
     }
 
-    /* ── Order items summary ── */
-    .tracker-items-list {
-      background: var(--bg-surface);
-      border-radius: var(--r-md);
-      padding: var(--sp-md);
+    /* ── Timestamp info badges ── */
+    .tracker-timestamps {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--sp-sm);
       margin-bottom: var(--sp-lg);
-      font-size: var(--fs-sm);
-      color: var(--text-secondary);
-      line-height: 1.9;
     }
 
-    .tracker-items-list-title {
+    .tracker-ts-badge {
       font-size: var(--fs-xs);
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1px;
+      padding: 4px 10px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
       color: var(--text-muted);
-      margin-bottom: var(--sp-xs);
+    }
+
+    .tracker-ts-badge .ts-label {
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+
+    /* ── Offline banner offset ── */
+    .offline-banner {
+      top: 64px;
     }
 
     /* ── Responsive ── */
@@ -325,6 +438,8 @@
       .tracker-order-header { flex-direction: column; align-items: flex-start; }
       .tracker-search-row { flex-direction: column; }
       .tracker-search-row .btn { width: 100%; }
+      .tracker-footer-links { flex-direction: column; gap: var(--sp-sm); }
+      .tracker-footer-links .btn { width: 100%; text-align: center; }
     }
   </style>
 </head>
@@ -335,12 +450,12 @@
   <!-- ═══════════════════════════════════════ -->
   <nav class="navbar" id="trackNavbar">
     <div class="container">
-      <a href="home.html" class="navbar-brand" id="trackNavLogo">
+      <a href="index.html" class="navbar-brand" id="trackNavLogo">
         <div class="brand-icon">🍽️</div>
-        Mevish <span class="brand-accent">Eatery</span>
+        <span class="brand-text">Mevish</span> <span class="brand-accent">Eatery</span>
       </a>
       <div style="display:flex; align-items:center; gap: var(--sp-md);">
-        <a href="home.html" class="nav-link" id="trackNavHome">← Back to Home</a>
+        <a href="index.html" class="nav-link" id="trackNavHome">← Back to Menu</a>
         <a href="index.html?table=Counter" class="btn btn-primary btn-sm" id="trackNavOrder">Order Now</a>
       </div>
     </div>
@@ -375,9 +490,7 @@
                 spellcheck="false"
                 aria-label="Order ID"
               >
-              <button class="btn btn-primary" id="trackBtn" onclick="handleTrackClick()">
-                🔍 Track
-              </button>
+              <button class="btn btn-primary" id="trackBtn">🔍 Track</button>
             </div>
           </div>
           <p class="form-hint">Your Order ID was shown on your receipt or order confirmation screen.</p>
@@ -407,132 +520,323 @@
   <!-- SCRIPTS                                -->
   <!-- ═══════════════════════════════════════ -->
   <script>
-    // ── State ────────────────────────────────
-    let currentOrderId    = null;
-    let refreshTimer      = null;
-    let refreshCountdown  = CONFIG.TRACKER_INTERVAL / 1000;
+  (function () {
+    'use strict';
 
-    // ── Helpers ─────────────────────────────
+    // ── CONFIG helpers with fallbacks ──────────────
+    var C                = (typeof CONFIG !== 'undefined') ? CONFIG : {};
+    var API_URL          = C.API_URL          || '';
+    var TRACKER_INTERVAL = C.TRACKER_INTERVAL || 15000;
+    var RESTAURANT       = C.RESTAURANT       || { name: 'Mevish Eatery' };
+    var STATUS           = C.STATUS           || {};
+
+    var apiGet = C.apiGet || function (type, params) {
+      var url = API_URL + '?type=' + type;
+      if (params) {
+        Object.keys(params).forEach(function (k) {
+          url += '&' + encodeURIComponent(k) + '=' + encodeURIComponent(params[k]);
+        });
+      }
+      return fetch(url).then(function (r) { return r.json(); });
+    };
+
+    var formatCurrency = C.formatCurrency || function (n) {
+      return '\u20A6' + (Number(n) || 0).toLocaleString();
+    };
+
+    var isPaid   = STATUS.isPaid   || function (s) { return !!(s && s.includes('Paid')); };
+    var isVoid   = STATUS.isVoid   || function (s) { return !!(s && s.includes('Void')); };
+    var isActive = STATUS.isActive || function (s) { return !!(s && (s === 'Active' || s === 'Ready')); };
+
+    // ── Apply saved theme ────────────────────────
+    if (C.loadSavedTheme) C.loadSavedTheme();
+
+    // ── Set dynamic brand name ───────────────────
+    document.title = 'Track Your Order | ' + RESTAURANT.name;
+    var brandText = document.getElementById('trackNavLogo');
+    if (brandText) {
+      brandText.querySelector('.brand-text').textContent = RESTAURANT.name.split(' ')[0];
+      brandText.querySelector('.brand-accent').textContent = RESTAURANT.name.split(' ').slice(1).join(' ') || '';
+    }
+
+    // ── State ────────────────────────────────────
+    var currentOrderId    = null;
+    var refreshTimer      = null;
+    var prepTimerInterval = null;
+    var refreshCountdown  = Math.floor(TRACKER_INTERVAL / 1000);
+
+    // ── Helpers ─────────────────────────────────
     function esc(str) {
-      const d = document.createElement('div');
+      var d = document.createElement('div');
       d.textContent = str;
       return d.innerHTML;
     }
 
-    // ── Step state logic ──────────────────────
+    function formatTime(dateStr) {
+      if (!dateStr) return '';
+      try {
+        var d = new Date(dateStr);
+        if (isNaN(d.getTime())) return '';
+        var h = d.getHours();
+        var m = String(d.getMinutes()).padStart(2, '0');
+        var ampm = h >= 12 ? 'PM' : 'AM';
+        h = h % 12 || 12;
+        return h + ':' + m + ' ' + ampm;
+      } catch (e) { return ''; }
+    }
+
+    // ── Toast (fallback if shared not loaded) ───
+    function showToast(message, type, duration) {
+      if (typeof window.showToast === 'function') {
+        window.showToast(message, type, duration);
+        return;
+      }
+      var toast = document.createElement('div');
+      toast.textContent = message;
+      toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);padding:12px 24px;border-radius:8px;background:var(--bg-surface);color:var(--text-primary);border:1px solid var(--border);font-size:14px;z-index:9999;animation:fadeIn 0.3s ease;';
+      document.body.appendChild(toast);
+      setTimeout(function () { toast.remove(); }, duration || 3000);
+    }
+
+    // ── Step state logic (4 steps) ───────────────
     function getStepState(status) {
-      const isPaid  = CONFIG.STATUS.isPaid(status);
-      const isReady = status === 'Ready' || isPaid;
+      var paid  = isPaid(status);
+      var ready = status === 'Ready';
+      var active = status === 'Active';
+
       return {
-        received: 'done',
-        preparing: isReady ? 'done' : 'active',
-        ready: isPaid ? 'done' : isReady ? 'active' : ''
+        received:  paid || ready ? 'done' : 'active',
+        preparing: paid || ready ? 'done' : 'active',
+        ready:     paid ? 'done' : ready ? 'active' : '',
+        completed: paid ? 'active' : ''
       };
     }
 
-    function stepDot(step, emoji) {
-      if (step === 'done')   return `<span>✓</span>`;
-      if (step === 'active') return `<span>${emoji}</span>`;
-      return `<span>${emoji}</span>`;
+    // ── Prep countdown timer ──────────────────────
+    function startPrepTimer(order) {
+      clearInterval(prepTimerInterval);
+
+      if (!order.prepStarted || order.prepTime === '' || order.prepTime === undefined || isPaid(order.status)) {
+        return;
+      }
+
+      var prepTimeMs = (Number(order.prepTime) || 10) * 60 * 1000;
+      var startedAt  = new Date(order.prepStarted);
+      var endTime    = new Date(startedAt.getTime() + prepTimeMs);
+      var el         = document.getElementById('prepTimerValue');
+      var barEl      = document.getElementById('prepTimerBarFill');
+
+      if (!el) return;
+
+      function tick() {
+        var now    = new Date();
+        var remain = endTime.getTime() - now.getTime();
+
+        if (remain <= 0) {
+          clearInterval(prepTimerInterval);
+          if (el) el.textContent = '00:00';
+          if (el) el.classList.add('urgent');
+          if (barEl) { barEl.style.width = '0%'; barEl.classList.add('urgent'); }
+          return;
+        }
+
+        var totalSec = Math.ceil(remain / 1000);
+        var mins     = Math.floor(totalSec / 60);
+        var secs     = totalSec % 60;
+        var display  = String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+
+        if (el) {
+          el.textContent = display;
+          if (totalSec <= 120) {
+            el.classList.add('urgent');
+          } else {
+            el.classList.remove('urgent');
+          }
+        }
+
+        if (barEl) {
+          var pct = Math.min(100, (remain / prepTimeMs) * 100);
+          barEl.style.width = pct + '%';
+          if (totalSec <= 120) {
+            barEl.classList.add('urgent');
+          } else {
+            barEl.classList.remove('urgent');
+          }
+        }
+      }
+
+      tick();
+      prepTimerInterval = setInterval(tick, 1000);
     }
 
-    // ── Render result ────────────────────────
+    function stopPrepTimer() {
+      clearInterval(prepTimerInterval);
+    }
+
+    // ── Render result ────────────────────────────
     function renderResult(order) {
-      const status = order.status || 'Active';
-      const steps  = getStepState(status);
-      const isPaid = CONFIG.STATUS.isPaid(status);
-      const isVoid = CONFIG.STATUS.isVoid(status);
+      var status = order.status || 'Active';
+      var steps  = getStepState(status);
+      var paid   = isPaid(status);
+      var void_  = isVoid(status);
+      var ready  = status === 'Ready';
 
       // Status message
-      let msgClass = 'status-active';
-      let msgText  = '⏳ Your order has been received and is being prepared. Please wait while our team works their magic…';
+      var msgClass = 'status-active';
+      var msgText  = '⏳ Your order has been received and is being prepared. Please wait while our team works their magic…';
 
-      if (status === 'Ready') {
+      if (status === 'Active' && order.prepStarted) {
+        msgText = '👨‍🍳 Your food is being prepared! Our kitchen is working on it now.';
+      } else if (status === 'Active') {
+        msgText = '📋 Your order has been received and will start preparing shortly.';
+      }
+
+      if (ready) {
         msgClass = 'status-ready';
         msgText  = '🎉 Your order is <strong>READY!</strong> Please proceed to collect your food.';
-      } else if (isPaid) {
+      } else if (paid) {
         msgClass = 'status-paid';
-        msgText  = '✅ This order has been completed. Thank you for dining with us at Mevish Eatery!';
-      } else if (isVoid) {
+        msgText  = '✅ This order has been <strong>completed</strong>. Thank you for dining with us at ' + esc(RESTAURANT.name) + '!';
+      } else if (void_) {
         msgClass = 'status-active';
         msgText  = '❌ This order has been voided. Please contact a staff member if you need assistance.';
       }
 
-      // Items summary
-      let itemsHtml = '';
+      // Items summary (API returns parsed array of {qty, name})
+      var itemsHtml = '';
       if (order.items && order.items.length > 0) {
-        const itemLines = order.items.map(item => {
-          const qty  = item.qty  ? `×${item.qty} ` : '';
-          const name = esc(item.name || item.item || '');
-          return `<div>${qty}${name}</div>`;
+        var itemLines = order.items.map(function (item) {
+          var qty  = item.qty  ? '×' + item.qty + ' ' : '';
+          var name = esc(item.name || '');
+          return '<div>' + qty + name + '</div>';
         }).join('');
-        itemsHtml = `
-          <div class="tracker-items-list">
-            <div class="tracker-items-list-title">Your Order</div>
-            ${itemLines}
-          </div>
-        `;
+        itemsHtml =
+          '<div class="tracker-items-list">' +
+            '<div class="tracker-items-list-title">Your Order</div>' +
+            itemLines +
+          '</div>';
       }
 
-      const tableLabel = order.table ? `📍 ${esc(order.table)}` : '';
+      // Total amount
+      var totalHtml = '';
+      if (order.total) {
+        totalHtml =
+          '<div class="tracker-total">' +
+            '<span class="tracker-total-label">Order Total</span>' +
+            '<span class="tracker-total-amount">' + formatCurrency(order.total) + '</span>' +
+          '</div>';
+      }
 
-      const html = `
-        <div class="animate-fade-in">
-          <!-- Order header -->
-          <div class="tracker-order-header">
-            <div>
-              <div class="tracker-customer">${esc(order.customerName || order.name || 'Your Order')}</div>
-              ${tableLabel ? `<div class="tracker-table-badge">${tableLabel}</div>` : ''}
-            </div>
-            <div class="tracker-order-id">${esc(order.orderId || currentOrderId)}</div>
-          </div>
+      // Table label
+      var tableLabel = order.location ? '📍 ' + esc(order.location) : '';
 
-          <!-- Step tracker -->
-          <div class="tracker-steps" role="progressbar" aria-label="Order progress">
+      // Prep timer (only show during Active status when prep has started)
+      var prepTimerHtml = '';
+      if (status === 'Active' && order.prepStarted && (order.prepTime !== '' && order.prepTime !== undefined)) {
+        prepTimerHtml =
+          '<div class="tracker-prep-timer" id="prepTimerBlock">' +
+            '<div class="tracker-prep-timer-icon">⏱️</div>' +
+            '<div class="tracker-prep-timer-body">' +
+              '<div class="tracker-prep-timer-label">Est. Time Remaining</div>' +
+              '<div class="tracker-prep-timer-value" id="prepTimerValue">--:--</div>' +
+              '<div class="tracker-prep-timer-bar"><div class="tracker-prep-timer-bar-fill" id="prepTimerBarFill" style="width:100%"></div></div>' +
+            '</div>' +
+          '</div>';
+      }
 
-            <div class="tracker-step ${steps.received}" id="stepReceived">
-              <div class="tracker-dot">📋</div>
-              <div class="tracker-label">Received</div>
-            </div>
+      // Timestamp badges
+      var tsHtml = '';
+      var tsItems = [];
+      if (order.timestamp)  tsItems.push({ label: 'Placed',   time: formatTime(order.timestamp) });
+      if (order.prepStarted) tsItems.push({ label: 'Started',  time: formatTime(order.prepStarted) });
+      if (order.readyAt)     tsItems.push({ label: 'Ready',    time: formatTime(order.readyAt) });
+      if (order.paidAt)      tsItems.push({ label: 'Paid',     time: formatTime(order.paidAt) });
 
-            <div class="tracker-step ${steps.preparing}" id="stepPreparing">
-              <div class="tracker-dot">👨‍🍳</div>
-              <div class="tracker-label">Preparing</div>
-            </div>
+      if (tsItems.length > 0) {
+        tsHtml = '<div class="tracker-timestamps">' +
+          tsItems.map(function (ts) {
+            return '<div class="tracker-ts-badge"><span class="ts-label">' + ts.label + ':</span> ' + esc(ts.time) + '</div>';
+          }).join('') +
+        '</div>';
+      }
 
-            <div class="tracker-step ${steps.ready}" id="stepReady">
-              <div class="tracker-dot">✅</div>
-              <div class="tracker-label">Ready</div>
-            </div>
+      var html =
+        '<div class="animate-fade-in">' +
+          // Order header
+          '<div class="tracker-order-header">' +
+            '<div>' +
+              '<div class="tracker-customer">' + esc(order.name || 'Your Order') + '</div>' +
+              (tableLabel ? '<div class="tracker-table-badge">' + tableLabel + '</div>' : '') +
+            '</div>' +
+            '<div class="tracker-order-id">' + esc(order.orderId || currentOrderId) + '</div>' +
+          '</div>' +
 
-          </div>
+          // 4-step tracker: Received → Preparing → Ready → Completed
+          '<div class="tracker-steps" role="progressbar" aria-label="Order progress">' +
+            '<div class="tracker-step ' + steps.received + '">' +
+              '<div class="tracker-dot">📋</div>' +
+              '<div class="tracker-label">Received</div>' +
+            '</div>' +
+            '<div class="tracker-step ' + steps.preparing + '">' +
+              '<div class="tracker-dot">👨‍🍳</div>' +
+              '<div class="tracker-label">Preparing</div>' +
+            '</div>' +
+            '<div class="tracker-step ' + steps.ready + '">' +
+              '<div class="tracker-dot">✅</div>' +
+              '<div class="tracker-label">Ready</div>' +
+            '</div>' +
+            '<div class="tracker-step ' + steps.completed + '">' +
+              '<div class="tracker-dot">💳</div>' +
+              '<div class="tracker-label">Completed</div>' +
+            '</div>' +
+          '</div>' +
 
-          <!-- Status message -->
-          <div class="tracker-status-msg ${msgClass}">${msgText}</div>
+          // Status message
+          '<div class="tracker-status-msg ' + msgClass + '">' + msgText + '</div>' +
 
-          <!-- Items list -->
-          ${itemsHtml}
+          // Prep countdown timer
+          prepTimerHtml +
 
-          <!-- Auto-refresh bar (only if order still in progress) -->
-          ${(!isPaid && !isVoid) ? `
-            <div class="tracker-refresh" id="refreshBar">
-              <span><span class="tracker-refresh-spinner"></span> Auto-refreshing…</span>
-              <span id="countdownDisplay">Refreshing in ${refreshCountdown}s…</span>
-            </div>
-          ` : ''}
+          // Timestamps
+          tsHtml +
 
-          <!-- Footer links -->
-          <div class="tracker-footer-links">
-            <a href="index.html?table=Counter" class="btn btn-secondary btn-sm" id="orderAnotherBtn">🍔 Order Another</a>
-            <button class="btn btn-ghost btn-sm" id="refreshNowBtn" onclick="handleTrackClick()">↻ Refresh Now</button>
-          </div>
-        </div>
-      `;
+          // Items list
+          itemsHtml +
+
+          // Total
+          totalHtml +
+
+          // Auto-refresh bar (only if order still in progress)
+          ((!paid && !void_) ?
+            '<div class="tracker-refresh" id="refreshBar">' +
+              '<span><span class="tracker-refresh-spinner"></span> Auto-refreshing…</span>' +
+              '<span id="countdownDisplay">Refreshing in ' + refreshCountdown + 's…</span>' +
+            '</div>' : '') +
+
+          // Footer links
+          '<div class="tracker-footer-links">' +
+            '<a href="index.html?table=Counter" class="btn btn-secondary btn-sm">🍔 Order Another</a>' +
+            '<button class="btn btn-ghost btn-sm" id="refreshNowBtn">↻ Refresh Now</button>' +
+          '</div>' +
+        '</div>';
 
       document.getElementById('trackerResult').innerHTML = html;
 
+      // Wire refresh-now button
+      var refreshBtn = document.getElementById('refreshNowBtn');
+      if (refreshBtn) refreshBtn.addEventListener('click', function () {
+        if (currentOrderId) trackOrder(currentOrderId);
+      });
+
+      // Start prep timer
+      if (status === 'Active' && order.prepStarted) {
+        startPrepTimer(order);
+      } else {
+        stopPrepTimer();
+      }
+
       // Start auto-refresh only if order not complete
-      if (!isPaid && !isVoid) {
+      if (!paid && !void_) {
         startAutoRefresh(order.orderId || currentOrderId);
       } else {
         clearInterval(refreshTimer);
@@ -540,76 +844,96 @@
       }
     }
 
-    // ── Not Found state ──────────────────────
+    // ── Not Found state ────────────────────────
     function showNotFound(orderId) {
       clearInterval(refreshTimer);
-      document.getElementById('trackerResult').innerHTML = `
-        <div class="tracker-not-found animate-fade-in">
-          <div class="tracker-not-found-icon">🔎</div>
-          <h2 style="font-size: var(--fs-xl); margin-bottom: var(--sp-sm);">Order Not Found</h2>
-          <p style="color: var(--text-secondary); font-size: var(--fs-sm); margin-bottom: var(--sp-xl); max-width: 320px; margin-left:auto; margin-right:auto;">
-            We couldn't find an order with ID <strong style="color:var(--gold); font-family:monospace;">${esc(orderId)}</strong>.
-            Please double-check the Order ID on your receipt.
-          </p>
-          <div style="display:flex; gap: var(--sp-sm); justify-content:center; flex-wrap:wrap;">
-            <button class="btn btn-primary" onclick="document.getElementById('orderIdInput').value=''; document.getElementById('orderIdInput').focus(); document.getElementById('trackerResult').innerHTML = document.getElementById('trackerIdle') ? '' : '';" id="tryAgainBtn">Try Again</button>
-            <a href="index.html?table=Counter" class="btn btn-secondary" id="notFoundOrderBtn">Place a New Order</a>
-          </div>
-        </div>
-      `;
+      stopPrepTimer();
+      document.getElementById('trackerResult').innerHTML =
+        '<div class="tracker-not-found animate-fade-in">' +
+          '<div class="tracker-not-found-icon">🔎</div>' +
+          '<h2 style="font-size: var(--fs-xl); margin-bottom: var(--sp-sm);">Order Not Found</h2>' +
+          '<p style="color: var(--text-secondary); font-size: var(--fs-sm); margin-bottom: var(--sp-xl); max-width: 320px; margin-left:auto; margin-right:auto;">' +
+            'We couldn\'t find an order with ID <strong style="color:var(--gold); font-family:monospace;">' + esc(orderId) + '</strong>. ' +
+            'Please double-check the Order ID on your receipt.' +
+          '</p>' +
+          '<div style="display:flex; gap: var(--sp-sm); justify-content:center; flex-wrap:wrap;">' +
+            '<button class="btn btn-primary" id="tryAgainBtn">Try Again</button>' +
+            '<a href="index.html?table=Counter" class="btn btn-secondary">Place a New Order</a>' +
+          '</div>' +
+        '</div>';
+
+      var tryBtn = document.getElementById('tryAgainBtn');
+      if (tryBtn) tryBtn.addEventListener('click', function () {
+        document.getElementById('orderIdInput').value = '';
+        document.getElementById('orderIdInput').focus();
+        resetToIdle();
+      });
     }
 
-    // ── Error state ──────────────────────────
+    function resetToIdle() {
+      document.getElementById('trackerResult').innerHTML =
+        '<div class="tracker-idle" id="trackerIdle">' +
+          '<div class="tracker-idle-icon">🔍</div>' +
+          '<div style="font-weight: 600; color: var(--text-secondary);">Enter your Order ID above</div>' +
+          '<div style="font-size: var(--fs-xs); max-width: 260px;">Your order status will appear here once you search.</div>' +
+        '</div>';
+    }
+
+    // ── Error state ────────────────────────────
     function showError() {
       clearInterval(refreshTimer);
-      document.getElementById('trackerResult').innerHTML = `
-        <div class="tracker-error animate-fade-in">
-          <div style="font-size:3rem; margin-bottom:var(--sp-md);">⚠️</div>
-          <h2 style="font-size:var(--fs-xl); margin-bottom:var(--sp-sm); color:var(--text-primary);">Connection Error</h2>
-          <p style="font-size:var(--fs-sm); margin-bottom:var(--sp-xl);">
-            Unable to reach the server. Please check your internet connection and try again.
-          </p>
-          <button class="btn btn-primary" id="retryBtn" onclick="handleTrackClick()">↻ Retry</button>
-        </div>
-      `;
+      stopPrepTimer();
+      document.getElementById('trackerResult').innerHTML =
+        '<div class="tracker-error animate-fade-in">' +
+          '<div style="font-size:3rem; margin-bottom:var(--sp-md);">⚠️</div>' +
+          '<h2 style="font-size:var(--fs-xl); margin-bottom:var(--sp-sm); color:var(--text-primary);">Connection Error</h2>' +
+          '<p style="font-size:var(--fs-sm); margin-bottom:var(--sp-xl);">' +
+            'Unable to reach the server. Please check your internet connection and try again.' +
+          '</p>' +
+          '<button class="btn btn-primary" id="retryBtn">↻ Retry</button>' +
+        '</div>';
+
+      var retryBtn = document.getElementById('retryBtn');
+      if (retryBtn) retryBtn.addEventListener('click', function () {
+        if (currentOrderId) trackOrder(currentOrderId);
+      });
     }
 
-    // ── Loading state ────────────────────────
+    // ── Loading state ──────────────────────────
     function showLoading() {
-      document.getElementById('trackerResult').innerHTML = `
-        <div class="tracker-loading">
-          <div class="spinner"></div>
-          <span>Looking up your order…</span>
-        </div>
-      `;
+      document.getElementById('trackerResult').innerHTML =
+        '<div class="tracker-loading">' +
+          '<div class="spinner"></div>' +
+          '<span>Looking up your order…</span>' +
+        '</div>';
     }
 
-    // ── Countdown display ────────────────────
+    // ── Countdown display ──────────────────────
     function updateCountdownDisplay(sec) {
-      const el = document.getElementById('countdownDisplay');
-      if (el) el.textContent = `Refreshing in ${sec}s…`;
+      var el = document.getElementById('countdownDisplay');
+      if (el) el.textContent = 'Refreshing in ' + sec + 's…';
     }
 
-    // ── Auto-refresh logic ───────────────────
+    // ── Auto-refresh logic ─────────────────────
     function startAutoRefresh(orderId) {
       clearInterval(refreshTimer);
-      refreshCountdown = Math.floor(CONFIG.TRACKER_INTERVAL / 1000);
+      refreshCountdown = Math.floor(TRACKER_INTERVAL / 1000);
       updateCountdownDisplay(refreshCountdown);
 
-      refreshTimer = setInterval(() => {
+      refreshTimer = setInterval(function () {
         refreshCountdown--;
         updateCountdownDisplay(refreshCountdown);
         if (refreshCountdown <= 0) {
           clearInterval(refreshTimer);
           trackOrder(orderId);
-          refreshCountdown = Math.floor(CONFIG.TRACKER_INTERVAL / 1000);
+          refreshCountdown = Math.floor(TRACKER_INTERVAL / 1000);
         }
       }, 1000);
     }
 
-    // ── Core track function ──────────────────
-    async function trackOrder(orderId) {
-      currentOrderId = orderId.trim();
+    // ── Core track function ────────────────────
+    function trackOrder(orderId) {
+      currentOrderId = (orderId || '').trim();
       if (!currentOrderId) {
         document.getElementById('orderIdInput').focus();
         return;
@@ -617,45 +941,80 @@
 
       showLoading();
 
-      try {
-        const res  = await fetch(`${CONFIG.API_URL}?type=track&orderId=${encodeURIComponent(currentOrderId)}`);
-        const data = await res.json();
-        if (data.status === 'success' && data.data) {
-          renderResult(data.data);
-        } else {
-          showNotFound(currentOrderId);
-        }
-      } catch (e) {
-        showError();
-      }
+      apiGet('track', { orderId: currentOrderId })
+        .then(function (data) {
+          if (data.status === 'success' && data.data) {
+            renderResult(data.data);
+          } else {
+            showNotFound(currentOrderId);
+          }
+        })
+        .catch(function () {
+          showError();
+        });
     }
 
-    // ── Button click handler ─────────────────
+    // ── Track button handler ────────────────────
     function handleTrackClick() {
-      const orderId = document.getElementById('orderIdInput').value.trim();
+      var orderId = document.getElementById('orderIdInput').value.trim();
       if (!orderId) {
         document.getElementById('orderIdInput').focus();
         return;
       }
       clearInterval(refreshTimer);
+      stopPrepTimer();
       trackOrder(orderId);
     }
 
-    // ── Enter key on input ───────────────────
-    document.addEventListener('DOMContentLoaded', () => {
-      const input = document.getElementById('orderIdInput');
-      input.addEventListener('keydown', (e) => {
+    // ── Offline detection ──────────────────────
+    function goOffline() {
+      var banner = document.querySelector('.offline-banner');
+      if (banner) banner.classList.add('show');
+    }
+
+    function goOnline() {
+      var banner = document.querySelector('.offline-banner');
+      if (banner) banner.classList.remove('show');
+      // Auto-retry if we had an active order
+      if (currentOrderId) trackOrder(currentOrderId);
+    }
+
+    window.addEventListener('offline', goOffline);
+    window.addEventListener('online', goOnline);
+    if (!navigator.onLine) goOffline();
+
+    // ── DOM Ready ──────────────────────────────
+    document.addEventListener('DOMContentLoaded', function () {
+      var input    = document.getElementById('orderIdInput');
+      var trackBtn = document.getElementById('trackBtn');
+
+      // Enter key
+      input.addEventListener('keydown', function (e) {
         if (e.key === 'Enter') handleTrackClick();
       });
 
-      // ── Auto-search from URL ?orderId=XXX ───
-      const params  = new URLSearchParams(window.location.search);
-      const urlId   = params.get('orderId') || params.get('orderid') || params.get('id');
+      // Track button click
+      trackBtn.addEventListener('click', handleTrackClick);
+
+      // Auto-search from URL ?orderId=XXX
+      var params = new URLSearchParams(window.location.search);
+      var urlId = params.get('orderId') || params.get('orderid') || params.get('id');
       if (urlId) {
         input.value = urlId.trim();
         trackOrder(urlId.trim());
       }
+
+      // Escape key to reset
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+          clearInterval(refreshTimer);
+          stopPrepTimer();
+          resetToIdle();
+        }
+      });
     });
+
+  })();
   </script>
 
 </body>
