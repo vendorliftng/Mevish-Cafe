@@ -956,13 +956,13 @@ function initDateDefaults() {
 async function loadAllData() {
   // Load each endpoint independently so one failure doesn't block the rest
   const loaders = [
-    { key: 'orders',    fn: () => CONFIG.apiGet('orders') },
-    { key: 'inventory', fn: () => CONFIG.apiGet('inventory') },
-    { key: 'menu',      fn: () => CONFIG.apiGet('menu') },
-    { key: 'cashiers',  fn: () => CONFIG.apiGet('cashiers') },
-    { key: 'tables',    fn: () => CONFIG.apiGet('tables') },
-    { key: 'expenses',  fn: () => CONFIG.apiGet('expenses') },
-    { key: 'customers', fn: () => CONFIG.apiGet('customers') }
+    { key: 'orders',    fn: () => CONFIG.apiGet('orders') },                // live, no cache
+    { key: 'inventory', fn: () => CONFIG.cachedGet('inventory', null, 5) }, // 5 min cache
+    { key: 'menu',      fn: () => CONFIG.cachedGet('menu', null, 10) },    // 10 min cache
+    { key: 'cashiers',  fn: () => CONFIG.cachedGet('cashiers', null, 10) },// 10 min cache
+    { key: 'tables',    fn: () => CONFIG.cachedGet('tables', null, 30) },  // 30 min cache
+    { key: 'expenses',  fn: () => CONFIG.cachedGet('expenses', null, 5) }, // 5 min cache
+    { key: 'customers', fn: () => CONFIG.apiGet('customers') }              // live
   ];
   const results = await Promise.allSettled(loaders.map(l => l.fn()));
   results.forEach((res, i) => {
@@ -1525,12 +1525,12 @@ async function saveMenuItem(editId) {
   if (editId) {
     payload.id = editId;
     const res = await CONFIG.apiPost('updateMenuItem', payload);
-    if (res.status === 'success') { toast('Menu item updated', 'success'); closeModal(); await loadAllData(); renderMenuTable(); }
+    if (res.status === 'success') { toast('Menu item updated', 'success'); closeModal(); CONFIG.clearCache('menu'); await loadAllData(); renderMenuTable(); }
     else toast(res.message || 'Failed to update', 'error');
   } else {
     payload.id = Date.now();
     const res = await CONFIG.apiPost('addMenuItem', payload);
-    if (res.status === 'success') { toast('Menu item added', 'success'); closeModal(); await loadAllData(); renderMenuTable(); }
+    if (res.status === 'success') { toast('Menu item added', 'success'); closeModal(); CONFIG.clearCache('menu'); await loadAllData(); renderMenuTable(); }
     else toast(res.message || 'Failed to add', 'error');
   }
 }
@@ -1538,7 +1538,7 @@ async function saveMenuItem(editId) {
 async function deleteMenuItem(id, name) {
   if (!confirm('Delete "' + name + '"? This cannot be undone.')) return;
   const res = await CONFIG.apiPost('deleteMenuItem', { id: id, performedBy: 'Manager' });
-  if (res.status === 'success') { toast('Menu item deleted', 'success'); await loadAllData(); renderMenuTable(); }
+  if (res.status === 'success') { toast('Menu item deleted', 'success'); CONFIG.clearCache('menu'); await loadAllData(); renderMenuTable(); }
   else toast(res.message || 'Failed to delete', 'error');
 }
 
@@ -1699,12 +1699,12 @@ async function saveCashier(editName) {
   if (editName) {
     const payload = { name, phone, role, pin, active: (document.getElementById('cf_active') ? (document.getElementById('cf_active').value === 'Yes' ? 'Yes' : 'No') : 'Yes'), oldName: editName, performedBy: 'Manager' };
     const res = await CONFIG.apiPost('updateCashier', payload);
-    if (res.status === 'success') { toast('Cashier updated', 'success'); closeModal(); await loadAllData(); renderCashiersTable(); }
+    if (res.status === 'success') { toast('Cashier updated', 'success'); closeModal(); CONFIG.clearCache('cashiers'); await loadAllData(); renderCashiersTable(); }
     else toast(res.message || 'Failed to update', 'error');
   } else {
     const payload = { name, phone, role, pin, performedBy: 'Manager' };
     const res = await CONFIG.apiPost('addCashier', payload);
-    if (res.status === 'success') { toast('Cashier added', 'success'); closeModal(); await loadAllData(); renderCashiersTable(); }
+    if (res.status === 'success') { toast('Cashier added', 'success'); closeModal(); CONFIG.clearCache('cashiers'); await loadAllData(); renderCashiersTable(); }
     else toast(res.message || 'Failed to add', 'error');
   }
 }
@@ -1712,7 +1712,7 @@ async function saveCashier(editName) {
 async function removeCashier(name) {
   if (!confirm('Remove cashier "' + name + '"?')) return;
   const res = await CONFIG.apiPost('removeCashier', { name: name, performedBy: 'Manager' });
-  if (res.status === 'success') { toast('Cashier removed', 'success'); await loadAllData(); renderCashiersTable(); }
+  if (res.status === 'success') { toast('Cashier removed', 'success'); CONFIG.clearCache('cashiers'); await loadAllData(); renderCashiersTable(); }
   else toast(res.message || 'Failed', 'error');
 }
 

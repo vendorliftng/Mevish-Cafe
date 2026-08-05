@@ -376,6 +376,57 @@ const CONFIG = {
     return await res.json();
   },
 
+  // ─── Client-Side Caching (localStorage) ──────────────────
+  // Cache a GET response in localStorage with a TTL (in minutes).
+  // Returns cached data instantly if fresh; otherwise fetches from API.
+  async cachedGet(type, params, ttlMinutes) {
+    const key = CONFIG.STORAGE_PREFIX + "cache_" + type;
+    let cachedRaw = null;
+    try { cachedRaw = localStorage.getItem(key); } catch (e) {}
+    if (cachedRaw) {
+      try {
+        const cached = JSON.parse(cachedRaw);
+        const ageMin = (Date.now() - cached.t) / 60000;
+        if (ageMin < ttlMinutes && cached.data) {
+          return cached.data; // Return cached instantly
+        }
+      } catch (e) {}
+    }
+    // Fetch fresh
+    const fresh = await CONFIG.apiGet(type, params);
+    try {
+      localStorage.setItem(key, JSON.stringify({ t: Date.now(), data: fresh }));
+    } catch (e) { /* storage full or blocked */ }
+    return fresh;
+  },
+
+  // Get cached data synchronously (for instant UI render), then fetch fresh in background.
+  // Returns { cached: dataOrNull, refresh: promiseOfFreshData }
+  instantGet(type, params, ttlMinutes) {
+    const key = CONFIG.STORAGE_PREFIX + "cache_" + type;
+    let cachedData = null;
+    try {
+      const cachedRaw = localStorage.getItem(key);
+      if (cachedRaw) {
+        const cached = JSON.parse(cachedRaw);
+        const ageMin = (Date.now() - cached.t) / 60000;
+        if (ageMin < ttlMinutes) cachedData = cached.data;
+      }
+    } catch (e) {}
+
+    const refreshPromise = CONFIG.apiGet(type, params).then(function(fresh) {
+      try { localStorage.setItem(key, JSON.stringify({ t: Date.now(), data: fresh })); } catch (e) {}
+      return fresh;
+    }).catch(function() { return cachedData; }); // fail silently to cache
+
+    return { cached: cachedData, refresh: refreshPromise };
+  },
+
+  // Clear a specific cache
+  clearCache(type) {
+    try { localStorage.removeItem(CONFIG.STORAGE_PREFIX + "cache_" + type); } catch (e) {}
+  },
+
   // ─── Order ID Generator ──────────────────────────────────
   generateOrderId() {
     const now  = new Date();

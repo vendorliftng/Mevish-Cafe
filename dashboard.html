@@ -395,14 +395,15 @@
     /* ── PRINT ────────────────────────────────────────── */
     #receiptPrintArea { display: none; }
     @media print {
-      body > *:not(#receiptPrintArea) { display: none !important; }
-      #receiptPrintArea {
+      /* When printing receipt: hide everything, show only the receipt */
+      body.printing-receipt > *:not(#receiptPrintArea) { display: none !important; }
+      body.printing-receipt #receiptPrintArea {
         display: block !important; font-family: 'Courier New', Courier, monospace;
         font-size: 11pt; color: #000; background: #fff; padding: 0; margin: 0; width: 80mm;
       }
-      #receiptPrintArea .receipt-paper { border: none; background: none; padding: 0; border-radius: 0; }
-      body.printing-receipt > * { display: none !important; }
-      body.printing-receipt #receiptPrintArea { display: block !important; }
+      body.printing-receipt #receiptPrintArea .receipt-paper { border: none; background: none; padding: 0; border-radius: 0; }
+      /* Full-page print (for reports via window.print on manager) */
+      body:not(.printing-receipt) #receiptPrintArea { display: none !important; }
     }
 
     /* ── LOADING / EMPTY ─────────────────────────────── */
@@ -793,9 +794,23 @@
       });
       renderGrid();
       setLastUpdated();
+      // Cache orders for instant next load
+      try { localStorage.setItem(CONFIG.STORAGE_PREFIX + 'cache_orders', JSON.stringify({ t: Date.now(), data: allOrders })); } catch(e) {}
     } catch (err) {
       console.error('fetchOrders error', err);
-      showEmptyState('Could not load orders', 'Check your connection or API URL.');
+      // Try cached orders as fallback
+      try {
+        const cached = JSON.parse(localStorage.getItem(CONFIG.STORAGE_PREFIX + 'cache_orders') || '{}');
+        if (cached.data && Array.isArray(cached.data)) {
+          allOrders = cached.data;
+          renderGrid();
+          showToast('Showing cached orders (offline)', 'warning');
+        } else {
+          showEmptyState('Could not load orders', 'Check your connection or API URL.');
+        }
+      } catch(e2) {
+        showEmptyState('Could not load orders', 'Check your connection or API URL.');
+      }
     } finally {
       setRefreshing(false);
     }
@@ -1247,8 +1262,14 @@
     if (!currentReceiptOrder) return;
     document.getElementById('receiptPrintArea').innerHTML = generateReceiptHTML(currentReceiptOrder);
     document.body.classList.add('printing-receipt');
-    window.print();
-    document.body.classList.remove('printing-receipt');
+    // Small delay to ensure DOM is painted before print dialog opens
+    setTimeout(function() {
+      window.print();
+      // Clean up after print dialog closes
+      setTimeout(function() {
+        document.body.classList.remove('printing-receipt');
+      }, 100);
+    }, 100);
   }
 
   /* ═══════════════════════════════════════════════════

@@ -96,36 +96,87 @@ function isValidOrderId(id) {
 }
 
 /**
- * Parse the pipe-separated items string and calculate total cost from recipes
- * Items format: "2x Jollof Rice | 1x Chicken (Notes: extra spicy)"
+ * Cached Menu lookup — rebuilt only when menu changes
+ * (invalidated on add/update/delete via invalidateMenuCache).
+ * Keyed by item name -> {cost, price, prepTime, emoji, category, available}.
  */
-function calculateOrderCost(itemsString) {
-  var recipeSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(RECIPES_SHEET);
-  var menuSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(MENU_SHEET);
-  if (!recipeSheet || !menuSheet) return 0;
-
-  var recipeData = recipeSheet.getDataRange().getValues();
-  var menuData = menuSheet.getDataRange().getValues();
-
-  // Build menu cost lookup: menuName -> costPerItem
-  var menuCostMap = {};
-  for (var m = 1; m < menuData.length; m++) {
-    if (menuData[m][MNU.NAME]) {
-      menuCostMap[menuData[m][MNU.NAME]] = parseFloat(menuData[m][MNU.COST]) || 0;
+function getMenuLookup() {
+  var cache = CacheService.getScriptCache();
+  var cached = cache.get("menu_lookup_v1");
+  if (cached) {
+    try { return JSON.parse(cached); } catch (e) { /* rebuild below */ }
+  }
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(MENU_SHEET);
+  var lookup = {};
+  if (sheet) {
+    var data = sheet.getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][MNU.NAME]) {
+        lookup[data[i][MNU.NAME]] = {
+          cost: parseFloat(data[i][MNU.COST]) || 0,
+          price: parseFloat(data[i][MNU.PRICE]) || 0,
+          prepTime: parseInt(data[i][MNU.PREP_TIME]) || 10,
+          emoji: data[i][MNU.EMOJI] || "",
+          category: data[i][MNU.CATEGORY] || "",
+          available: data[i][MNU.AVAILABLE] || "Yes"
+        };
+      }
     }
   }
+  cache.put("menu_lookup_v1", JSON.stringify(lookup), 600); // 10 min TTL
+  return lookup;
+}
 
-  // Build recipe lookup: menuItem -> [{ingredient, qtyPerMeal}]
-  var recipeMap = {};
-  for (var r = 1; r < recipeData.length; r++) {
-    var menuItemName = recipeData[r][RCP.MENU_ITEM];
-    if (!menuItemName) continue;
-    if (!recipeMap[menuItemName]) recipeMap[menuItemName] = [];
-    recipeMap[menuItemName].push({
-      ingredient: recipeData[r][RCP.INGREDIENT],
-      qty: parseFloat(recipeData[r][RCP.QTY_NEEDED]) || 0
-    });
+/**
+ * Call this from addMenuItem, updateMenuItem, deleteMenuItem
+ * (and toggleMenuAvailability) to invalidate the menu cache.
+ */
+function invalidateMenuCache() {
+  CacheService.getScriptCache().remove("menu_lookup_v1");
+}
+
+/**
+ * Generic cached GET-response helper.
+ * Returns jsonResponse(computeFn()) the first time, then serves the
+ * cached JSON for ttlSeconds. Cache writes are wrapped so an oversized
+ * payload never breaks the request.
+ */
+function cachedJsonResponse(cacheKey, ttlSeconds, computeFn) {
+  var cache = CacheService.getScriptCache();
+  var cached = cache.get(cacheKey);
+  if (cached) return jsonResponse(JSON.parse(cached));
+  var result = computeFn();
+  try { cache.put(cacheKey, JSON.stringify(result), ttlSeconds); } catch (e) { /* cache full or too large */ }
+  return jsonResponse(result);
+}
+
+/**
+ * Flush a batch of single-row column updates with ONE setValues call.
+ * `updates` is a map of 0-based column index -> value. Columns inside the
+ * updated span but not present in `updates` keep their existing value from
+ * `existingRow`. No-op when `updates` is empty.
+ */
+function flushRowUpdates(sheet, row, updates, existingRow) {
+  var keys = Object.keys(updates);
+  if (keys.length === 0) return;
+  var cols = keys.map(Number);
+  var minCol = Math.min.apply(null, cols);
+  var maxCol = Math.max.apply(null, cols);
+  var rangeLength = maxCol - minCol + 1;
+  var rowValues = [];
+  for (var c = minCol; c <= maxCol; c++) {
+    rowValues.push(updates.hasOwnProperty(c) ? updates[c] : existingRow[c]);
   }
+  sheet.getRange(row, minCol + 1, 1, rangeLength).setValues([rowValues]);
+}
+
+/**
+ * Parse the pipe-separated items string and calculate total cost from the menu.
+ * Items format: "2x Jollof Rice | 1x Chicken (Notes: extra spicy)"
+ * Uses the shared cached menu lookup (see getMenuLookup).
+ */
+function calculateOrderCost(itemsString) {
+  var lookup = getMenuLookup();
 
   var cleanStr = itemsString.split(" (Notes:")[0];
   var itemsList = cleanStr.split(" | ");
@@ -136,17 +187,9 @@ function calculateOrderCost(itemsString) {
     if (parts.length === 2) {
       var qty = parseInt(parts[0]);
       var itemName = parts[1].trim();
-
-      // First try menu cost (direct cost per meal)
-      if (menuCostMap[itemName]) {
-        totalCost += menuCostMap[itemName] * qty;
-      }
-      // Fallback: sum recipe ingredient costs
-      else if (recipeMap[itemName]) {
-        recipeMap[itemName].forEach(function(ing) {
-          // Look up ingredient cost from inventory
-          totalCost += 0; // Will be refined when inventory has cost data
-        });
+      var entry = lookup[itemName];
+      if (entry) {
+        totalCost += (entry.cost || 0) * qty;
       }
     }
   });
@@ -263,26 +306,28 @@ function doGet(e) {
     if (!type || type === "menu") {
       var sheet = ss.getSheetByName(MENU_SHEET);
       if (!sheet) return errorResponse("Menu sheet not found");
-      var data = sheet.getDataRange().getValues();
-      var items = [];
-      for (var i = 1; i < data.length; i++) {
-        if (data[i][MNU.NAME] === "") continue;
-        // Only return available items
-        if (data[i][MNU.AVAILABLE] === "No") continue;
-        items.push({
-          id: data[i][MNU.ID],
-          category: data[i][MNU.CATEGORY],
-          name: data[i][MNU.NAME],
-          price: parseFloat(data[i][MNU.PRICE]) || 0,
-          cost: parseFloat(data[i][MNU.COST]) || 0,
-          prepTime: parseInt(data[i][MNU.PREP_TIME]) || 10,
-          available: data[i][MNU.AVAILABLE] || "Yes",
-          image: data[i][MNU.IMAGE] || "",
-          description: data[i][MNU.DESCRIPTION] || "",
-          emoji: data[i][MNU.EMOJI] || ""
-        });
-      }
-      return jsonResponse({ status: "success", data: items });
+      return cachedJsonResponse("get_menu", 300, function() {
+        var data = sheet.getDataRange().getValues();
+        var items = [];
+        for (var i = 1; i < data.length; i++) {
+          if (data[i][MNU.NAME] === "") continue;
+          // Only return available items
+          if (data[i][MNU.AVAILABLE] === "No") continue;
+          items.push({
+            id: data[i][MNU.ID],
+            category: data[i][MNU.CATEGORY],
+            name: data[i][MNU.NAME],
+            price: parseFloat(data[i][MNU.PRICE]) || 0,
+            cost: parseFloat(data[i][MNU.COST]) || 0,
+            prepTime: parseInt(data[i][MNU.PREP_TIME]) || 10,
+            available: data[i][MNU.AVAILABLE] || "Yes",
+            image: data[i][MNU.IMAGE] || "",
+            description: data[i][MNU.DESCRIPTION] || "",
+            emoji: data[i][MNU.EMOJI] || ""
+          });
+        }
+        return { status: "success", data: items };
+      });
     }
 
     // ── ORDERS ──────────────────────────────────────────────
@@ -326,53 +371,64 @@ function doGet(e) {
 
       var sheet = ss.getSheetByName(ORDERS_SHEET);
       if (!sheet) return errorResponse("Orders sheet not found");
-      var data = sheet.getDataRange().getValues();
 
-      for (var i = data.length - 1; i >= 1; i--) {
-        if (data[i][ORD.ORDER_ID] === orderIdToFind) {
-          // Parse items string into array for tracker
-          var itemsArray = parseItemsForTracker(data[i][ORD.ITEMS]);
-          return jsonResponse({
-            status: "success",
-            data: {
-              orderId: data[i][ORD.ORDER_ID],
-              name: data[i][ORD.NAME],
-              location: data[i][ORD.LOCATION],
-              status: data[i][ORD.STATUS],
-              items: itemsArray,
-              total: parseFloat(data[i][ORD.TOTAL_REVENUE]) || 0,
-              timestamp: data[i][ORD.TIMESTAMP],
-              prepStarted: data[i][ORD.PREP_STARTED] || "",
-              readyAt: data[i][ORD.READY_AT] || "",
-              servedAt: data[i][ORD.SERVED_AT] || "",
-              paidAt: data[i][ORD.PAID_AT] || "",
-              prepTime: data[i][ORD.PREP_TIME] || "",
-              phone: data[i][ORD.PHONE] || ""
-            }
-          });
-        }
+      // Read only the Order ID column to locate the row (avoids reading
+      // the entire Orders sheet on every 15s poll).
+      var lastRow = sheet.getLastRow();
+      if (lastRow < 2) return jsonResponse({ status: "not_found" });
+
+      var orderIds = sheet.getRange(2, ORD.ORDER_ID + 1, lastRow - 1, 1).getValues();
+      var rowIndex = -1;
+      for (var i = orderIds.length - 1; i >= 0; i--) {
+        if (orderIds[i][0] === orderIdToFind) { rowIndex = i + 2; break; } // +2: 1-based + header
       }
-      return jsonResponse({ status: "not_found" });
+      if (rowIndex === -1) return jsonResponse({ status: "not_found" });
+
+      // Read only that single matching row
+      var row = sheet.getRange(rowIndex, 1, 1, 20).getValues()[0];
+
+      // Parse items string into array for tracker
+      var itemsArray = parseItemsForTracker(row[ORD.ITEMS]);
+      return jsonResponse({
+        status: "success",
+        data: {
+          orderId: row[ORD.ORDER_ID],
+          name: row[ORD.NAME],
+          location: row[ORD.LOCATION],
+          status: row[ORD.STATUS],
+          items: itemsArray,
+          total: parseFloat(row[ORD.TOTAL_REVENUE]) || 0,
+          timestamp: row[ORD.TIMESTAMP],
+          prepStarted: row[ORD.PREP_STARTED] || "",
+          readyAt: row[ORD.READY_AT] || "",
+          servedAt: row[ORD.SERVED_AT] || "",
+          paidAt: row[ORD.PAID_AT] || "",
+          prepTime: row[ORD.PREP_TIME] || "",
+          phone: row[ORD.PHONE] || ""
+        }
+      });
     }
 
     // ── CASHIERS ────────────────────────────────────────────
     if (type === "cashiers") {
       var sheet = ss.getSheetByName(CASHIERS_SHEET);
       if (!sheet) return errorResponse("Cashiers sheet not found");
-      var data = sheet.getDataRange().getValues();
-      var cashiers = [];
-      for (var i = 1; i < data.length; i++) {
-        if (data[i][CSH.NAME] !== "") {
-          cashiers.push({
-            name: data[i][CSH.NAME] || "",
-            phone: data[i][CSH.PHONE] || "",
-            role: data[i][CSH.ROLE] || "Cashier",
-            active: data[i][CSH.ACTIVE] || "Yes",
-            pin: data[i][CSH.PIN] || ""
-          });
+      return cachedJsonResponse("get_cashiers", 300, function() {
+        var data = sheet.getDataRange().getValues();
+        var cashiers = [];
+        for (var i = 1; i < data.length; i++) {
+          if (data[i][CSH.NAME] !== "") {
+            cashiers.push({
+              name: data[i][CSH.NAME] || "",
+              phone: data[i][CSH.PHONE] || "",
+              role: data[i][CSH.ROLE] || "Cashier",
+              active: data[i][CSH.ACTIVE] || "Yes",
+              pin: data[i][CSH.PIN] || ""
+            });
+          }
         }
-      }
-      return jsonResponse({ status: "success", data: cashiers });
+        return { status: "success", data: cashiers };
+      });
     }
 
     // ── LOGIN CASHIER (by PIN) ─────────────────────────────
@@ -430,19 +486,21 @@ function doGet(e) {
     if (type === "tables") {
       var sheet = ss.getSheetByName(TABLES_SHEET);
       if (!sheet) return errorResponse("Tables sheet not found");
-      var data = sheet.getDataRange().getValues();
-      var tables = [];
-      for (var i = 1; i < data.length; i++) {
-        if (data[i][0] === "") continue;
-        tables.push({
-          id: data[i][0],
-          seats: parseInt(data[i][1]) || 0,
-          status: data[i][2] || "Available",
-          qrUrl: data[i][3] || "",
-          notes: data[i][4] || ""
-        });
-      }
-      return jsonResponse({ status: "success", data: tables });
+      return cachedJsonResponse("get_tables", 600, function() {
+        var data = sheet.getDataRange().getValues();
+        var tables = [];
+        for (var i = 1; i < data.length; i++) {
+          if (data[i][0] === "") continue;
+          tables.push({
+            id: data[i][0],
+            seats: parseInt(data[i][1]) || 0,
+            status: data[i][2] || "Available",
+            qrUrl: data[i][3] || "",
+            notes: data[i][4] || ""
+          });
+        }
+        return { status: "success", data: tables };
+      });
     }
 
     // ── SETTINGS ────────────────────────────────────────────
@@ -1383,6 +1441,7 @@ function doPost(e) {
         sheet.appendRow(["Name", "Phone", "Role", "Active", "PIN"]);
       }
       sheet.appendRow([payload.name, payload.phone || "", payload.role || "Cashier", payload.active || "Yes", payload.pin || ""]);
+      CacheService.getScriptCache().remove("get_cashiers");
       logAudit("CASHIER_ADDED", "", payload.name, payload.performedBy || "Manager");
       return jsonResponse({ status: "success" });
     }
@@ -1396,6 +1455,7 @@ function doPost(e) {
       for (var i = 1; i < data.length; i++) {
         if (data[i][0] === payload.name) {
           sheet.deleteRow(i + 1);
+          CacheService.getScriptCache().remove("get_cashiers");
           logAudit("CASHIER_REMOVED", "", payload.name, payload.performedBy || "Manager");
           return jsonResponse({ status: "success" });
         }
@@ -1417,6 +1477,7 @@ function doPost(e) {
           if (payload.active !== undefined) sheet.getRange(i + 1, CSH.ACTIVE + 1).setValue(payload.active);
           if (payload.pin !== undefined)    sheet.getRange(i + 1, CSH.PIN + 1).setValue(payload.pin);
           logAudit("CASHIER_UPDATED", "", payload.oldName + " -> " + (payload.name || payload.oldName), payload.performedBy || "Manager");
+          CacheService.getScriptCache().remove("get_cashiers");
           return jsonResponse({ status: "success" });
         }
       }
@@ -1433,6 +1494,8 @@ function doPost(e) {
           var current = data[i][MNU.AVAILABLE];
           var newVal = (current === "Yes") ? "No" : "Yes";
           sheet.getRange(i + 1, MNU.AVAILABLE + 1).setValue(newVal);
+          invalidateMenuCache();
+          CacheService.getScriptCache().remove("get_menu");
           logAudit("MENU_TOGGLED", "",
             data[i][MNU.NAME] + ": " + current + " → " + newVal,
             payload.performedBy || "Manager");
@@ -1540,6 +1603,8 @@ function doPost(e) {
         payload.description || "",
         payload.emoji || ""
       ]);
+      invalidateMenuCache();
+      CacheService.getScriptCache().remove("get_menu");
       logAudit("MENU_ITEM_ADDED", "", payload.name || "Unknown", payload.performedBy || "Manager");
       return jsonResponse({ status: "success", id: id });
     }
@@ -1564,6 +1629,8 @@ function doPost(e) {
           if (payload.description !== undefined)   sheet.getRange(i + 1, MNU.DESCRIPTION + 1).setValue(payload.description);
           if (payload.emoji !== undefined)          sheet.getRange(i + 1, MNU.EMOJI + 1).setValue(payload.emoji);
 
+          invalidateMenuCache();
+          CacheService.getScriptCache().remove("get_menu");
           logAudit("MENU_ITEM_UPDATED", itemId, payload.name || "", payload.performedBy || "Manager");
           return jsonResponse({ status: "success" });
         }
@@ -1582,6 +1649,8 @@ function doPost(e) {
         if (String(data[i][MNU.ID]) === itemId) {
           var name = data[i][MNU.NAME];
           sheet.deleteRow(i + 1);
+          invalidateMenuCache();
+          CacheService.getScriptCache().remove("get_menu");
           logAudit("MENU_ITEM_DELETED", itemId, name, payload.performedBy || "Manager");
           return jsonResponse({ status: "success" });
         }
@@ -1609,6 +1678,7 @@ function doPost(e) {
         payload.qrUrl || "",
         payload.notes || ""
       ]);
+      CacheService.getScriptCache().remove("get_tables");
       logAudit("TABLE_ADDED", "", tableId + " (" + seats + " seats)", payload.performedBy || "Manager");
       return jsonResponse({ status: "success", tableId: tableId });
     }
@@ -1628,6 +1698,7 @@ function doPost(e) {
           if (payload.qrUrl !== undefined)    sheet.getRange(i + 1, 4).setValue(payload.qrUrl);
           if (payload.notes !== undefined)    sheet.getRange(i + 1, 5).setValue(payload.notes);
           logAudit("TABLE_UPDATED", "", tableId, payload.performedBy || "Manager");
+          CacheService.getScriptCache().remove("get_tables");
           return jsonResponse({ status: "success" });
         }
       }
@@ -1644,6 +1715,7 @@ function doPost(e) {
       for (var i = 1; i < data.length; i++) {
         if (data[i][0] === tableId) {
           sheet.deleteRow(i + 1);
+          CacheService.getScriptCache().remove("get_tables");
           logAudit("TABLE_REMOVED", "", tableId, payload.performedBy || "Manager");
           return jsonResponse({ status: "success" });
         }
@@ -1828,19 +1900,11 @@ function parseItemsForTracker(itemsString) {
 
 /**
  * Estimate prep time from menu items
- * Returns the maximum prep time of any item in the order
+ * Returns the maximum prep time of any item in the order.
+ * Uses the shared cached menu lookup (see getMenuLookup).
  */
 function estimatePrepTime(itemsString) {
-  var menuSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(MENU_SHEET);
-  if (!menuSheet) return 10; // default
-
-  var menuData = menuSheet.getDataRange().getValues();
-  var prepTimeMap = {};
-  for (var m = 1; m < menuData.length; m++) {
-    if (menuData[m][MNU.NAME]) {
-      prepTimeMap[menuData[m][MNU.NAME]] = parseInt(menuData[m][MNU.PREP_TIME]) || 10;
-    }
-  }
+  var lookup = getMenuLookup();
 
   var cleanStr = itemsString.split(" (Notes:")[0];
   var itemsList = cleanStr.split(" | ");
@@ -1849,7 +1913,8 @@ function estimatePrepTime(itemsString) {
     var parts = item.trim().split("x ");
     if (parts.length === 2) {
       var name = parts[1].trim();
-      var t = prepTimeMap[name] || 10;
+      var entry = lookup[name];
+      var t = entry ? (entry.prepTime || 10) : 10;
       if (t > maxTime) maxTime = t;
     }
   });
@@ -1882,21 +1947,20 @@ function parseItemNames(itemsString) {
 /**
  * Build a menu lookup map keyed by item name -> {price, emoji, category}.
  * Returns an empty object if the Menu sheet is missing.
+ * Delegates to the shared cached lookup (see getMenuLookup) so repeated
+ * reads of the Menu sheet are avoided across requests.
  */
 function buildMenuLookup(ss) {
+  var cached = getMenuLookup();
   var lookup = {};
-  var menuSheet = ss.getSheetByName(MENU_SHEET);
-  if (!menuSheet) return lookup;
-  var menuData = menuSheet.getDataRange().getValues();
-  for (var m = 1; m < menuData.length; m++) {
-    var nm = menuData[m][MNU.NAME];
-    if (nm) {
-      lookup[nm] = {
-        price: parseFloat(menuData[m][MNU.PRICE]) || 0,
-        emoji: menuData[m][MNU.EMOJI] || "",
-        category: menuData[m][MNU.CATEGORY] || ""
-      };
-    }
+  for (var name in cached) {
+    if (!cached.hasOwnProperty(name)) continue;
+    var entry = cached[name];
+    lookup[name] = {
+      price: entry.price || 0,
+      emoji: entry.emoji || "",
+      category: entry.category || ""
+    };
   }
   return lookup;
 }
