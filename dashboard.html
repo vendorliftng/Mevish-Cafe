@@ -663,6 +663,7 @@
         </div>
 
         <!-- Total + Backdate toggle -->
+        <input type="hidden" id="mo_items" />
         <div class="form-grid">
           <div class="form-group">
             <label>Total Amount</label>
@@ -1424,9 +1425,92 @@
     document.getElementById('mo_phone').value = '';
     document.getElementById('mo_total').value = '';
     document.getElementById('mo_items').value = '';
-
+    
+    manualOrderCart = [];
+    updateManualCartUI();
+    document.getElementById('mo_search').value = '';
+    
     document.getElementById('manualOrderModal').classList.add('open');
+    loadManualMenu();
   }
+  
+  let manualOrderMenu = [];
+  let manualOrderCart = [];
+
+  async function loadManualMenu() {
+    if (manualOrderMenu.length > 0) { renderManualMenu(manualOrderMenu); return; }
+    try {
+      const res = await CONFIG.apiGet('menu');
+      if (res && res.status === 'success' && res.data) {
+        manualOrderMenu = res.data;
+        renderManualMenu(manualOrderMenu);
+      }
+    } catch (e) {
+      console.error('Failed to load manual menu', e);
+    }
+  }
+
+  function filterManualMenu() {
+    const q = document.getElementById('mo_search').value.toLowerCase();
+    const filtered = manualOrderMenu.filter(m => m.name.toLowerCase().includes(q) || (m.category||'').toLowerCase().includes(q));
+    renderManualMenu(filtered);
+  }
+
+  function renderManualMenu(list) {
+    const container = document.getElementById('mo_menuList');
+    if (!list.length) { container.innerHTML = '<div style="padding:0.5rem;text-align:center;color:var(--c-text-light);">No items found</div>'; return; }
+    container.innerHTML = list.map(m => `
+      <div style="padding:0.5rem;border-bottom:1px solid var(--c-border);display:flex;justify-content:space-between;cursor:pointer;" onclick="addToManualCart(${m.id})">
+        <div>${escHtml(m.name)}</div>
+        <div style="font-weight:600;">${CONFIG.formatCurrency(m.price)}</div>
+      </div>
+    `).join('');
+  }
+
+  function addToManualCart(id) {
+    const item = manualOrderMenu.find(m => m.id === id);
+    if (!item) return;
+    const existing = manualOrderCart.find(c => c.id === id);
+    if (existing) existing.qty++;
+    else manualOrderCart.push({ ...item, qty: 1 });
+    updateManualCartUI();
+  }
+
+  function removeFromManualCart(id) {
+    manualOrderCart = manualOrderCart.filter(c => c.id !== id);
+    updateManualCartUI();
+  }
+
+  function updateManualCartUI() {
+    const container = document.getElementById('mo_cart');
+    const itemsInput = document.getElementById('mo_items');
+    const totalInput = document.getElementById('mo_total');
+    
+    if (manualOrderCart.length === 0) {
+      container.innerHTML = '<div style="color:var(--c-text-light);font-size:0.82rem;text-align:center;padding:0.5rem;">Click items above to add them</div>';
+      if(itemsInput) itemsInput.value = '';
+      if(totalInput) totalInput.value = '';
+      return;
+    }
+    
+    let total = 0;
+    container.innerHTML = manualOrderCart.map(c => {
+      total += c.price * c.qty;
+      return \`
+      <div style="display:flex;justify-content:space-between;font-size:0.85rem;margin-bottom:0.25rem;">
+        <div>\${c.qty}x \${escHtml(c.name)}</div>
+        <div>
+          \${CONFIG.formatCurrency(c.price * c.qty)}
+          <span style="color:var(--c-danger);cursor:pointer;margin-left:0.5rem;" onclick="removeFromManualCart(\${c.id})">&times;</span>
+        </div>
+      </div>
+      \`;
+    }).join('');
+    
+    if (totalInput) totalInput.value = total;
+    if (itemsInput) itemsInput.value = manualOrderCart.map(c => \`\${c.qty}x \${c.name}\`).join(' | ');
+  }
+
   function closeManualOrderModal() {
     document.getElementById('manualOrderModal').classList.remove('open');
   }
