@@ -1399,9 +1399,9 @@
     // Hide Manager Panel link if not manager
     var managerLink = document.querySelector('a[href="manager.html"]');
     if (managerLink) managerLink.style.display = currentUser.isManager ? '' : 'none';
-    // Show/hide Manual Order button (Manager only)
+    // Show Manual Order button for both Cashiers and Managers
     var manualBtn = document.getElementById('manualOrderBtn');
-    if (manualBtn) manualBtn.style.display = currentUser.isManager ? '' : 'none';
+    if (manualBtn) manualBtn.style.display = '';
   }
 
   /* ═══════════════════════════════════════════════════
@@ -1458,11 +1458,22 @@
 
   function renderManualMenu(list) {
     const container = document.getElementById('mo_menuList');
-    if (!list.length) { container.innerHTML = '<div style="padding:0.5rem;text-align:center;color:var(--c-text-light);">No items found</div>'; return; }
+    if (!list.length) { 
+      container.style.display = 'block';
+      container.innerHTML = '<div style="padding:0.5rem;text-align:center;color:var(--c-text-light);">No items found</div>'; 
+      return; 
+    }
+    
+    container.style.display = 'grid';
+    container.style.gridTemplateColumns = 'repeat(auto-fill, minmax(120px, 1fr))';
+    container.style.gap = '0.5rem';
+    container.style.padding = '0.5rem';
+    container.style.background = 'var(--c-bg-alt)';
+    
     container.innerHTML = list.map(m => `
-      <div style="padding:0.5rem;border-bottom:1px solid var(--c-border);display:flex;justify-content:space-between;cursor:pointer;" onclick="addToManualCart(${m.id})">
-        <div>${escHtml(m.name)}</div>
-        <div style="font-weight:600;">${CONFIG.formatCurrency(m.price)}</div>
+      <div style="background:var(--c-bg);border:1px solid var(--c-border);border-radius:8px;padding:0.75rem 0.5rem;text-align:center;cursor:pointer;display:flex;flex-direction:column;justify-content:center;min-height:85px;box-shadow:var(--shadow-sm);transition:transform 0.1s;" onclick="addToManualCart(${m.id})" onmousedown="this.style.transform='scale(0.95)'" onmouseup="this.style.transform='scale(1)'" onmouseleave="this.style.transform='scale(1)'">
+        <div style="font-size:0.85rem;font-weight:600;margin-bottom:0.35rem;line-height:1.2;">${escHtml(m.name)}</div>
+        <div style="font-size:0.8rem;color:var(--c-primary);font-weight:700;">${CONFIG.formatCurrency(m.price)}</div>
       </div>
     `).join('');
   }
