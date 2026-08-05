@@ -178,6 +178,7 @@ function flushRowUpdates(sheet, row, updates, existingRow) {
 function calculateOrderCost(itemsString) {
   var lookup = getMenuLookup();
 
+  itemsString = itemsString ? String(itemsString) : "";
   var cleanStr = itemsString.split(" (Notes:")[0];
   var itemsList = cleanStr.split(" | ");
   var totalCost = 0;
@@ -209,6 +210,7 @@ function deductInventory(itemsString) {
   var recipeData = recipeSheet.getDataRange().getValues();
   var alerts = [];
 
+  itemsString = itemsString ? String(itemsString) : "";
   var cleanStr = itemsString.split(" (Notes:")[0];
   var itemsList = cleanStr.split(" | ");
 
@@ -713,6 +715,7 @@ function doGet(e) {
         if (rowDate < cutoff) continue;
 
         var itemsStr = data[i][ORD.ITEMS];
+        itemsStr = itemsStr ? String(itemsStr) : "";
         var cleanStr = itemsStr.split(" (Notes:")[0];
         var itemsList = cleanStr.split(" | ");
         itemsList.forEach(function(item) {
@@ -1883,6 +1886,7 @@ function doPost(e) {
  */
 function parseItemsForTracker(itemsString) {
   if (!itemsString) return [];
+  itemsString = String(itemsString);
   var cleanStr = itemsString.split(" (Notes:")[0];
   var itemsList = cleanStr.split(" | ");
   var result = [];
