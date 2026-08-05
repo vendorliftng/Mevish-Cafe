@@ -1295,6 +1295,7 @@ function doPost(e) {
         if (data[i][ORD.ORDER_ID] === orderId) {
           var oldStatus = data[i][ORD.STATUS];
           var itemsString = data[i][ORD.ITEMS];
+          var existingRow = data[i];
           var row = i + 1; // 1-based row
 
           // Prevent re-processing already paid/voided orders
@@ -1305,35 +1306,38 @@ function doPost(e) {
             return errorResponse("Order already voided");
           }
 
+          // Accumulate column updates and write them all at once at the end.
+          var updates = {}; // 0-based col index -> value
+
           // Update status column
-          sheet.getRange(row, ORD.STATUS + 1).setValue(newStatus);
+          updates[ORD.STATUS] = newStatus;
 
           // Handle PREP STARTED
-          if (newStatus === "Preparing" && !data[i][ORD.PREP_STARTED]) {
-            sheet.getRange(row, ORD.PREP_STARTED + 1).setValue(new Date());
+          if (newStatus === "Preparing" && !existingRow[ORD.PREP_STARTED]) {
+            updates[ORD.PREP_STARTED] = new Date();
             // Set expected prep time from menu
             var prepMin = estimatePrepTime(itemsString);
-            sheet.getRange(row, ORD.PREP_TIME + 1).setValue(prepMin);
+            updates[ORD.PREP_TIME] = prepMin;
             logAudit("PREP_STARTED", orderId, "Est. " + prepMin + " min", payload.cashier || "Kitchen");
           }
 
           // Handle READY
-          if (newStatus === "Ready" && !data[i][ORD.READY_AT]) {
-            sheet.getRange(row, ORD.READY_AT + 1).setValue(new Date());
+          if (newStatus === "Ready" && !existingRow[ORD.READY_AT]) {
+            updates[ORD.READY_AT] = new Date();
             // Calculate actual prep time
-            if (data[i][ORD.PREP_STARTED]) {
-              var prepStart = new Date(data[i][ORD.PREP_STARTED]);
+            if (existingRow[ORD.PREP_STARTED]) {
+              var prepStart = new Date(existingRow[ORD.PREP_STARTED]);
               var readyTime = new Date();
               var actualMin = Math.round((readyTime - prepStart) / 60000);
-              sheet.getRange(row, ORD.ACTUAL_TIME + 1).setValue(actualMin);
+              updates[ORD.ACTUAL_TIME] = actualMin;
             }
-            logAudit("ORDER_READY", orderId, data[i][ORD.LOCATION], payload.cashier || "Kitchen");
+            logAudit("ORDER_READY", orderId, existingRow[ORD.LOCATION], payload.cashier || "Kitchen");
           }
 
           // Handle SERVED
-          if (newStatus === "Served" && !data[i][ORD.SERVED_AT]) {
-            sheet.getRange(row, ORD.SERVED_AT + 1).setValue(new Date());
-            logAudit("ORDER_SERVED", orderId, data[i][ORD.LOCATION], payload.cashier || "Waiter");
+          if (newStatus === "Served" && !existingRow[ORD.SERVED_AT]) {
+            updates[ORD.SERVED_AT] = new Date();
+            logAudit("ORDER_SERVED", orderId, existingRow[ORD.LOCATION], payload.cashier || "Waiter");
           }
 
           // Handle PAYMENT — extract method and cashier from status string
@@ -1343,17 +1347,20 @@ function doPost(e) {
             if (newStatus.indexOf("Cash") !== -1) method = "Cash";
             if (newStatus.indexOf("POS") !== -1) method = "POS";
 
-            sheet.getRange(row, ORD.PAYMENT_METHOD + 1).setValue(method);
-            sheet.getRange(row, ORD.CASHIER + 1).setValue(cashier);
-            sheet.getRange(row, ORD.PAID_AT + 1).setValue(new Date());
+            updates[ORD.PAYMENT_METHOD] = method;
+            updates[ORD.CASHIER] = cashier;
+            updates[ORD.PAID_AT] = new Date();
 
             // Deduct inventory on first payment
+            var alerts = [];
             if (oldStatus.indexOf("Paid") === -1) {
-              var alerts = deductInventory(itemsString);
+              alerts = deductInventory(itemsString);
               logAudit("PAYMENT_RECEIVED", orderId,
-                method + ", ₦" + (data[i][ORD.TOTAL_REVENUE] || 0), cashier);
+                method + ", ₦" + (existingRow[ORD.TOTAL_REVENUE] || 0), cashier);
             }
 
+            // Flush all accumulated updates in a single write before returning
+            flushRowUpdates(sheet, row, updates, existingRow);
             return jsonResponse({
               status: "success",
               inventoryAlerts: alerts || []
@@ -1363,21 +1370,22 @@ function doPost(e) {
           // Handle VOID
           if (newStatus.indexOf("Void") !== -1) {
             var voidReason = payload.voidReason || "No reason provided";
-            sheet.getRange(row, ORD.NOTES + 1).setValue(
-              (data[i][ORD.NOTES] ? data[i][ORD.NOTES] + " | " : "") +
-              "VOID: " + voidReason
-            );
+            updates[ORD.NOTES] =
+              (existingRow[ORD.NOTES] ? existingRow[ORD.NOTES] + " | " : "") +
+              "VOID: " + voidReason;
             logAudit("ORDER_VOIDED", orderId, voidReason, payload.cashier || "Unknown");
           }
 
           // Handle CREDIT
           if (newStatus.indexOf("Credit") !== -1) {
-            sheet.getRange(row, ORD.CASHIER + 1).setValue(payload.cashier || "");
+            updates[ORD.CASHIER] = payload.cashier || "";
             logAudit("CREDIT_ISSUED", orderId,
-              "₦" + (data[i][ORD.TOTAL_REVENUE] || 0),
+              "₦" + (existingRow[ORD.TOTAL_REVENUE] || 0),
               payload.cashier || "Unknown");
           }
 
+          // Flush all accumulated updates in a single write
+          flushRowUpdates(sheet, row, updates, existingRow);
           logAudit("STATUS_UPDATED", orderId, oldStatus + " → " + newStatus, payload.cashier || "System");
           return jsonResponse({ status: "success" });
         }
