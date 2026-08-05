@@ -76,8 +76,8 @@ const CONFIG = {
   // ─── Storage Prefix (prevents collisions between restaurants) ──
   STORAGE_PREFIX: "mevish_",
 
-  // ─── GitHub Pages Base URL ──────────────────────────────
-  BASE_URL: "https://vendorliftng.github.io/Mevish-Cafe/",
+  // ─── Base URL (your custom domain or GitHub Pages) ──────
+  BASE_URL: "https://mevish.com.ng/",
 
   // ─── Tables (loaded from API; fallback below) ────────────
   TABLES: [],
