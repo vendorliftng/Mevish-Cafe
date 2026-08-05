@@ -628,8 +628,6 @@
     </div>
   </div>
 
-  <div id="receiptPrintArea"></div>
-
   <!-- ═══════════════════════════════════════════════ -->
   <!--  MANUAL / WALK-IN ORDER MODAL (Manager only)     -->
   <!-- ═══════════════════════════════════════════════ -->
@@ -658,6 +656,9 @@
   </div>
 
   </div><!-- /#appContent -->
+
+  <!-- Receipt print area (outside appContent so it survives print CSS) -->
+  <div id="receiptPrintArea"></div>
 
   <!-- ═══════════════════════════════════════════════ -->
   <!--  JAVASCRIPT                                      -->
@@ -786,10 +787,10 @@
     try {
       const data = await CONFIG.apiGet('orders');
       const raw = Array.isArray(data.data) ? data.data : [];
-      // Keep Active, Preparing, Ready, Served (non-paid, non-void)
+      // Keep Active, Preparing, Ready, Served, Credit (only hide Paid + Void)
       allOrders = raw.filter(o => {
         const s = o.status || '';
-        if (s.includes('Paid') || s.includes('Void') || s.includes('Credit')) return false;
+        if (s.includes('Paid') || s.includes('Void')) return false;
         return true;
       });
       renderGrid();
