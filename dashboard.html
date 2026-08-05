@@ -1496,19 +1496,19 @@
     let total = 0;
     container.innerHTML = manualOrderCart.map(c => {
       total += c.price * c.qty;
-      return \`
+      return `
       <div style="display:flex;justify-content:space-between;font-size:0.85rem;margin-bottom:0.25rem;">
-        <div>\${c.qty}x \${escHtml(c.name)}</div>
+        <div>${c.qty}x ${escHtml(c.name)}</div>
         <div>
-          \${CONFIG.formatCurrency(c.price * c.qty)}
-          <span style="color:var(--c-danger);cursor:pointer;margin-left:0.5rem;" onclick="removeFromManualCart(\${c.id})">&times;</span>
+          ${CONFIG.formatCurrency(c.price * c.qty)}
+          <span style="color:var(--c-danger);cursor:pointer;margin-left:0.5rem;" onclick="removeFromManualCart(${c.id})">&times;</span>
         </div>
       </div>
-      \`;
+      `;
     }).join('');
     
     if (totalInput) totalInput.value = total;
-    if (itemsInput) itemsInput.value = manualOrderCart.map(c => \`\${c.qty}x \${c.name}\`).join(' | ');
+    if (itemsInput) itemsInput.value = manualOrderCart.map(c => `${c.qty}x ${c.name}`).join(' | ');
   }
 
   function closeManualOrderModal() {
