@@ -56,6 +56,9 @@ var REV = {
   COMMENT: 4, CUSTOMER_NAME: 5, STATUS: 6
 };
 
+// Column indexes for Cashiers sheet
+var CSH = { NAME: 0, PHONE: 1, ROLE: 2, ACTIVE: 3, PIN: 4 };
+
 // ─── HELPERS ───────────────────────────────────────────────────
 
 function getSetting(key) {
@@ -359,16 +362,39 @@ function doGet(e) {
       var data = sheet.getDataRange().getValues();
       var cashiers = [];
       for (var i = 1; i < data.length; i++) {
-        if (data[i][0] !== "") {
+        if (data[i][CSH.NAME] !== "") {
           cashiers.push({
-            name: data[i][0] || "",
-            phone: data[i][1] || "",
-            role: data[i][2] || "Cashier",
-            active: data[i][3] || "Yes"
+            name: data[i][CSH.NAME] || "",
+            phone: data[i][CSH.PHONE] || "",
+            role: data[i][CSH.ROLE] || "Cashier",
+            active: data[i][CSH.ACTIVE] || "Yes",
+            pin: data[i][CSH.PIN] || ""
           });
         }
       }
       return jsonResponse({ status: "success", data: cashiers });
+    }
+
+    // ── LOGIN CASHIER (by PIN) ─────────────────────────────
+    if (type === "loginCashier") {
+      var pin = e.parameter.pin;
+      if (!pin) return errorResponse("PIN required");
+      var sheet = ss.getSheetByName(CASHIERS_SHEET);
+      if (!sheet) return errorResponse("Cashiers sheet not found");
+      var data = sheet.getDataRange().getValues();
+      for (var i = 1; i < data.length; i++) {
+        if (String(data[i][CSH.PIN]) === String(pin) && data[i][CSH.ACTIVE] !== "No") {
+          return jsonResponse({
+            status: "success",
+            data: {
+              name: data[i][CSH.NAME] || "",
+              role: data[i][CSH.ROLE] || "Cashier",
+              phone: data[i][CSH.PHONE] || ""
+            }
+          });
+        }
+      }
+      return jsonResponse({ status: "not_found" });
     }
 
     // ── INVENTORY ───────────────────────────────────────────
@@ -1334,9 +1360,9 @@ function doPost(e) {
       if (!payload.name) return errorResponse("Cashier name required");
       // Add header row if sheet is empty
       if (sheet.getLastRow() < 2) {
-        sheet.appendRow(["Name", "Phone", "Role", "Active"]);
+        sheet.appendRow(["Name", "Phone", "Role", "Active", "PIN"]);
       }
-      sheet.appendRow([payload.name, payload.phone || "", payload.role || "Cashier", "Yes"]);
+      sheet.appendRow([payload.name, payload.phone || "", payload.role || "Cashier", payload.active || "Yes", payload.pin || ""]);
       logAudit("CASHIER_ADDED", "", payload.name, payload.performedBy || "Manager");
       return jsonResponse({ status: "success" });
     }
@@ -1355,6 +1381,26 @@ function doPost(e) {
         }
       }
       return errorResponse("Cashier not found");
+    }
+
+    // ── UPDATE CASHIER ─────────────────────────────────────
+    if (action === "updateCashier") {
+      var sheet = ss.getSheetByName(CASHIERS_SHEET);
+      if (!sheet) return errorResponse("Cashiers sheet not found");
+      if (!payload.oldName) return errorResponse("Original cashier name required");
+      var data = sheet.getDataRange().getValues();
+      for (var i = 1; i < data.length; i++) {
+        if (data[i][CSH.NAME] === payload.oldName) {
+          if (payload.name !== undefined)   sheet.getRange(i + 1, CSH.NAME + 1).setValue(payload.name);
+          if (payload.phone !== undefined)  sheet.getRange(i + 1, CSH.PHONE + 1).setValue(payload.phone);
+          if (payload.role !== undefined)   sheet.getRange(i + 1, CSH.ROLE + 1).setValue(payload.role);
+          if (payload.active !== undefined) sheet.getRange(i + 1, CSH.ACTIVE + 1).setValue(payload.active);
+          if (payload.pin !== undefined)    sheet.getRange(i + 1, CSH.PIN + 1).setValue(payload.pin);
+          logAudit("CASHIER_UPDATED", "", payload.oldName + " -> " + (payload.name || payload.oldName), payload.performedBy || "Manager");
+          return jsonResponse({ status: "success" });
+        }
+      }
+      return errorResponse("Cashier not found: " + payload.oldName);
     }
 
     // ── TOGGLE MENU ITEM AVAILABILITY ───────────────────────

@@ -148,7 +148,6 @@
     .controls-bar .controls-left { flex: 0 0 auto; min-width: 220px; }
     .controls-bar .controls-center { flex: 1 1 200px; }
     .controls-bar .controls-right { flex: 0 0 auto; }
-    .cashier-wrapper { position: relative; }
     .search-bar { position: relative; display: flex; align-items: center; }
     .search-bar input { width: 100%; padding-left: 2.4rem; }
     .search-icon {
@@ -325,6 +324,7 @@
     }
     .modal-overlay.open .modal { transform: translateY(0) scale(1); }
     .modal-sm { max-width: 420px; }
+    .modal-md { max-width: 600px; }
     .modal-header {
       display: flex; align-items: center; justify-content: space-between;
       padding: 1.1rem 1.4rem 0.9rem; border-bottom: 1px solid var(--c-border); flex-shrink: 0;
@@ -442,6 +442,29 @@
     /* ── MISC ─────────────────────────────────────────── */
     .hidden { display: none !important; }
     .divider { border: none; border-top: 1px solid var(--c-border); margin: 0.75rem 0; }
+
+    /* ── USER DISPLAY ──────────────────────────────────── */
+    .user-display {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      font-size: 0.85rem;
+    }
+    .user-name { font-weight: 600; }
+
+    /* ── FORM GRID (Manual Order modal) ───────────────── */
+    .form-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem;
+    }
+    .form-group { display: flex; flex-direction: column; gap: 0.3rem; }
+    .form-group label {
+      font-size: 0.75rem; font-weight: 600; color: var(--c-text-light);
+      text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .form-group .form-control { width: 100%; }
+    .form-group textarea { resize: vertical; }
+    .form-full { grid-column: 1 / -1; }
+    @media(max-width:520px){
+      .form-grid { grid-template-columns: 1fr; }
+    }
     .section-meta { font-size: 0.78rem; color: var(--c-text-light); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
     .count-pill {
       background: rgba(13,148,136,0.12); color: var(--c-primary);
@@ -520,6 +543,7 @@
     <div class="header-right">
       <span id="lastUpdated">--</span>
       <button class="btn btn-ghost btn-sm" onclick="manualRefresh()">Refresh</button>
+      <button class="btn btn-accent btn-sm" id="manualOrderBtn" style="display:none;" onclick="openManualOrderModal()">+ Manual Order</button>
       <a href="manager.html" class="btn btn-primary btn-sm" style="text-decoration:none;">Manager Panel</a>
     </div>
   </header>
@@ -536,11 +560,7 @@
   <!-- ═══════════════════════════════════════════════ -->
   <div class="controls-bar" id="controlsBar">
     <div class="controls-left">
-      <div class="cashier-wrapper">
-        <select id="cashierSelect" class="form-control" onchange="onCashierChange(this)">
-          <option value="">Select Cashier to Enable Payments</option>
-        </select>
-      </div>
+      <div id="userDisplay" class="user-display"></div>
     </div>
     <div class="controls-center">
       <div class="search-bar">
@@ -609,6 +629,33 @@
 
   <div id="receiptPrintArea"></div>
 
+  <!-- ═══════════════════════════════════════════════ -->
+  <!--  MANUAL / WALK-IN ORDER MODAL (Manager only)     -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <div class="modal-overlay" id="manualOrderModal" onclick="onOverlayClick(event,'manualOrderModal')">
+    <div class="modal modal-md" role="dialog" aria-modal="true">
+      <div class="modal-header">
+        <h3 class="modal-title">Manual / Walk-in Order</h3>
+        <button class="modal-close" onclick="closeManualOrderModal()" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-group"><label>Customer Name</label><input id="mo_name" class="form-control" placeholder="Walk-in" /></div>
+          <div class="form-group"><label>Phone (optional)</label><input id="mo_phone" class="form-control" type="tel" /></div>
+          <div class="form-group"><label>Location</label><select id="mo_location" class="form-control"></select></div>
+          <div class="form-group"><label>Total Amount</label><input id="mo_total" class="form-control" type="number" placeholder="0" /></div>
+          <div class="form-group form-full"><label>Items</label><textarea id="mo_items" class="form-control" placeholder="Format: 2x Jollof Rice | 1x Chicken" style="min-height:80px;"></textarea></div>
+          <div class="form-group"><label>Backdate Date (optional)</label><input id="mo_date" class="form-control" type="date" /></div>
+          <div class="form-group"><label>Backdate Time (optional)</label><input id="mo_time" class="form-control" type="time" /></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeManualOrderModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="submitManualOrder()">Place Order</button>
+      </div>
+    </div>
+  </div>
+
   </div><!-- /#appContent -->
 
   <!-- ═══════════════════════════════════════════════ -->
@@ -621,8 +668,6 @@
      PIN GATE
      ═══════════════════════════════════════════════════ */
   let pin = '';
-  // Accept both manager PIN and a staff PIN (if configured)
-  const CORRECT_PIN = CONFIG.MANAGER_PIN || '1234';
 
   const rName = CONFIG.RESTAURANT ? CONFIG.RESTAURANT.name : 'Restaurant';
   const rLocale = (CONFIG.RESTAURANT && CONFIG.RESTAURANT.locale) ? CONFIG.RESTAURANT.locale : 'en-US';
@@ -648,20 +693,44 @@
     });
   }
   function verifyPin() {
-    if (pin === CORRECT_PIN) {
-      document.getElementById('pinGate').style.transition = 'opacity 0.4s';
-      document.getElementById('pinGate').style.opacity = '0';
-      setTimeout(() => {
-        document.getElementById('pinGate').style.display = 'none';
-        document.getElementById('appContent').style.display = 'block';
-        CONFIG.loadSavedTheme();
-        initApp();
-      }, 380);
-    } else {
-      document.querySelectorAll('.pin-dot').forEach(d => d.classList.add('error'));
-      document.getElementById('pinError').classList.add('visible');
-      setTimeout(() => { pin = ''; updateDots(); document.getElementById('pinError').classList.remove('visible'); }, 900);
+    var enteredPin = pin;
+    // 1. Offline manager check first (works without network)
+    if (enteredPin === (CONFIG.MANAGER_PIN || '1234')) {
+      currentUser = { name: 'Manager', role: 'Manager', isManager: true };
+      completeLogin();
+      return;
     }
+    // 2. Check API for cashier PIN
+    CONFIG.apiGet('loginCashier', { pin: enteredPin }).then(function(res) {
+      if (res && res.status === 'success' && res.data) {
+        currentUser = {
+          name: res.data.name,
+          role: res.data.role || 'Cashier',
+          isManager: (res.data.role === 'Manager')
+        };
+        completeLogin();
+      } else {
+        showPinError();
+      }
+    }).catch(function() {
+      showPinError();
+    });
+  }
+  function completeLogin() {
+    document.getElementById('pinGate').style.transition = 'opacity 0.4s';
+    document.getElementById('pinGate').style.opacity = '0';
+    setTimeout(() => {
+      document.getElementById('pinGate').style.display = 'none';
+      document.getElementById('appContent').style.display = 'block';
+      CONFIG.loadSavedTheme();
+      initApp();
+      applyRolePermissions();
+    }, 380);
+  }
+  function showPinError() {
+    document.querySelectorAll('.pin-dot').forEach(d => d.classList.add('error'));
+    document.getElementById('pinError').classList.add('visible');
+    setTimeout(() => { pin = ''; updateDots(); document.getElementById('pinError').classList.remove('visible'); }, 900);
   }
   document.addEventListener('keydown', (e) => {
     if (document.getElementById('pinGate').style.display === 'none') return;
@@ -679,7 +748,7 @@
   let voidPending    = null;
   const activeTimers = {};
   let currentReceiptOrder = null;
-  const FALLBACK_CASHIERS = ['Deborah', 'Jamila', 'Amina', 'Hauwa', 'Copper'];
+  var currentUser = null; // {name, role, isManager}
 
   /* ═══════════════════════════════════════════════════
      OFFLINE / ONLINE
@@ -694,31 +763,19 @@
   });
 
   /* ═══════════════════════════════════════════════════
-     CASHIER
+     CURRENT USER (replaces old cashier dropdown)
      ═══════════════════════════════════════════════════ */
-  async function loadCashiers() {
-    try {
-      const data = await CONFIG.apiGet('cashiers');
-      const names = (data.data || []).map(c => c.name || c).filter(Boolean);
-      populateCashierSelect(names.length > 0 ? names : FALLBACK_CASHIERS);
-    } catch (_) {
-      populateCashierSelect(FALLBACK_CASHIERS);
-    }
+  function renderUserDisplay() {
+    var el = document.getElementById('userDisplay');
+    if (!el || !currentUser) return;
+    var badgeClass = currentUser.isManager ? 'badge-served' : 'badge-active';
+    el.innerHTML = '<span class="user-name">👤 ' + escHtml(currentUser.name) +
+      '</span> <span class="badge ' + badgeClass + '">' + escHtml(currentUser.role) + '</span>' +
+      ' <button class="btn btn-ghost btn-sm" onclick="logout()">Logout</button>';
   }
-
-  function populateCashierSelect(names) {
-    const select = document.getElementById('cashierSelect');
-    while (select.options.length > 1) select.remove(1);
-    names.forEach(name => {
-      const opt = document.createElement('option');
-      opt.value = name; opt.textContent = name;
-      select.appendChild(opt);
-    });
-  }
-
-  function onCashierChange(sel) { sel.classList.toggle('has-value', !!sel.value); }
-  function getSelectedCashier() { return document.getElementById('cashierSelect').value || ''; }
-  function isPaymentLocked() { return !getSelectedCashier(); }
+  function getSelectedCashier() { return currentUser ? currentUser.name : ''; }
+  function isPaymentLocked() { return false; } // always authenticated
+  function logout() { location.reload(); }
 
   /* ═══════════════════════════════════════════════════
      FETCH ORDERS
@@ -861,7 +918,9 @@
       actions = `<button class="btn btn-info" onclick="event.stopPropagation();handleStartPreparing('${escAttr(order.orderId || order.id)}')">Start Preparing</button>`;
       actions += `<button class="btn btn-primary" onclick="event.stopPropagation();handlePayPOS('${escAttr(order.orderId || order.id)}')">POS</button>`;
       actions += `<button class="btn btn-cash" onclick="event.stopPropagation();handlePayCash('${escAttr(order.orderId || order.id)}')">Cash</button>`;
-      actions += `<button class="btn btn-danger-outline" id="voidBtn-${escAttr(order.orderId || order.id)}" onclick="event.stopPropagation();handleVoid('${escAttr(order.orderId || order.id)}')">Void</button>`;
+      if (currentUser.isManager) {
+        actions += `<button class="btn btn-danger-outline" id="voidBtn-${escAttr(order.orderId || order.id)}" onclick="event.stopPropagation();handleVoid('${escAttr(order.orderId || order.id)}')">Void</button>`;
+      }
     } else if (cat === 'preparing') {
       actions = `<button class="btn btn-success" onclick="event.stopPropagation();handleMarkReady('${escAttr(order.orderId || order.id)}')">Mark Ready</button>`;
     } else if (cat === 'ready') {
@@ -964,7 +1023,6 @@
   }
 
   async function handlePayPOS(orderId) {
-    if (isPaymentLocked()) { showToast('Select a cashier first', 'warning'); document.getElementById('cashierSelect').focus(); return; }
     const cashier = getSelectedCashier();
     const newStatus = 'Paid - POS (' + cashier + ')';
     const ok = await updateStatus(orderId, newStatus, cashier);
@@ -977,7 +1035,6 @@
   }
 
   async function handlePayCash(orderId) {
-    if (isPaymentLocked()) { showToast('Select a cashier first', 'warning'); document.getElementById('cashierSelect').focus(); return; }
     const cashier = getSelectedCashier();
     const newStatus = 'Paid - Cash (' + cashier + ')';
     const ok = await updateStatus(orderId, newStatus, cashier);
@@ -1098,7 +1155,9 @@
       footer.innerHTML += `<button class="btn btn-primary" onclick="closeDetailModal();handlePayPOS('${escAttr(order.orderId || order.id)}')">Pay POS</button>`;
       footer.innerHTML += `<button class="btn btn-cash" onclick="closeDetailModal();handlePayCash('${escAttr(order.orderId || order.id)}')">Pay Cash</button>`;
     }
-    footer.innerHTML += `<button class="btn btn-danger-outline" onclick="closeDetailModal();handleVoid('${escAttr(order.orderId || order.id)}')">Void</button>`;
+    if (currentUser.isManager) {
+      footer.innerHTML += `<button class="btn btn-danger-outline" onclick="closeDetailModal();handleVoid('${escAttr(order.orderId || order.id)}')">Void</button>`;
+    }
 
     document.getElementById('detailModal').classList.add('open');
   }
@@ -1109,6 +1168,7 @@
     if (e.target === document.getElementById(modalId)) {
       if (modalId === 'detailModal') closeDetailModal();
       if (modalId === 'receiptModal') closeReceiptModal();
+      if (modalId === 'manualOrderModal') closeManualOrderModal();
     }
   }
 
@@ -1243,10 +1303,92 @@
   }
 
   /* ═══════════════════════════════════════════════════
+     ROLE PERMISSIONS
+     ═══════════════════════════════════════════════════ */
+  function applyRolePermissions() {
+    if (!currentUser) return;
+    // Hide Manager Panel link if not manager
+    var managerLink = document.querySelector('a[href="manager.html"]');
+    if (managerLink) managerLink.style.display = currentUser.isManager ? '' : 'none';
+    // Show/hide Manual Order button (Manager only)
+    var manualBtn = document.getElementById('manualOrderBtn');
+    if (manualBtn) manualBtn.style.display = currentUser.isManager ? '' : 'none';
+  }
+
+  /* ═══════════════════════════════════════════════════
+     MANUAL / WALK-IN ORDER (Manager only)
+     ═══════════════════════════════════════════════════ */
+  function openManualOrderModal() {
+    // Populate location select: 'Counter' + configured tables
+    var locSelect = document.getElementById('mo_location');
+    var tables = (CONFIG.TABLES && CONFIG.TABLES.length) ? CONFIG.TABLES : CONFIG.FALLBACK_TABLES;
+    var locations = ['Counter'].concat(tables.filter(t => t !== 'Counter'));
+    locSelect.innerHTML = locations.map(t => '<option value="' + escHtml(t) + '">' + escHtml(t) + '</option>').join('');
+
+    // Default date/time to now
+    var now = new Date();
+    var pad = function(n) { return String(n).padStart(2, '0'); };
+    document.getElementById('mo_date').value = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate());
+    document.getElementById('mo_time').value = pad(now.getHours()) + ':' + pad(now.getMinutes());
+
+    // Clear the rest
+    document.getElementById('mo_name').value = '';
+    document.getElementById('mo_phone').value = '';
+    document.getElementById('mo_total').value = '';
+    document.getElementById('mo_items').value = '';
+
+    document.getElementById('manualOrderModal').classList.add('open');
+  }
+  function closeManualOrderModal() {
+    document.getElementById('manualOrderModal').classList.remove('open');
+  }
+  async function submitManualOrder() {
+    var name = (document.getElementById('mo_name').value || '').trim() || 'Walk-in';
+    var phone = (document.getElementById('mo_phone').value || '').trim();
+    var location = document.getElementById('mo_location').value || 'Counter';
+    var totalRaw = document.getElementById('mo_total').value;
+    var total = parseFloat(totalRaw);
+    var items = (document.getElementById('mo_items').value || '').trim();
+    var dateVal = document.getElementById('mo_date').value;
+    var timeVal = document.getElementById('mo_time').value;
+
+    if (!items) { showToast('Please enter at least one item', 'warning'); return; }
+    if (!totalRaw || isNaN(total) || total < 0) { showToast('Please enter a valid total amount', 'warning'); return; }
+
+    // Append backdate note if both date+time provided
+    if (dateVal && timeVal) {
+      items += ' ⚠️ BACKDATED TO: ' + dateVal + ' ' + timeVal;
+    }
+
+    try {
+      var res = await CONFIG.apiPost('newOrder', {
+        orderId: CONFIG.generateOrderId(),
+        customerName: name,
+        customerPhone: phone,
+        location: location,
+        cartItems: items,
+        totalPrice: total,
+        status: 'Active'
+      });
+      if (res && res.status === 'error') {
+        showToast(res.message || 'Failed to place manual order', 'error');
+        return;
+      }
+      showToast('Manual order placed for ' + name, 'success');
+      closeManualOrderModal();
+      await fetchOrders();
+    } catch (err) {
+      console.error('submitManualOrder error', err);
+      showToast('Network error -- could not place order', 'error');
+    }
+  }
+
+  /* ═══════════════════════════════════════════════════
      INIT
      ═══════════════════════════════════════════════════ */
   async function initApp() {
-    await Promise.all([loadCashiers(), fetchOrders()]);
+    renderUserDisplay();
+    await fetchOrders();
     startAutoRefresh();
   }
   </script>

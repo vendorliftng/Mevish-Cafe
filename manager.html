@@ -1659,30 +1659,54 @@ function renderCashiersTable() {
   let rows = '';
   cashiersData.forEach(c => {
     // Normalize: handle both plain-string (legacy API) and object (updated API) formats
-    const obj = (typeof c === 'string') ? { name: c, phone: '', role: 'Cashier', active: 'Yes' } : c;
+    const obj = (typeof c === 'string') ? { name: c, phone: '', role: 'Cashier', active: 'Yes', pin: '' } : c;
     const initials = (obj.name||'??').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
     const safeName = (obj.name||'').replace(/'/g,"\\'");
-    rows += `<tr><td><span class="cashier-avatar">${initials}</span><strong>${obj.name}</strong></td><td>${obj.phone||'—'}</td><td>${obj.role||'Cashier'}</td><td><span class="badge ${obj.active==='Yes'?'badge-success':'badge-muted'}">${obj.active==='Yes'?'Active':'Inactive'}</span></td><td><button class="btn btn-danger btn-sm" onclick="removeCashier('${safeName}')">Remove</button></td></tr>`;
+    rows += `<tr><td><span class="cashier-avatar">${initials}</span><strong>${obj.name}</strong></td><td>${obj.phone||'—'}</td><td>${obj.role||'Cashier'}</td><td style="font-family:monospace;letter-spacing:2px;">${obj.pin||'—'}</td><td><span class="badge ${obj.active==='Yes'?'badge-success':'badge-muted'}">${obj.active==='Yes'?'Active':'Inactive'}</span></td><td><button class="btn btn-ghost btn-sm" onclick="openCashierModal('${safeName}')">Edit</button> <button class="btn btn-danger btn-sm" onclick="removeCashier('${safeName}')">Remove</button></td></tr>`;
   });
-  wrap.innerHTML = `<table><thead><tr><th>Name</th><th>Phone</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table>`;
+  wrap.innerHTML = `<table><thead><tr><th>Name</th><th>Phone</th><th>Role</th><th>PIN</th><th>Status</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 
-function openCashierModal() {
+function openCashierModal(editName) {
+  // Find existing cashier if editing (mirror openMenuModal pattern)
+  const found = editName ? cashiersData.find(c => {
+    const o = (typeof c === 'string') ? { name: c } : c;
+    return (o.name||'') === editName;
+  }) : null;
+  const cashier = found ? (typeof found === 'string' ? { name: found, phone: '', role: 'Cashier', active: 'Yes', pin: '' } : found) : null;
+  const title = cashier ? 'Edit Cashier' : 'Add Cashier';
+  const saveLabel = cashier ? 'Update' : 'Add';
+
   const body = `<div class="form-grid">
-    <div class="form-group"><label>Full Name</label><input id="cf_name" /></div>
-    <div class="form-group"><label>Phone</label><input id="cf_phone" /></div>
-    <div class="form-group"><label>Role</label><select id="cf_role"><option>Cashier</option><option>Senior Cashier</option><option>Manager</option></select></div>
+    <div class="form-group"><label>Full Name</label><input id="cf_name" value="${cashier ? (cashier.name||'').replace(/"/g,'&quot;') : ''}" /></div>
+    <div class="form-group"><label>Phone</label><input id="cf_phone" value="${cashier ? (cashier.phone||'').replace(/"/g,'&quot;') : ''}" /></div>
+    <div class="form-group"><label>Role</label><select id="cf_role"><option ${cashier&&cashier.role==='Cashier'?'selected':''}>Cashier</option><option ${cashier&&cashier.role==='Senior Cashier'?'selected':''}>Senior Cashier</option><option ${cashier&&cashier.role==='Manager'?'selected':''}>Manager</option></select></div>
+    <div class="form-group"><label>PIN (4 digits)</label><input id="cf_pin" maxlength="4" pattern="[0-9]*" inputmode="numeric" placeholder="4-digit PIN" value="${cashier ? (cashier.pin||'') : ''}" /></div>
+    ${cashier ? `<div class="form-group"><label>Active</label><select id="cf_active"><option value="Yes" ${cashier.active!=='No'?'selected':''}>Yes</option><option value="No" ${cashier.active==='No'?'selected':''}>No</option></select></div>` : ''}
   </div>`;
-  const actions = `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveCashier()">Add Cashier</button>`;
-  openModal('Add Cashier', body, actions);
+  const actions = `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveCashier(${editName ? "'"+editName.replace(/'/g,"\\'")+"'" : 'null'})">${saveLabel}</button>`;
+  openModal(title, body, actions);
 }
 
-async function saveCashier() {
+async function saveCashier(editName) {
   const name = document.getElementById('cf_name').value.trim();
+  const phone = document.getElementById('cf_phone').value.trim();
+  const role = document.getElementById('cf_role').value;
+  const pin = document.getElementById('cf_pin').value.trim();
   if (!name) return toast('Name is required', 'error');
-  const res = await CONFIG.apiPost('addCashier', { name: name, phone: document.getElementById('cf_phone').value.trim(), role: document.getElementById('cf_role').value, performedBy: 'Manager' });
-  if (res.status === 'success') { toast('Cashier added', 'success'); closeModal(); await loadAllData(); renderCashiersTable(); }
-  else toast(res.message || 'Failed', 'error');
+  if (!/^\d{4}$/.test(pin)) return toast('PIN must be exactly 4 digits', 'error');
+
+  if (editName) {
+    const payload = { name, phone, role, pin, active: (document.getElementById('cf_active') ? (document.getElementById('cf_active').value === 'Yes' ? 'Yes' : 'No') : 'Yes'), oldName: editName, performedBy: 'Manager' };
+    const res = await CONFIG.apiPost('updateCashier', payload);
+    if (res.status === 'success') { toast('Cashier updated', 'success'); closeModal(); await loadAllData(); renderCashiersTable(); }
+    else toast(res.message || 'Failed to update', 'error');
+  } else {
+    const payload = { name, phone, role, pin, performedBy: 'Manager' };
+    const res = await CONFIG.apiPost('addCashier', payload);
+    if (res.status === 'success') { toast('Cashier added', 'success'); closeModal(); await loadAllData(); renderCashiersTable(); }
+    else toast(res.message || 'Failed to add', 'error');
+  }
 }
 
 async function removeCashier(name) {

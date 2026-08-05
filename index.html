@@ -310,69 +310,6 @@
       color: var(--danger);
     }
 
-    /* ── Backdate section ── */
-    .backdate-section { margin-top: 6px; }
-
-    .toggle-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 10px 14px;
-      background: var(--danger-dim);
-      border: 1px solid var(--danger-border);
-      border-radius: var(--r-sm);
-      cursor: pointer;
-    }
-
-    .toggle-label {
-      font-size: var(--fs-sm);
-      font-weight: 600;
-      color: #fca5a5;
-      flex: 1;
-    }
-
-    .toggle-switch {
-      position: relative;
-      width: 40px;
-      height: 22px;
-      flex-shrink: 0;
-    }
-
-    .toggle-switch input { opacity: 0; width: 0; height: 0; }
-
-    .backdate-section .toggle-slider {
-      position: absolute;
-      inset: 0;
-      background: var(--bg-hover);
-      border-radius: 22px;
-      cursor: pointer;
-      transition: background var(--ease);
-    }
-
-    .backdate-section .toggle-slider::before {
-      content: '';
-      position: absolute;
-      left: 3px;
-      top: 3px;
-      width: 16px;
-      height: 16px;
-      border-radius: 50%;
-      background: #fff;
-      transition: transform var(--ease);
-    }
-
-    .backdate-section .toggle-switch input:checked + .toggle-slider { background: var(--danger); }
-    .backdate-section .toggle-switch input:checked + .toggle-slider::before { transform: translateX(18px); }
-
-    .backdate-fields {
-      display: none;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-top: 10px;
-    }
-
-    .backdate-fields.visible { display: grid; }
-
     /* ── Success Screen extras ── */
     .success-subtitle {
       color: var(--text-secondary);
@@ -477,8 +414,6 @@
       .menu-card-name { font-size: var(--fs-sm); }
       .qty-btn { width: 32px; height: 32px; font-size: 18px; }
       .qty-display { min-width: 28px; font-size: var(--fs-base); }
-      /* Backdate fields single column on small phones */
-      .backdate-fields { grid-template-columns: 1fr; }
       /* Modal full-screen on small phones */
       .modal-overlay { padding: 0; align-items: flex-end; }
       .modal { max-width: 100%; max-height: 95vh; border-radius: var(--r-xl) var(--r-xl) 0 0; }
@@ -974,27 +909,6 @@
         <div class="form-group">
           <label class="form-label" for="notes">Special Notes</label>
           <textarea class="form-control" id="notes" placeholder="E.g. extra spicy, no onions..." style="min-height:80px;"></textarea>
-        </div>
-
-        <!-- Backdate (Counter only) -->
-        <div class="backdate-section" id="backdate-section">
-          <div class="toggle-row" id="backdate-toggle-row" role="button" tabindex="0" aria-label="Toggle backdate">
-            <span class="toggle-label">Backdate Order (Cashier Use Only)</span>
-            <label class="toggle-switch" onclick="event.stopPropagation()">
-              <input type="checkbox" id="backdate-toggle" />
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-          <div class="backdate-fields" id="backdate-fields">
-            <div>
-              <label class="form-label" for="backdate-date" style="margin-top:6px;">Date</label>
-              <input type="date" class="form-control" id="backdate-date" />
-            </div>
-            <div>
-              <label class="form-label" for="backdate-time" style="margin-top:6px;">Time</label>
-              <input type="time" class="form-control" id="backdate-time" />
-            </div>
-          </div>
         </div>
 
       </div><!-- /modal-body -->
@@ -1637,24 +1551,6 @@
         lockedTableText.textContent = 'Table ' + currentTable;
       }
 
-      // Backdate section visibility
-      var backdateSection = document.getElementById('backdate-section');
-      if (isCounter) {
-        backdateSection.classList.remove('hidden');
-      } else {
-        backdateSection.classList.add('hidden');
-      }
-
-      // Reset backdate
-      document.getElementById('backdate-toggle').checked = false;
-      document.getElementById('backdate-fields').classList.remove('visible');
-
-      // Set today's date/time as default
-      var now = new Date();
-      document.getElementById('backdate-date').value = now.toISOString().slice(0, 10);
-      document.getElementById('backdate-time').value =
-        String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
-
       orderModal.classList.add('open');
       document.body.style.overflow = 'hidden';
       setTimeout(function () { document.getElementById('customer-name').focus(); }, 100);
@@ -1673,30 +1569,6 @@
 
     orderModal.addEventListener('click', function (e) {
       if (e.target === orderModal) closeOrderModal();
-    });
-
-    // Backdate toggle
-    var backdateToggle = document.getElementById('backdate-toggle');
-    var backdateFields = document.getElementById('backdate-fields');
-    var backdateToggleRow = document.getElementById('backdate-toggle-row');
-
-    backdateToggle.addEventListener('change', function () {
-      backdateFields.classList.toggle('visible', backdateToggle.checked);
-    });
-
-    backdateToggleRow.addEventListener('click', function (e) {
-      if (e.target !== backdateToggle) {
-        backdateToggle.checked = !backdateToggle.checked;
-        backdateToggle.dispatchEvent(new Event('change'));
-      }
-    });
-
-    backdateToggleRow.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        backdateToggle.checked = !backdateToggle.checked;
-        backdateToggle.dispatchEvent(new Event('change'));
-      }
     });
 
     /* ══════════════════════════════════════════
@@ -1796,9 +1668,6 @@
       }
 
       var notes = document.getElementById('notes').value.trim();
-      var isBackdated = isCounter && backdateToggle.checked;
-      var backdateDate = document.getElementById('backdate-date').value;
-      var backdateTime = document.getElementById('backdate-time').value;
 
       var selectedTable = isCounter
         ? document.getElementById('table-select').value
@@ -1808,9 +1677,6 @@
       var cartStr = cart.map(function (i) { return i.qty + 'x ' + i.name; }).join(' | ');
       var itemsStr = cartStr;
       if (notes) itemsStr += ' (Notes: ' + notes + ')';
-      if (isBackdated) {
-        itemsStr += ' [BACKDATED TO: ' + backdateDate + ' ' + backdateTime + ']';
-      }
 
       var orderId = generateOrderId();
 
