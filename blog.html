@@ -3,17 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Blog | Mevish Eatery — Food, Culture &amp; Stories from Yola</title>
-  <meta name="description" content="Explore food culture, recipes, and stories from Mevish Eatery's kitchen in Yola, Adamawa. Discover what makes our food special.">
-  <meta property="og:title" content="Blog | Mevish Eatery">
-  <meta property="og:description" content="Explore food culture, recipes, and stories from Mevish Eatery's kitchen in Yola, Adamawa.">
+  <title>Blog — Food, Culture &amp; Stories</title>
+  <meta name="description" content="Explore food culture, recipes, and stories from our kitchen. Discover what makes our food special.">
+  <meta property="og:title" content="Blog">
+  <meta property="og:description" content="Explore food culture, recipes, and stories from our kitchen.">
   <meta property="og:type" content="website">
+  <meta property="og:site_name" id="ogSiteName" content="">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <script type="application/ld+json">
-  { "@context":"https://schema.org", "@type":"Blog", "name":"Mevish Eatery Blog", "url":"./blog.html", "publisher":{"@type":"Organization","name":"Mevish Eatery","address":{"@type":"PostalAddress","addressLocality":"Yola","addressRegion":"Adamawa"}}}
+  <script type="application/ld+json" id="blogSchema">
+  { "@context":"https://schema.org", "@type":"Blog", "name":"Blog", "url":"./blog.html", "publisher":{"@type":"Organization","name":"Restaurant","address":{"@type":"PostalAddress","addressLocality":"","addressRegion":""}}}
   </script>
   <style>
     /* ── BLOG PAGE STYLES ── */
@@ -428,7 +429,7 @@
 
 <!-- NAVBAR -->
 <nav class="navbar" role="navigation" aria-label="Main navigation">
-  <a href="home.html" class="navbar-brand">🍽️ <span>Mevish Eatery</span></a>
+  <a href="home.html" class="navbar-brand">🍽️ <span id="navBrandName">Restaurant</span></a>
   <div class="navbar-nav">
     <a href="home.html">Home</a>
     <a href="index.html">Order</a>
@@ -441,8 +442,8 @@
 <!-- HERO -->
 <section class="blog-hero">
   <div class="hero-badge">✨ Stories &amp; Recipes</div>
-  <h1>Stories From <em>Our Kitchen</em></h1>
-  <p>Discover food culture, recipes, and what makes every plate at Mevish Eatery special.</p>
+  <h1 id="heroTitle">Stories From <em>Our Kitchen</em></h1>
+  <p id="heroSubtitle">Discover food culture, recipes, and what makes every plate special.</p>
 </section>
 
 <!-- CATEGORY TABS -->
@@ -503,14 +504,17 @@
 <!-- FOOTER -->
 <footer class="blog-footer">
   <div class="blog-footer-inner">
-    <div class="footer-brand">🍽️ Mevish Eatery</div>
+    <div class="footer-brand">🍽️ <span id="footerBrandName">Restaurant</span></div>
     <div class="footer-links">
       <a href="home.html">Home</a>
       <a href="index.html">Order Online</a>
       <a href="blog.html">Blog</a>
       <a href="track.html">Track Order</a>
+      <a id="footerInstagram" href="#" target="_blank" rel="noopener" style="display:none">Instagram</a>
+      <a id="footerFacebook" href="#" target="_blank" rel="noopener" style="display:none">Facebook</a>
     </div>
-    <p class="footer-copy">© 2025 Mevish Eatery, Yola, Adamawa. All rights reserved.</p>
+    <p class="footer-copy" id="footerHours"></p>
+    <p class="footer-copy" id="footerCopy"></p>
   </div>
 </footer>
 
@@ -540,10 +544,9 @@
   // ── FETCH POSTS ──
   async function loadPosts(category = 'All') {
     try {
-      const url = (typeof CONFIG !== 'undefined' ? CONFIG.API_URL : '') + '?type=blogs';
-      const res = await fetch(url);
-      if (!res.ok) throw new Error('Network error');
-      const data = await res.json();
+      const data = (typeof CONFIG !== 'undefined' && CONFIG.apiGet)
+        ? await CONFIG.apiGet('blogs')
+        : await (await fetch((typeof CONFIG !== 'undefined' ? CONFIG.API_URL : '') + '?type=blogs')).json();
       allPosts = data.data || [];
       applyFilters();
     } catch (err) {
@@ -589,7 +592,8 @@
   function formatDate(dateStr) {
     if (!dateStr) return '';
     try {
-      return new Date(dateStr).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' });
+      const locale = (typeof CONFIG !== 'undefined' && CONFIG.RESTAURANT && CONFIG.RESTAURANT.locale) || 'en-US';
+      return new Date(dateStr).toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' });
     } catch { return dateStr; }
   }
 
@@ -648,42 +652,43 @@
 
   // ── FALLBACK POSTS ──
   function renderFallbackPosts() {
+    const restName = (typeof CONFIG !== 'undefined' && CONFIG.RESTAURANT && CONFIG.RESTAURANT.name) || 'Our Restaurant';
     allPosts = [
       {
         id: 'demo1',
-        title: 'The Story Behind Mevish Pizza',
+        title: 'The Story Behind Our Signature Pizza',
         category: 'Menu Spotlight',
-        slug: 'story-behind-mevish-pizza',
-        content: 'Our signature pizza is more than just a dish — it\'s a fusion of traditional Nigerian spices and Italian technique. Every dough is hand-stretched, topped with locally sourced vegetables, and finished in our high-heat oven. The result is a crispy, flavourful pizza that has become the most-ordered item at Mevish Eatery. We started experimenting with the recipe in 2022, trying different spice blends until we found the perfect balance. Today, our pizza comes in four sizes and over a dozen toppings — all designed to satisfy every palate in Yola.',
-        author: 'Mevish Eatery',
+        slug: 'story-behind-signature-pizza',
+        content: 'Our signature pizza is more than just a dish — it\'s a fusion of traditional spices and Italian technique. Every dough is hand-stretched, topped with locally sourced vegetables, and finished in our high-heat oven. The result is a crispy, flavourful pizza that has become the most-ordered item at ' + restName + '. We started experimenting with the recipe in 2022, trying different spice blends until we found the perfect balance. Today, our pizza comes in four sizes and over a dozen toppings — all designed to satisfy every palate.',
+        author: restName,
         date: '2025-05-15',
         status: 'Published',
         imageUrl: '',
-        metaDescription: 'Discover the story behind Mevish Eatery\'s most popular pizza and what makes it unique in Yola.'
+        metaDescription: 'Discover the story behind our most popular pizza and what makes it unique.'
       },
       {
         id: 'demo2',
         title: 'What Is Mandi Rice and Why We Love It',
         category: 'Food & Culture',
         slug: 'what-is-mandi-rice',
-        content: 'Mandi rice is a traditional Middle Eastern dish that has found a beloved home in Northern Nigeria. Originating from Yemen, mandi features slow-cooked meat — typically lamb or chicken — infused with saffron, cardamom, and cinnamon, served over long-grain basmati rice. At Mevish Eatery, we prepare our mandi the authentic way: the meat is slow-roasted in a tandoor pit, which gives it that distinctive smoky flavour. The rice absorbs all the rich juices from the cooking process, making every grain burst with flavour. It\'s a dish that embodies hospitality and celebration — and we serve it with pride every day.',
-        author: 'Chef Mevish',
+        content: 'Mandi rice is a traditional Middle Eastern dish that has found a beloved home in Nigeria. Originating from Yemen, mandi features slow-cooked meat — typically lamb or chicken — infused with saffron, cardamom, and cinnamon, served over long-grain basmati rice. At ' + restName + ', we prepare our mandi the authentic way: the meat is slow-roasted in a tandoor pit, which gives it that distinctive smoky flavour. The rice absorbs all the rich juices from the cooking process, making every grain burst with flavour. It\'s a dish that embodies hospitality and celebration — and we serve it with pride every day.',
+        author: restName,
         date: '2025-05-10',
         status: 'Published',
         imageUrl: '',
-        metaDescription: 'Learn about Mandi Rice — the flavourful Middle Eastern dish that Mevish Eatery brings to Yola, Adamawa.'
+        metaDescription: 'Learn about Mandi Rice — the flavourful Middle Eastern dish we proudly serve.'
       },
       {
         id: 'demo3',
-        title: 'Best Restaurants in Yola 2025: Why Mevish Leads the Pack',
+        title: 'Our Menu Highlights for 2025',
         category: 'News & Events',
-        slug: 'best-restaurants-yola-2025',
-        content: 'Yola\'s food scene has grown tremendously in recent years, with restaurants offering diverse cuisines from local Nigerian dishes to international favourites. Among the standout establishments, Mevish Eatery has consistently been praised for its combination of quality, variety, and customer service. We offer dine-in, takeout, and online ordering — making great food accessible to everyone in Adamawa State. Our menu spans from traditional Nigerian soups and rice dishes to pizzas, sandwiches, and fresh-squeezed juices. Whether you\'re looking for a quick lunch or a special family dinner, Mevish Eatery has something for every occasion.',
-        author: 'Mevish Eatery',
+        slug: 'menu-highlights-2025',
+        content: 'Our food scene has grown tremendously over the years, and we offer diverse cuisines from local Nigerian dishes to international favourites. Among the standout establishments, ' + restName + ' has consistently been praised for its combination of quality, variety, and customer service. We offer dine-in, takeout, and online ordering — making great food accessible to everyone. Our menu spans from traditional Nigerian soups and rice dishes to pizzas, sandwiches, and fresh-squeezed juices. Whether you\'re looking for a quick lunch or a special family dinner, we have something for every occasion.',
+        author: restName,
         date: '2025-05-05',
         status: 'Published',
         imageUrl: '',
-        metaDescription: 'Find out why Mevish Eatery is considered among the best restaurants in Yola, Adamawa State in 2025.'
+        metaDescription: 'Find out why our restaurant is a local favourite this year.'
       }
     ];
     applyFilters();
@@ -698,8 +703,93 @@
     return (title || '').toLowerCase().replace(/[^a-z0-9\s-]/g,'').trim().replace(/\s+/g,'-');
   }
 
+  // ── DYNAMIC BRAND/META INIT ──
+  function applyBrand() {
+    const R = (typeof CONFIG !== 'undefined' && CONFIG.RESTAURANT) ? CONFIG.RESTAURANT : null;
+    const name = (R && R.name) || 'Restaurant';
+    const shortName = (R && R.shortName) || name;
+    const tagline = (R && R.tagline) || '';
+    const city = (R && R.city) || '';
+    const state = (R && R.state) || '';
+    const locale = (R && R.locale) || 'en-US';
+    const year = new Date().getFullYear();
+
+    // <title>
+    document.title = `Blog | ${name}` + (city ? ` — Food, Culture & Stories from ${city}` : '');
+
+    // Meta tags
+    const setMeta = (sel, attr, val) => {
+      const el = document.querySelector(sel);
+      if (el && val != null) el.setAttribute(attr, val);
+    };
+    const siteName = `${name} Blog`;
+    setMeta('meta[name="description"]', 'content',
+      `Explore food culture, recipes, and stories from ${name}'s kitchen` + (city ? ` in ${city}` + (state ? `, ${state}` : '') : '') + `. Discover what makes our food special.`);
+    setMeta('meta[property="og:title"]', 'content', `Blog | ${name}`);
+    setMeta('meta[property="og:description"]', 'content',
+      `Explore food culture, recipes, and stories from ${name}'s kitchen` + (city ? ` in ${city}` + (state ? `, ${state}` : '') : '') + `.`);
+    setMeta('meta[property="og:site_name"]', 'content', siteName);
+
+    // Navbar brand
+    const navBrand = document.getElementById('navBrandName');
+    if (navBrand) navBrand.textContent = `${shortName} ${name.replace(shortName, '').trim()}`.trim() || name;
+
+    // Hero
+    const heroSub = document.getElementById('heroSubtitle');
+    if (heroSub) {
+      heroSub.textContent = tagline
+        ? `Discover food culture, recipes, and ${tagline.toLowerCase()}.`
+        : 'Discover food culture, recipes, and what makes every plate special.';
+    }
+
+    // Footer brand, hours, copy, social
+    const fb = document.getElementById('footerBrandName');
+    if (fb) fb.textContent = name;
+    const fh = document.getElementById('footerHours');
+    if (fh && R && R.hours) fh.textContent = `🕒 ${R.hours}`;
+    const fc = document.getElementById('footerCopy');
+    if (fc) {
+      const loc = [city, state].filter(Boolean).join(', ');
+      fc.textContent = `© ${year} ${name}` + (loc ? `, ${loc}` : '') + `. All rights reserved.`;
+    }
+    if (R && R.instagram) {
+      const ig = document.getElementById('footerInstagram');
+      if (ig) {
+        ig.href = `https://instagram.com/${R.instagram.replace('@', '')}`;
+        ig.style.display = '';
+      }
+    }
+    if (R && R.facebook) {
+      const fbp = document.getElementById('footerFacebook');
+      if (fbp) {
+        fbp.href = `https://facebook.com/${R.facebook}`;
+        fbp.style.display = '';
+      }
+    }
+
+    // Schema.org JSON-LD
+    const schemaEl = document.getElementById('blogSchema');
+    if (schemaEl) {
+      const schema = {
+        '@context': 'https://schema.org',
+        '@type': 'Blog',
+        'name': `${name} Blog`,
+        'url': './blog.html',
+        'publisher': {
+          '@type': 'Organization',
+          'name': name,
+          'address': { '@type': 'PostalAddress', 'addressLocality': city, 'addressRegion': state }
+        }
+      };
+      schemaEl.textContent = JSON.stringify(schema);
+    }
+  }
+
   // ── INIT ──
-  document.addEventListener('DOMContentLoaded', loadPosts);
+  document.addEventListener('DOMContentLoaded', () => {
+    try { applyBrand(); } catch (e) { console.warn('Brand init error:', e); }
+    loadPosts();
+  });
 </script>
 </body>
 </html>

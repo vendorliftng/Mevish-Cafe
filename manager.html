@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Manager Panel | Mevish Eatery</title>
-  <meta name="description" content="Admin control panel for Mevish Eatery restaurant management system." />
+  <title>Manager Panel</title>
+  <meta name="description" content="Admin control panel for the restaurant management system." />
   <link rel="stylesheet" href="style.css" />
   <script src="config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -392,6 +392,57 @@
       content: ''; flex: 1; height: 1px; background: var(--c-border);
     }
 
+    /* ── PEAK HOURS HEATMAP ─────────────────────────────────── */
+    .heatmap-wrap {
+      overflow-x: auto; padding-bottom: 0.5rem;
+      -webkit-overflow-scrolling: touch;
+    }
+    .heatmap-grid {
+      display: grid;
+      grid-template-columns: 44px repeat(24, minmax(18px, 1fr));
+      gap: 2px; min-width: 720px;
+    }
+    .heatmap-corner { background: transparent; }
+    .heatmap-hour-head {
+      font-size: 0.62rem; color: var(--c-text-light); text-align: center;
+      font-weight: 600; padding: 2px 0;
+    }
+    .heatmap-day-head {
+      font-size: 0.7rem; font-weight: 600; color: var(--c-text);
+      display: flex; align-items: center; padding-right: 0.4rem;
+    }
+    .heatmap-cell {
+      height: 22px; border-radius: 3px;
+      background: rgba(13,148,136,0.05);
+      border: 1px solid rgba(0,0,0,0.03);
+    }
+    .heatmap-legend {
+      display: flex; align-items: center; gap: 0.5rem; margin-top: 0.85rem;
+      font-size: 0.72rem; color: var(--c-text-light);
+    }
+    .heatmap-legend .gradient-bar {
+      width: 140px; height: 10px; border-radius: 5px;
+      background: linear-gradient(to right, rgba(13,148,136,0.05), rgba(13,148,136,1));
+    }
+
+    /* ── AVG RATING DISPLAY ─────────────────────────────────── */
+    .rating-display {
+      display: flex; align-items: center; gap: 1rem;
+    }
+    .rating-big {
+      font-size: 2.4rem; font-weight: 800; color: var(--c-text);
+      line-height: 1;
+    }
+    .rating-star {
+      font-size: 1.6rem; color: var(--c-accent); line-height: 1;
+    }
+    .rating-meta { display: flex; flex-direction: column; gap: 0.15rem; }
+    .rating-meta .label {
+      font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--c-text-light);
+    }
+    .rating-meta .count { font-size: 0.85rem; font-weight: 600; color: var(--c-text); }
+
     /* ── MISC ──────────────────────────────────────────────── */
     .text-muted { color: var(--c-text-light); }
     .text-success { color: var(--c-success); }
@@ -478,7 +529,7 @@
 <div id="pinGate" class="pin-gate">
   <div style="display:flex;flex-direction:column;align-items:center;">
     <div class="pin-gate-brand">
-      <div class="logo-text" id="pinRestName">Mevish Eatery</div>
+      <div class="logo-text" id="pinRestName">Restaurant</div>
       <div class="logo-sub">Manager Panel</div>
     </div>
     <div class="pin-card">
@@ -517,7 +568,7 @@
   <!-- ─── SIDEBAR ─────────────────────────────────────────── -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
-      <div class="sidebar-brand" id="sidebarBrand">Mevish Eatery</div>
+      <div class="sidebar-brand" id="sidebarBrand">Restaurant</div>
       <div class="sidebar-sub">Manager Panel</div>
     </div>
     <nav class="sidebar-nav">
@@ -538,6 +589,12 @@
       </a>
       <a class="nav-item" data-panel="cashiers" onclick="switchPanel('cashiers')">
         <span class="nav-icon">&#9823;</span> Cashiers
+      </a>
+      <a class="nav-item" data-panel="customers" onclick="switchPanel('customers')">
+        <span class="nav-icon">&#128101;</span> Customers
+      </a>
+      <a class="nav-item" data-panel="reviews" onclick="switchPanel('reviews')">
+        <span class="nav-icon">&#11088;</span> Reviews
       </a>
       <a class="nav-item" data-panel="tables" onclick="switchPanel('tables')">
         <span class="nav-icon">&#9635;</span> Tables &amp; QR
@@ -636,6 +693,20 @@
 
         <div class="section-divider"><h2>Inventory Alerts</h2></div>
         <div class="card"><div class="card-body" id="inventoryAlertsWrap"><div class="loading-state"><div class="spinner"></div></div></div></div>
+
+        <div class="section-divider"><h2>Peak Hours</h2></div>
+        <div class="card"><div class="card-body"><div id="peakHoursWrap"><div class="loading-state"><div class="spinner"></div></div></div></div></div>
+
+        <div class="section-divider"><h2>Category Performance</h2></div>
+        <div class="card">
+          <div class="card-header"><h3>Revenue by Category</h3></div>
+          <div class="card-body">
+            <div class="chart-box"><canvas id="categoryChart"></canvas></div>
+          </div>
+        </div>
+
+        <div class="section-divider"><h2>Top Customers</h2></div>
+        <div class="card"><div class="table-wrap" id="topCustomersWrap"><div class="loading-state"><div class="spinner"></div></div></div></div>
       </div>
 
       <!-- ════════════════════════════════════════════════════ -->
@@ -763,6 +834,34 @@
         </div>
       </div>
 
+      <!-- ════════════════════════════════════════════════════ -->
+      <!--  PANEL: CUSTOMERS                                     -->
+      <!-- ════════════════════════════════════════════════════ -->
+      <div id="panel-customers" class="panel">
+        <div class="card">
+          <div class="card-header">
+            <h3>Customers</h3>
+            <input type="text" id="customerSearch" placeholder="Search by name or phone..." oninput="renderCustomersTable()"
+              style="padding:0.4rem 0.8rem;border:1px solid var(--c-border);border-radius:8px;font-size:0.82rem;width:240px;background:var(--c-bg);color:var(--c-text);" />
+          </div>
+          <div class="table-wrap" id="customersTableWrap"><div class="loading-state"><div class="spinner"></div></div></div>
+        </div>
+      </div>
+
+      <!-- ════════════════════════════════════════════════════ -->
+      <!--  PANEL: REVIEWS                                       -->
+      <!-- ════════════════════════════════════════════════════ -->
+      <div id="panel-reviews" class="panel">
+        <div class="card">
+          <div class="card-header"><h3>Average Rating</h3></div>
+          <div class="card-body"><div id="avgRatingDisplay"><div class="loading-state"><div class="spinner"></div></div></div></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3>Pending Reviews</h3></div>
+          <div class="table-wrap" id="reviewsTableWrap"><div class="loading-state"><div class="spinner"></div></div></div>
+        </div>
+      </div>
+
     </div><!-- /.page-body -->
   </div><!-- /.main-area -->
 </div><!-- /#appLayout -->
@@ -831,14 +930,16 @@ document.addEventListener('keydown', (e) => {
 /* ═══════════════════════════════════════════════════════════
    APP INIT
    ═══════════════════════════════════════════════════════════ */
-const rName = CONFIG.RESTAURANT ? CONFIG.RESTAURANT.name : 'Mevish Eatery';
+const rName = CONFIG.RESTAURANT ? CONFIG.RESTAURANT.name : 'Restaurant';
+document.title = rName + ' Manager';
 document.getElementById('pinRestName').textContent = rName;
 document.getElementById('sidebarBrand').textContent = rName;
 
 let allOrders = [], inventoryData = [], menuData = [], cashiersData = [];
 let tablesData = [], expensesData = [], auditData = [];
+let customersData = [], reviewsData = [];
 let currentSettings = {};
-let revenueChartInstance = null, dailyChartInstance = null;
+let revenueChartInstance = null, dailyChartInstance = null, categoryChartInstance = null;
 
 async function initApp() {
   initDateDefaults();
@@ -860,7 +961,8 @@ async function loadAllData() {
     { key: 'menu',      fn: () => CONFIG.apiGet('menu') },
     { key: 'cashiers',  fn: () => CONFIG.apiGet('cashiers') },
     { key: 'tables',    fn: () => CONFIG.apiGet('tables') },
-    { key: 'expenses',  fn: () => CONFIG.apiGet('expenses') }
+    { key: 'expenses',  fn: () => CONFIG.apiGet('expenses') },
+    { key: 'customers', fn: () => CONFIG.apiGet('customers') }
   ];
   const results = await Promise.allSettled(loaders.map(l => l.fn()));
   results.forEach((res, i) => {
@@ -873,6 +975,7 @@ async function loadAllData() {
         case 'cashiers':  cashiersData = data; break;
         case 'tables':    tablesData = data; break;
         case 'expenses':  expensesData = data; break;
+        case 'customers': customersData = data; break;
       }
     } else {
       console.warn('[Manager] Failed to load ' + loaders[i].key + ':', res.reason);
@@ -904,7 +1007,8 @@ function switchPanel(panelId) {
   const titles = {
     analytics: 'Analytics', orders: 'Orders', menu: 'Menu Management',
     inventory: 'Inventory', cashiers: 'Cashiers', tables: 'Tables & QR',
-    expenses: 'Expenses', settings: 'Settings', theme: 'Themes', audit: 'Audit Log'
+    expenses: 'Expenses', settings: 'Settings', theme: 'Themes', audit: 'Audit Log',
+    customers: 'Customers', reviews: 'Reviews'
   };
   document.getElementById('topBarTitle').textContent = titles[panelId] || panelId;
   renderPanel(panelId);
@@ -928,6 +1032,8 @@ function renderPanel(panelId) {
     case 'settings': loadSettings(); break;
     case 'theme': renderThemePicker(); break;
     case 'audit': loadAuditLog(); break;
+    case 'customers': renderCustomersTable(); break;
+    case 'reviews': loadReviews(); break;
   }
 }
 
@@ -984,17 +1090,19 @@ function applyFilters() {
   renderCashierAudit(filtered);
   renderCreditLog(filtered);
   renderInventoryAlerts(inventoryData);
+  loadAnalyticsEnhancements();
 }
 
 function countUp(el, target, prefix, suffix) {
   prefix = prefix || ''; suffix = suffix || '';
+  const locale = (CONFIG.RESTAURANT && CONFIG.RESTAURANT.locale) || 'en-US';
   const dur = 1200, st = performance.now();
   function up(time) {
     const p = Math.min((time - st) / dur, 1);
     const ease = 1 - Math.pow(1 - p, 3);
-    el.textContent = prefix + Math.floor(target * ease).toLocaleString('en-NG') + suffix;
+    el.textContent = prefix + Math.floor(target * ease).toLocaleString(locale) + suffix;
     if (p < 1) requestAnimationFrame(up);
-    else el.textContent = prefix + target.toLocaleString('en-NG') + suffix;
+    else el.textContent = prefix + target.toLocaleString(locale) + suffix;
   }
   requestAnimationFrame(up);
 }
@@ -1008,10 +1116,10 @@ function renderKPIs(orders) {
     if (isPaid(o.status)) { revenue += amt; paidCount++; }
     if (isCredit(o.status)) { creditAmt += amt; creditCount++; }
   });
-  countUp(document.getElementById('kpiRevenue'), Math.floor(revenue), '\u20A6');
+  countUp(document.getElementById('kpiRevenue'), Math.floor(revenue), CONFIG.CURRENCY);
   countUp(document.getElementById('kpiOrders'), orders.length);
-  countUp(document.getElementById('kpiAvg'), Math.floor(paidCount > 0 ? revenue / paidCount : 0), '\u20A6');
-  countUp(document.getElementById('kpiCredit'), Math.floor(creditAmt), '\u20A6');
+  countUp(document.getElementById('kpiAvg'), Math.floor(paidCount > 0 ? revenue / paidCount : 0), CONFIG.CURRENCY);
+  countUp(document.getElementById('kpiCredit'), Math.floor(creditAmt), CONFIG.CURRENCY);
   document.getElementById('kpiCreditSub').textContent = creditCount > 0 ? `(${creditCount} pending)` : '';
 }
 
@@ -1051,7 +1159,7 @@ function renderCharts(orders) {
   dailyChartInstance = new Chart(dCtx, {
     type: 'bar',
     data: { labels: dayLabels, datasets: [{ label: 'Revenue', data: dailyData, backgroundColor: grad, borderColor: '#0d9488', borderWidth: 1, borderRadius: 7, borderSkipped: false }] },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--c-text-light').trim(), font: { size: 11 } } }, y: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--c-text-light').trim(), font: { size: 11 }, callback: v => v >= 1000 ? '\u20A6' + (v/1000).toFixed(0) + 'k' : '\u20A6' + v } } } }
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--c-text-light').trim(), font: { size: 11 } } }, y: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--c-text-light').trim(), font: { size: 11 }, callback: v => v >= 1000 ? CONFIG.CURRENCY + (v/1000).toFixed(0) + 'k' : CONFIG.CURRENCY + v } } } }
   });
 }
 
@@ -1080,7 +1188,7 @@ function renderCreditLog(orders) {
   let rows = '';
   flagged.forEach(o => {
     const d = new Date(o.timestamp);
-    rows += `<tr><td style="font-family:monospace;font-size:0.78rem;color:var(--c-text-light);">#${o.id||o.orderId||'—'}</td><td>${d.toLocaleDateString('en-NG',{day:'2-digit',month:'short'})} ${d.toLocaleTimeString('en-NG',{hour:'2-digit',minute:'2-digit'})}</td><td>${o.customerName||o.customer||'—'}</td><td><span class="chip">${o.tableNo||o.location||'—'}</span></td><td style="font-weight:700">${fmt(parseFloat(o.total)||0)}</td><td><span class="badge badge-warning">Credit</span></td></tr>`;
+    rows += `<tr><td style="font-family:monospace;font-size:0.78rem;color:var(--c-text-light);">#${o.id||o.orderId||'—'}</td><td>${d.toLocaleDateString(CONFIG.RESTAURANT.locale,{day:'2-digit',month:'short'})} ${d.toLocaleTimeString(CONFIG.RESTAURANT.locale,{hour:'2-digit',minute:'2-digit'})}</td><td>${o.customerName||o.customer||'—'}</td><td><span class="chip">${o.tableNo||o.location||'—'}</span></td><td style="font-weight:700">${fmt(parseFloat(o.total)||0)}</td><td><span class="badge badge-warning">Credit</span></td></tr>`;
   });
   wrap.innerHTML = `<table><thead><tr><th>Order</th><th>Date</th><th>Customer</th><th>Table</th><th>Amount</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
@@ -1103,6 +1211,244 @@ function renderInventoryAlerts(inv) {
 function exportReport() { window.print(); }
 
 /* ═══════════════════════════════════════════════════════════
+   ANALYTICS ENHANCEMENTS (Peak Hours / Category / Top Customers)
+   ═══════════════════════════════════════════════════════════ */
+function loadAnalyticsEnhancements() {
+  // Fire all three fetches independently so one failure never blocks the others
+  Promise.allSettled([
+    CONFIG.apiGet('peakHours', { days: 30 }),
+    CONFIG.apiGet('categoryBreakdown', { days: 30 }),
+    CONFIG.apiGet('topCustomers', { days: 30 })
+  ]).then(results => {
+    renderPeakHours(results[0]);
+    renderCategoryChart(results[1]);
+    renderTopCustomers(results[2]);
+  });
+}
+
+function renderPeakHours(result) {
+  const wrap = document.getElementById('peakHoursWrap');
+  if (!wrap) return;
+  if (result.status !== 'fulfilled' || !result.value || result.value.status !== 'success' || !result.value.data) {
+    wrap.innerHTML = '<div class="empty-state"><div class="empty-title">No peak-hour data</div></div>';
+    return;
+  }
+  const data = result.value.data;
+  // byDay is [7][24]; index 0 = Sunday per JS getDay(). Fallback to flat hours.
+  const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  let grid;
+  if (data.byDay && data.byDay.length === 7) {
+    grid = data.byDay;
+  } else {
+    grid = DAYS.map(() => (data.hours && data.hours.length === 24) ? data.hours.slice() : new Array(24).fill(0));
+  }
+  let max = 0;
+  for (let d = 0; d < 7; d++) for (let h = 0; h < 24; h++) { const v = grid[d][h] || 0; if (v > max) max = v; }
+
+  // Header row: corner + 24 hour labels
+  let head = '<div class="heatmap-corner"></div>';
+  for (let h = 0; h < 24; h++) {
+    head += `<div class="heatmap-hour-head">${h % 6 === 0 ? h : ''}</div>`;
+  }
+  let body = '';
+  for (let d = 0; d < 7; d++) {
+    body += `<div class="heatmap-day-head">${DAYS[d]}</div>`;
+    for (let h = 0; h < 24; h++) {
+      const v = grid[d][h] || 0;
+      const intensity = max > 0 ? (v / max) : 0;
+      const alpha = v === 0 ? 0.04 : Math.max(0.08, intensity);
+      const title = `${DAYS[d]} ${String(h).padStart(2,'0')}:00 — ${v} orders`;
+      body += `<div class="heatmap-cell" title="${title}" style="background:rgba(13,148,136,${alpha.toFixed(3)});"></div>`;
+    }
+  }
+  wrap.innerHTML = `
+    <div class="heatmap-wrap">
+      <div class="heatmap-grid">${head}${body}</div>
+    </div>
+    <div class="heatmap-legend">
+      <span>Less</span><div class="gradient-bar"></div><span>More</span>
+      <span style="margin-left:auto;">Peak: <strong style="color:var(--c-text);">${max}</strong> orders/hour &middot; Last 30 days</span>
+    </div>`;
+}
+
+function renderCategoryChart(result) {
+  let data = [];
+  if (result.status === 'fulfilled' && result.value && result.value.status === 'success' && Array.isArray(result.value.data)) {
+    data = result.value.data;
+  }
+  // Theme palette mirroring the existing revenueChart / file tokens
+  const palette = ['#0d9488', '#f59e0b', '#10b981', '#2563eb', '#dc2626', '#8b5cf6', '#ea580c', '#0891b2', '#d97706', '#65a30d'];
+  const textLight = getComputedStyle(document.documentElement).getPropertyValue('--c-text-light').trim();
+  const canvas = document.getElementById('categoryChart');
+
+  if (categoryChartInstance) { categoryChartInstance.destroy(); categoryChartInstance = null; }
+
+  if (!data.length) {
+    // Render empty-state message inside the chart-box
+    const box = canvas ? canvas.parentElement : null;
+    if (box) box.innerHTML = '<div class="empty-state"><div class="empty-title">No category data</div></div>';
+    return;
+  }
+  const labels = data.map(d => d.category || 'Unknown');
+  const values = data.map(d => parseFloat(d.revenue) || 0);
+
+  categoryChartInstance = new Chart(canvas.getContext('2d'), {
+    type: 'doughnut',
+    data: { labels: labels, datasets: [{ data: values, backgroundColor: palette, borderWidth: 2 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '65%',
+      plugins: {
+        legend: { position: 'right', labels: { color: textLight, padding: 14, font: { size: 12 }, boxWidth: 14 } },
+        tooltip: { callbacks: { label: (ctx) => ' ' + ctx.label + ': ' + CONFIG.formatCurrency(ctx.parsed) } }
+      }
+    }
+  });
+}
+
+function renderTopCustomers(result) {
+  const wrap = document.getElementById('topCustomersWrap');
+  if (!wrap) return;
+  let data = [];
+  if (result.status === 'fulfilled' && result.value && result.value.status === 'success' && Array.isArray(result.value.data)) {
+    data = result.value.data;
+  }
+  if (!data.length) { wrap.innerHTML = '<div class="empty-state"><div class="empty-title">No customer data</div></div>'; return; }
+  const fmt = (v) => CONFIG.formatCurrency(v);
+  const top = data.slice(0, 10);
+  let rows = '';
+  top.forEach((c, i) => {
+    const rank = i + 1;
+    const medal = rank === 1 ? '&#129351;' : rank === 2 ? '&#129352;' : rank === 3 ? '&#129353;' : `<span class="text-muted">${rank}</span>`;
+    const phone = c.phone || '—';
+    const orders = c.orderCount != null ? c.orderCount : '—';
+    rows += `<tr><td style="font-weight:700;font-size:1rem;">${medal}</td><td><strong>${c.name || '—'}</strong></td><td style="font-family:monospace;font-size:0.78rem;">${phone}</td><td><span class="chip">${orders}</span></td><td style="font-weight:700">${fmt(parseFloat(c.totalSpent) || 0)}</td></tr>`;
+  });
+  wrap.innerHTML = `<table><thead><tr><th>Rank</th><th>Name</th><th>Phone</th><th>Orders</th><th>Total Spent</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CUSTOMERS
+   ═══════════════════════════════════════════════════════════ */
+function renderCustomersTable() {
+  const wrap = document.getElementById('customersTableWrap');
+  if (!wrap) return;
+  const search = (document.getElementById('customerSearch').value || '').toLowerCase().trim();
+  const locale = (CONFIG.RESTAURANT && CONFIG.RESTAURANT.locale) || 'en-US';
+  const threshold = (CONFIG.RESTAURANT && CONFIG.RESTAURANT.loyaltyRewardThreshold) || 10;
+  let rows = customersData;
+  if (search) {
+    rows = rows.filter(c =>
+      String(c.phone || '').toLowerCase().includes(search) ||
+      String(c.name || '').toLowerCase().includes(search)
+    );
+  }
+  if (!rows.length) {
+    wrap.innerHTML = '<div class="empty-state"><div class="empty-title">' + (customersData.length ? 'No customers match your search' : 'No customers yet') + '</div></div>';
+    return;
+  }
+  // Sort by total spent, desc
+  rows = rows.slice().sort((a, b) => (parseFloat(b.totalSpent) || 0) - (parseFloat(a.totalSpent) || 0));
+  const fmt = (v) => CONFIG.formatCurrency(v);
+  const fmtDate = (ts) => {
+    if (!ts) return '—';
+    const d = new Date(ts);
+    if (isNaN(d.getTime())) return '—';
+    return d.toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric' });
+  };
+  let html = '';
+  rows.forEach(c => {
+    const pts = parseInt(c.loyaltyPoints, 10) || 0;
+    const towards = pts % threshold;
+    html += `<tr><td style="font-family:monospace;font-size:0.78rem;">${c.phone || '—'}</td><td><strong>${c.name || '—'}</strong></td><td><span class="chip">${c.totalOrders != null ? c.totalOrders : 0}</span></td><td style="font-weight:700">${fmt(parseFloat(c.totalSpent) || 0)}</td><td><span style="white-space:nowrap;">&#11088; <strong>${pts}</strong> <span class="text-muted" style="font-size:0.72rem;">(${towards}/${threshold})</span></span></td><td class="text-muted">${fmtDate(c.lastVisit)}</td></tr>`;
+  });
+  wrap.innerHTML = `<table><thead><tr><th>Phone</th><th>Name</th><th>Orders</th><th>Total Spent</th><th>Loyalty Points</th><th>Last Visit</th></tr></thead><tbody>${html}</tbody></table>`;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   REVIEWS MODERATION
+   ═══════════════════════════════════════════════════════════ */
+async function loadReviews() {
+  // Average rating card
+  const avgWrap = document.getElementById('avgRatingDisplay');
+  try {
+    const res = await CONFIG.apiGet('averageRating');
+    if (res && res.status === 'success' && res.data) {
+      const avg = parseFloat(res.data.average) || 0;
+      const count = parseInt(res.data.count, 10) || 0;
+      avgWrap.innerHTML = `
+        <div class="rating-display">
+          <div class="rating-star">&#9733;</div>
+          <div class="rating-big">${avg.toFixed(1)}</div>
+          <div class="rating-meta">
+            <span class="label">Average Rating</span>
+            <span class="count">Based on ${count} review${count === 1 ? '' : 's'}</span>
+          </div>
+        </div>`;
+    } else {
+      avgWrap.innerHTML = '<div class="empty-state"><div class="empty-title">No ratings yet</div></div>';
+    }
+  } catch (e) {
+    avgWrap.innerHTML = '<div class="empty-state"><div class="empty-title">Could not load rating</div></div>';
+  }
+
+  // Pending reviews
+  const reviewsWrap = document.getElementById('reviewsTableWrap');
+  reviewsWrap.innerHTML = '<div class="loading-state"><div class="spinner"></div></div>';
+  try {
+    const res = await CONFIG.apiGet('reviews', { status: 'Pending' });
+    reviewsData = (res && res.status === 'success' && Array.isArray(res.data)) ? res.data : [];
+  } catch (e) {
+    reviewsData = [];
+  }
+  renderReviewsTable();
+}
+
+function renderReviewsTable() {
+  const wrap = document.getElementById('reviewsTableWrap');
+  if (!wrap) return;
+  const locale = (CONFIG.RESTAURANT && CONFIG.RESTAURANT.locale) || 'en-US';
+  if (!reviewsData.length) {
+    wrap.innerHTML = '<div class="empty-state"><div class="empty-title">No pending reviews</div></div>';
+    return;
+  }
+  // Newest first
+  const sorted = reviewsData.slice().sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  const fmtDate = (ts) => {
+    const d = new Date(ts);
+    if (isNaN(d.getTime())) return '—';
+    return d.toLocaleDateString(locale, { day: '2-digit', month: 'short' }) + ' ' + d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+  };
+  const starStr = (n) => {
+    const r = parseInt(n, 10) || 0;
+    let s = '';
+    for (let i = 0; i < 5; i++) s += i < r ? '<span class="text-accent">&#9733;</span>' : '<span class="text-muted">&#9733;</span>';
+    return s;
+  };
+  const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  let html = '';
+  sorted.forEach(r => {
+    const orderId = r.orderId || r.id || '';
+    html += `<tr><td style="font-family:monospace;font-size:0.78rem;">#${esc(orderId)}</td><td class="text-muted">${fmtDate(r.timestamp)}</td><td>${esc(r.customerName || r.phone || '—')}</td><td style="white-space:nowrap;letter-spacing:1px;font-size:0.9rem;">${starStr(r.rating)}</td><td style="max-width:340px;">${esc(r.comment || '')}</td><td style="white-space:nowrap;"><button class="btn btn-primary btn-sm" onclick="decideReview('${esc(orderId)}','approve')">Approve</button> <button class="btn btn-danger btn-sm" onclick="decideReview('${esc(orderId)}','reject')">Reject</button></td></tr>`;
+  });
+  wrap.innerHTML = `<table><thead><tr><th>Order ID</th><th>Date</th><th>Customer</th><th>Rating</th><th>Comment</th><th>Actions</th></tr></thead><tbody>${html}</tbody></table>`;
+}
+
+async function decideReview(orderId, decision) {
+  if (!orderId) return toast('Missing order ID', 'error');
+  try {
+    const res = await CONFIG.apiPost('approveReview', { orderId: orderId, decision: decision });
+    if (res && res.status === 'success') {
+      toast('Review ' + (decision === 'approve' ? 'approved' : 'rejected'), 'success');
+      await loadReviews();
+    } else {
+      toast((res && res.message) || 'Failed to update review', 'error');
+    }
+  } catch (e) {
+    toast('Failed to update review', 'error');
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
    ORDERS LIST
    ═══════════════════════════════════════════════════════════ */
 function renderOrdersList() {
@@ -1117,7 +1463,7 @@ function renderOrdersList() {
   orders.forEach(o => {
     const d = new Date(o.timestamp);
     const badge = getBadgeClass(o.status);
-    rows += `<tr><td style="font-family:monospace;font-size:0.78rem;">#${o.id||o.orderId||''}</td><td>${d.toLocaleDateString('en-NG',{day:'2-digit',month:'short'})} ${d.toLocaleTimeString('en-NG',{hour:'2-digit',minute:'2-digit'})}</td><td>${o.customerName||'—'}</td><td><span class="chip">${o.location||'—'}</span></td><td style="font-weight:700">${fmt(parseFloat(o.total)||0)}</td><td><span class="badge ${badge}">${CONFIG.STATUS ? CONFIG.STATUS.getLabel(o.status) : o.status}</span></td></tr>`;
+    rows += `<tr><td style="font-family:monospace;font-size:0.78rem;">#${o.id||o.orderId||''}</td><td>${d.toLocaleDateString(CONFIG.RESTAURANT.locale,{day:'2-digit',month:'short'})} ${d.toLocaleTimeString(CONFIG.RESTAURANT.locale,{hour:'2-digit',minute:'2-digit'})}</td><td>${o.customerName||'—'}</td><td><span class="chip">${o.location||'—'}</span></td><td style="font-weight:700">${fmt(parseFloat(o.total)||0)}</td><td><span class="badge ${badge}">${CONFIG.STATUS ? CONFIG.STATUS.getLabel(o.status) : o.status}</span></td></tr>`;
   });
   wrap.innerHTML = `<table><thead><tr><th>Order ID</th><th>Time</th><th>Customer</th><th>Location</th><th>Total</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
@@ -1154,8 +1500,8 @@ function openMenuModal(editId) {
     <div class="form-grid">
       <div class="form-group"><label>Name</label><input id="mf_name" value="${item?item.name:''}" /></div>
       <div class="form-group"><label>Category</label><select id="mf_category">${CONFIG.CATEGORIES.filter(c=>c!=='All').map(c=>`<option ${item&&item.category===c?'selected':''}>${c}</option>`).join('')}</select></div>
-      <div class="form-group"><label>Price (₦)</label><input type="number" id="mf_price" value="${item?item.price:''}" /></div>
-      <div class="form-group"><label>Cost (₦)</label><input type="number" id="mf_cost" value="${item?item.cost:''}" /></div>
+      <div class="form-group"><label>Price (${CONFIG.CURRENCY})</label><input type="number" id="mf_price" value="${item?item.price:''}" /></div>
+      <div class="form-group"><label>Cost (${CONFIG.CURRENCY})</label><input type="number" id="mf_cost" value="${item?item.cost:''}" /></div>
       <div class="form-group"><label>Prep Time (min)</label><input type="number" id="mf_prepTime" value="${item?item.prepTime:10}" /></div>
       <div class="form-group"><label>Available</label><select id="mf_available"><option value="true" ${!item||item.available==='Yes'?'selected':''}>Yes</option><option value="false" ${item&&item.available==='No'?'selected':''}>No</option></select></div>
       <div class="form-group form-full"><label>Description</label><textarea id="mf_desc">${item?item.description:''}</textarea></div>
@@ -1219,7 +1565,7 @@ function openInventoryModal() {
     <div class="form-group"><label>Stock</label><input type="number" id="invf_stock" value="0" /></div>
     <div class="form-group"><label>Threshold</label><input type="number" id="invf_threshold" value="5" /></div>
     <div class="form-group"><label>Unit</label><input id="invf_unit" placeholder="kg, L, pcs" /></div>
-    <div class="form-group"><label>Cost per Unit (₦)</label><input type="number" id="invf_cost" value="0" /></div>
+    <div class="form-group"><label>Cost per Unit (${CONFIG.CURRENCY})</label><input type="number" id="invf_cost" value="0" /></div>
     <div class="form-group"><label>Supplier</label><input id="invf_supplier" /></div>
     <div class="form-group"><label>Min Order Qty</label><input type="number" id="invf_minOrder" value="0" /></div>
   </div>`;
@@ -1254,7 +1600,7 @@ function openInventoryEditModal(name) {
     <div class="form-group"><label>Stock</label><input type="number" id="inve_stock" value="${item.currentStock}" /></div>
     <div class="form-group"><label>Threshold</label><input type="number" id="inve_threshold" value="${item.alertThreshold}" /></div>
     <div class="form-group"><label>Unit</label><input id="inve_unit" value="${item.unit||''}" /></div>
-    <div class="form-group"><label>Cost per Unit (₦)</label><input type="number" id="inve_cost" value="${item.costPerUnit||0}" /></div>
+    <div class="form-group"><label>Cost per Unit (${CONFIG.CURRENCY})</label><input type="number" id="inve_cost" value="${item.costPerUnit||0}" /></div>
     <div class="form-group"><label>Supplier</label><input id="inve_supplier" value="${item.supplier||''}" /></div>
     <div class="form-group"><label>Min Order Qty</label><input type="number" id="inve_minOrder" value="${item.minOrderQty||0}" /></div>
   </div>`;
@@ -1425,7 +1771,7 @@ function renderExpensesTable() {
   const fmt = (v) => CONFIG.formatCurrency(v);
   let rows = '';
   expensesData.forEach(e => {
-    rows += `<tr><td>${e.date ? new Date(e.date).toLocaleDateString('en-NG',{day:'2-digit',month:'short',year:'numeric'}) : '—'}</td><td>${e.category||'—'}</td><td>${e.description||'—'}</td><td style="font-weight:700">${fmt(parseFloat(e.amount)||0)}</td><td>${e.paymentMethod||'—'}</td></tr>`;
+    rows += `<tr><td>${e.date ? new Date(e.date).toLocaleDateString(CONFIG.RESTAURANT.locale,{day:'2-digit',month:'short',year:'numeric'}) : '—'}</td><td>${e.category||'—'}</td><td>${e.description||'—'}</td><td style="font-weight:700">${fmt(parseFloat(e.amount)||0)}</td><td>${e.paymentMethod||'—'}</td></tr>`;
   });
   wrap.innerHTML = `<table><thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Amount</th><th>Method</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
@@ -1435,7 +1781,7 @@ function openExpenseModal() {
     <div class="form-group"><label>Date</label><input type="date" id="ef_date" value="${new Date().toISOString().split('T')[0]}" /></div>
     <div class="form-group"><label>Category</label><input id="ef_category" placeholder="e.g. Utilities, Supplies" /></div>
     <div class="form-group form-full"><label>Description</label><input id="ef_desc" /></div>
-    <div class="form-group"><label>Amount (₦)</label><input type="number" id="ef_amount" /></div>
+    <div class="form-group"><label>Amount (${CONFIG.CURRENCY})</label><input type="number" id="ef_amount" /></div>
     <div class="form-group"><label>Payment Method</label><select id="ef_method"><option>Cash</option><option>Transfer</option><option>POS</option></select></div>
   </div>`;
   const actions = `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveExpense()">Record Expense</button>`;
@@ -1500,7 +1846,7 @@ async function saveSettings() {
    ═══════════════════════════════════════════════════════════ */
 function renderThemePicker() {
   const grid = document.getElementById('themeGrid');
-  const saved = localStorage.getItem('mevish_theme') || 'default';
+  const saved = localStorage.getItem(CONFIG.STORAGE_PREFIX + 'theme') || 'default';
   let html = '';
   Object.keys(CONFIG.THEMES).forEach(id => {
     const t = CONFIG.THEMES[id];

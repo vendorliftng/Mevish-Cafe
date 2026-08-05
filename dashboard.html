@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Command Center | Mevish Eatery</title>
-  <meta name="description" content="Mevish Eatery Command Center — Kitchen Display System and Cashier Checkout Terminal with Receipt Printing.">
+  <title>Command Center</title>
+  <meta name="description" content="Restaurant Command Center — Kitchen Display System and Cashier Checkout Terminal with Receipt Printing.">
   <link rel="stylesheet" href="style.css">
   <script src="config.js"></script>
   <style>
@@ -290,6 +290,8 @@
     .btn-info:hover { background: linear-gradient(135deg, #1e3a8a, #1d4ed8); transform: translateY(-1px); }
     .btn-danger-outline { background: transparent; border: 1.5px solid var(--c-danger); color: var(--c-danger); }
     .btn-danger-outline:hover { background: rgba(220,38,38,0.1); }
+    .btn-whatsapp { background: linear-gradient(135deg, #1ebe57, #25D366); color: #fff; }
+    .btn-whatsapp:hover { background: linear-gradient(135deg, #128C7E, #1ebe57); transform: translateY(-1px); }
     .btn-warning { background: linear-gradient(135deg, #b45309, #f59e0b); color: #fff; }
     .btn-sm { padding: 0.35rem 0.75rem; font-size: 0.76rem; border-radius: 8px; }
 
@@ -622,9 +624,11 @@
   // Accept both manager PIN and a staff PIN (if configured)
   const CORRECT_PIN = CONFIG.MANAGER_PIN || '1234';
 
-  const rName = CONFIG.RESTAURANT ? CONFIG.RESTAURANT.name : 'Mevish Eatery';
+  const rName = CONFIG.RESTAURANT ? CONFIG.RESTAURANT.name : 'Restaurant';
+  const rLocale = (CONFIG.RESTAURANT && CONFIG.RESTAURANT.locale) ? CONFIG.RESTAURANT.locale : 'en-US';
   document.getElementById('pinRestName').textContent = rName;
   document.getElementById('headerRestName').textContent = rName;
+  document.title = rName + ' Command Center';
 
   function addDigit(d) {
     if (pin.length >= 4) return;
@@ -748,7 +752,7 @@
   }
 
   function setLastUpdated() {
-    const t = new Date().toLocaleTimeString('en-NG', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const t = new Date().toLocaleTimeString(rLocale, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     document.getElementById('lastUpdated').textContent = 'Updated ' + t;
   }
 
@@ -866,6 +870,8 @@
       actions = `<button class="btn btn-primary" onclick="event.stopPropagation();handlePayPOS('${escAttr(order.orderId || order.id)}')">POS</button>`;
       actions += `<button class="btn btn-cash" onclick="event.stopPropagation();handlePayCash('${escAttr(order.orderId || order.id)}')">Cash</button>`;
     }
+    // WhatsApp forward/share button — available for ALL statuses
+    actions += `<button class="btn btn-whatsapp" title="Forward order via WhatsApp" onclick="event.stopPropagation();openWhatsAppForward('${escAttr(order.orderId || order.id)}')"><span aria-hidden="true">💬</span> Share</button>`;
 
     cardEl.innerHTML = `
       <div class="order-card-header">
@@ -1121,14 +1127,14 @@
   function formatReceiptDate(ts) {
     const d = new Date(ts);
     if (isNaN(d)) return ts || '--';
-    return d.toLocaleDateString('en-NG', { day: '2-digit', month: 'short', year: 'numeric' }) +
-           ' ' + d.toLocaleTimeString('en-NG', { hour: '2-digit', minute: '2-digit' });
+    return d.toLocaleDateString(rLocale, { day: '2-digit', month: 'short', year: 'numeric' }) +
+           ' ' + d.toLocaleTimeString(rLocale, { hour: '2-digit', minute: '2-digit' });
   }
 
   function formatTime(ts) {
     const d = new Date(ts);
     if (isNaN(d)) return ts || '--';
-    return d.toLocaleTimeString('en-NG', { hour: '2-digit', minute: '2-digit' });
+    return d.toLocaleTimeString(rLocale, { hour: '2-digit', minute: '2-digit' });
   }
 
   function generateReceiptHTML(order) {
@@ -1140,8 +1146,8 @@
       if (cm) { method = cm[1]; cashier = cm[2]; }
     }
     const date = formatReceiptDate(order.timestamp);
-    const restName = CONFIG.RESTAURANT ? CONFIG.RESTAURANT.name : 'Mevish Eatery';
-    const restAddr = CONFIG.RESTAURANT ? (CONFIG.RESTAURANT.address || 'Yola, Adamawa State, Nigeria') : 'Yola, Adamawa State, Nigeria';
+    const restName = (CONFIG.RESTAURANT && CONFIG.RESTAURANT.name) ? CONFIG.RESTAURANT.name : 'Restaurant';
+    const restAddr = (CONFIG.RESTAURANT && CONFIG.RESTAURANT.address) ? CONFIG.RESTAURANT.address : '';
     const restPhone = CONFIG.RESTAURANT ? (CONFIG.RESTAURANT.phone || '') : '';
 
     const itemLines = items.map(item => `<div class="receipt-item-line"><span class="receipt-item-qty">${item.qty}x</span><span class="receipt-item-name">${escHtml(item.name)}</span></div>`).join('');
@@ -1215,6 +1221,26 @@
   }
   function escAttr(str) { return String(str).replace(/'/g, "\\'"); }
   if (!CSS.escape) { CSS.escape = function(v) { return v.replace(/[^\w-]/g, c => '\\' + c); }; }
+
+  /* ═══════════════════════════════════════════════════
+     WHATSAPP FORWARD
+     ═══════════════════════════════════════════════════ */
+  function buildOrderSummary(order) {
+    return '🧾 Order ' + (order.orderId || order.id || '--') +
+      '\nCustomer: ' + (order.name || order.customerName || '--') +
+      '\nTable: ' + (order.location || order.tableNo || '--') +
+      '\nItems: ' + (order.items || '--') +
+      '\nTotal: ' + CONFIG.formatCurrency(order.total || order.totalRevenue || 0) +
+      '\nStatus: ' + getLabel(order.status);
+  }
+  function buildWhatsAppForwardUrl(order) {
+    return 'https://wa.me/?text=' + encodeURIComponent(buildOrderSummary(order));
+  }
+  function openWhatsAppForward(orderId) {
+    const order = getOrderById(orderId);
+    if (!order) { showToast('Order not found for WhatsApp share', 'error'); return; }
+    window.open(buildWhatsAppForwardUrl(order), '_blank', 'noopener');
+  }
 
   /* ═══════════════════════════════════════════════════
      INIT

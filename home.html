@@ -4,41 +4,28 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- SEO -->
-  <title>Mevish Eatery — Premium Restaurant in Yola, Adamawa | Order Online</title>
-  <meta name="description" content="Mevish Eatery is Yola's premium dining destination. Enjoy Mandi Rice, Shawarma, Pizza, Swallows, and more. Order online for dine-in or counter service.">
-  <meta name="keywords" content="Mevish Eatery, restaurant Yola, Adamawa restaurant, Mandi Rice, Shawarma Yola, Pizza Yola, Nigerian food Yola, order food online Yola">
+  <!-- SEO (placeholders — overridden on load from CONFIG) -->
+  <title id="pageTitle">Restaurant — Home</title>
+  <meta name="description" id="metaDescription" content="Premium dining and online ordering.">
+  <meta name="keywords" id="metaKeywords" content="restaurant, online ordering, food, dine in">
   <meta name="robots" content="index, follow">
-  <meta name="author" content="Mevish Eatery">
+  <meta name="author" id="metaAuthor" content="Restaurant">
   <link rel="canonical" href="./home.html">
 
-  <!-- Open Graph -->
-  <meta property="og:title" content="Mevish Eatery — Yola's Finest">
-  <meta property="og:description" content="Premium food, fast service, real flavour. Dine in or order online at Mevish Eatery, Yola.">
+  <!-- Open Graph (overridden on load from CONFIG) -->
+  <meta property="og:title" id="ogTitle" content="Restaurant">
+  <meta property="og:description" id="ogDescription" content="Premium food, fast service, real flavour.">
   <meta property="og:type" content="restaurant">
   <meta property="og:url" content="./home.html">
-  <meta property="og:site_name" content="Mevish Eatery">
+  <meta property="og:site_name" id="ogSiteName" content="Restaurant">
 
-  <!-- Twitter Card -->
+  <!-- Twitter Card (overridden on load from CONFIG) -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Mevish Eatery — Yola's Finest">
-  <meta name="twitter:description" content="Premium food, fast service, real flavour. Dine in or order online at Mevish Eatery, Yola.">
+  <meta name="twitter:title" id="twitterTitle" content="Restaurant">
+  <meta name="twitter:description" id="twitterDescription" content="Premium food, fast service, real flavour.">
 
-  <!-- Schema.org JSON-LD -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "Restaurant",
-    "name": "Mevish Eatery",
-    "description": "Premium restaurant in Yola, Adamawa offering Rice dishes, Swallows, Shawarma, Pizza, Burgers and Nigerian drinks",
-    "address": { "@type": "PostalAddress", "addressLocality": "Yola", "addressRegion": "Adamawa", "addressCountry": "NG" },
-    "servesCuisine": ["Nigerian", "Continental", "Fast Food"],
-    "priceRange": "₦₦",
-    "openingHours": "Mo-Su 08:00-22:00",
-    "hasMenu": "./index.html",
-    "url": "./home.html"
-  }
-  </script>
+  <!-- Schema.org JSON-LD — injected dynamically on load from CONFIG -->
+  <script type="application/ld+json" id="jsonLd"></script>
 
   <link rel="stylesheet" href="style.css">
   <script src="config.js"></script>
@@ -137,7 +124,7 @@
     <div class="container">
       <a href="home.html" class="navbar-brand" id="navLogo">
         <div class="brand-icon">🍽️</div>
-        Mevish <span class="brand-accent">Eatery</span>
+        <span id="navBrandShort">Restaurant</span> <span class="brand-accent" id="navBrandAccent">Eatery</span>
       </a>
 
       <ul class="navbar-nav" id="navLinks">
@@ -174,9 +161,9 @@
 
     <div class="container">
       <div class="hero-content">
-        <div class="hero-eyebrow" id="heroEyebrow">⭐ Yola's #1 Premium Eatery</div>
+        <div class="hero-eyebrow" id="heroEyebrow">⭐ Premium Eatery</div>
         <h1 class="hero-title text-gradient" id="heroTitle">Where Every Bite<br>Tells a Story</h1>
-        <p class="hero-subtitle" id="heroSubtitle">From sizzling Shawarma to aromatic Mandi Rice — experience premium Nigerian and Continental cuisine in the heart of Yola, Adamawa.</p>
+        <p class="hero-subtitle" id="heroSubtitle">Premium food, fast service, real flavour — dine in or order online.</p>
         <div class="hero-actions">
           <a href="index.html?table=Counter" class="btn btn-primary btn-lg" id="heroOrderBtn">Order Now →</a>
           <a href="#featured" class="btn btn-secondary btn-lg" id="heroMenuBtn">View Full Menu</a>
@@ -192,19 +179,19 @@
     <div class="container">
       <div class="grid grid-4">
         <div class="stat-item reveal">
-          <div class="stat-item-value">15+</div>
-          <div class="stat-item-label">Tables Available</div>
+          <div class="stat-item-value" id="statSeats">--</div>
+          <div class="stat-item-label">Seats Available</div>
         </div>
         <div class="stat-item reveal reveal-delay-1">
-          <div class="stat-item-value">68+</div>
+          <div class="stat-item-value" id="statMenuCount">--</div>
           <div class="stat-item-label">Menu Items</div>
         </div>
         <div class="stat-item reveal reveal-delay-2">
-          <div class="stat-item-value">₦500</div>
+          <div class="stat-item-value" id="statStartPrice">--</div>
           <div class="stat-item-label">Starts From</div>
         </div>
         <div class="stat-item reveal reveal-delay-3">
-          <div class="stat-item-value">7 Days</div>
+          <div class="stat-item-value" id="statOpenDays">7 Days</div>
           <div class="stat-item-label">We're Open</div>
         </div>
       </div>
@@ -223,91 +210,7 @@
       </div>
 
       <div class="grid grid-3" id="featuredGrid">
-
-        <!-- Card 1 -->
-        <div class="menu-card menu-card-featured reveal reveal-delay-1">
-          <div class="menu-card-image">🍕</div>
-          <div class="menu-card-body">
-            <div class="menu-card-category">Pastries</div>
-            <div class="menu-card-name">Mevish Pizza (Pineapple / Sausage / Chicken)</div>
-            <div class="menu-card-desc">Our signature masterpiece — loaded toppings on a golden crust.</div>
-            <div class="menu-card-controls">
-              <span class="menu-card-featured-price">₦15,000</span>
-              <a href="index.html?table=Counter" class="btn btn-primary btn-sm" id="orderPizza">Order →</a>
-            </div>
-          </div>
-        </div>
-
-        <!-- Card 2 -->
-        <div class="menu-card menu-card-featured reveal reveal-delay-2">
-          <div class="menu-card-image">🍖</div>
-          <div class="menu-card-body">
-            <div class="menu-card-category">Foods</div>
-            <div class="menu-card-name">Mandi Rice &amp; Chicken</div>
-            <div class="menu-card-desc">Slow-cooked Arabian perfection with fragrant spiced rice.</div>
-            <div class="menu-card-controls">
-              <span class="menu-card-featured-price">₦7,000</span>
-              <a href="index.html?table=Counter" class="btn btn-primary btn-sm" id="orderMandi">Order →</a>
-            </div>
-          </div>
-        </div>
-
-        <!-- Card 3 -->
-        <div class="menu-card menu-card-featured reveal reveal-delay-3">
-          <div class="menu-card-image">🌯</div>
-          <div class="menu-card-body">
-            <div class="menu-card-category">Pastries</div>
-            <div class="menu-card-name">Shawarma Double Sausage</div>
-            <div class="menu-card-desc">The crowd favourite — double-filled, toasted to perfection.</div>
-            <div class="menu-card-controls">
-              <span class="menu-card-featured-price">₦4,500</span>
-              <a href="index.html?table=Counter" class="btn btn-primary btn-sm" id="orderShawarma">Order →</a>
-            </div>
-          </div>
-        </div>
-
-        <!-- Card 4 -->
-        <div class="menu-card menu-card-featured reveal reveal-delay-1">
-          <div class="menu-card-image">🥘</div>
-          <div class="menu-card-body">
-            <div class="menu-card-category">Swallows</div>
-            <div class="menu-card-name">Swallow &amp; Soup with Chicken</div>
-            <div class="menu-card-desc">Authentic Nigerian comfort — rich soup, smooth swallow.</div>
-            <div class="menu-card-controls">
-              <span class="menu-card-featured-price">₦5,500</span>
-              <a href="index.html?table=Counter" class="btn btn-primary btn-sm" id="orderSwallow">Order →</a>
-            </div>
-          </div>
-        </div>
-
-        <!-- Card 5 -->
-        <div class="menu-card menu-card-featured reveal reveal-delay-2">
-          <div class="menu-card-image">🍔</div>
-          <div class="menu-card-body">
-            <div class="menu-card-category">Pastries</div>
-            <div class="menu-card-name">Burger with Cheese &amp; Fries</div>
-            <div class="menu-card-desc">Western-style satisfaction with crispy fries on the side.</div>
-            <div class="menu-card-controls">
-              <span class="menu-card-featured-price">₦4,500</span>
-              <a href="index.html?table=Counter" class="btn btn-primary btn-sm" id="orderBurger">Order →</a>
-            </div>
-          </div>
-        </div>
-
-        <!-- Card 6 -->
-        <div class="menu-card menu-card-featured reveal reveal-delay-3">
-          <div class="menu-card-image">🥤</div>
-          <div class="menu-card-body">
-            <div class="menu-card-category">Drinks</div>
-            <div class="menu-card-name">Yoghurt Parfait</div>
-            <div class="menu-card-desc">A refreshing delight — creamy, sweet, and perfectly layered.</div>
-            <div class="menu-card-controls">
-              <span class="menu-card-featured-price">₦3,000</span>
-              <a href="index.html?table=Counter" class="btn btn-primary btn-sm" id="orderYoghurt">Order →</a>
-            </div>
-          </div>
-        </div>
-
+        <!-- Featured cards are generated dynamically by renderFeatured() from CONFIG.RESTAURANT.featuredItems -->
       </div><!-- /grid -->
 
       <div class="text-center" style="margin-top: var(--sp-2xl);">
@@ -327,14 +230,12 @@
         <div class="reveal">
           <p class="section-eyebrow">Our Philosophy</p>
           <h2 class="section-title" style="text-align:left;">More Than<br>Just a Meal</h2>
-          <p style="color: var(--text-secondary); line-height: 1.8; margin-bottom: var(--sp-lg);">
-            At Mevish Eatery, every dish is a labour of love. We believe that great food starts with great ingredients, 
-            made with care and served with pride. Whether you're grabbing a quick shawarma or sitting down for a full 
-            Mandi Rice experience, you deserve the absolute best.
+          <p id="aboutPara1" style="color: var(--text-secondary); line-height: 1.8; margin-bottom: var(--sp-lg);">
+            Every dish is a labour of love. We believe that great food starts with great ingredients,
+            made with care and served with pride.
           </p>
-          <p style="color: var(--text-secondary); line-height: 1.8; margin-bottom: var(--sp-xl);">
-            Located in the heart of Yola, Adamawa State, we bring together the finest Nigerian and Continental flavours 
-            under one roof — fast, fresh, and authentically flavoured.
+          <p id="aboutPara2" style="color: var(--text-secondary); line-height: 1.8; margin-bottom: var(--sp-xl);">
+            We bring together the finest flavours under one roof — fast, fresh, and authentically flavoured.
           </p>
 
           <div class="about-check">
@@ -347,8 +248,8 @@
           <div class="about-check" style="margin-top: var(--sp-md);">
             <div class="about-check-icon">✓</div>
             <div>
-              <div class="about-check-text" style="font-weight:600; color: var(--text-primary);">15-Table Dining Space</div>
-              <div class="about-check-text">Comfortable, welcoming dining for families, friends and colleagues.</div>
+              <div class="about-check-text" style="font-weight:600; color: var(--text-primary);" id="aboutSeatsLabel">Spacious Dining Space</div>
+              <div class="about-check-text" id="aboutSeatsDesc">Comfortable, welcoming dining for families, friends and colleagues.</div>
             </div>
           </div>
           <div class="about-check" style="margin-top: var(--sp-md);">
@@ -363,23 +264,8 @@
         <!-- Deco Right -->
         <div class="about-col-deco reveal reveal-delay-2">
           <div class="about-emoji-ring">🍽️</div>
-          <div style="display:flex; gap: var(--sp-md); margin-top: var(--sp-lg); flex-wrap: wrap; justify-content: center;">
-            <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--sp-md) var(--sp-lg); text-align: center;">
-              <div style="font-size: 2rem;">🌯</div>
-              <div style="font-size: var(--fs-xs); color: var(--text-muted); margin-top: 4px;">Shawarma</div>
-            </div>
-            <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--sp-md) var(--sp-lg); text-align: center; animation: float 4s 1s ease-in-out infinite;">
-              <div style="font-size: 2rem;">🍖</div>
-              <div style="font-size: var(--fs-xs); color: var(--text-muted); margin-top: 4px;">Mandi Rice</div>
-            </div>
-            <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--sp-md) var(--sp-lg); text-align: center; animation: float 5s 2s ease-in-out infinite;">
-              <div style="font-size: 2rem;">🥤</div>
-              <div style="font-size: var(--fs-xs); color: var(--text-muted); margin-top: 4px;">Fura Drinks</div>
-            </div>
-            <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--sp-md) var(--sp-lg); text-align: center; animation: float 6s 0.5s ease-in-out infinite;">
-              <div style="font-size: 2rem;">🥘</div>
-              <div style="font-size: var(--fs-xs); color: var(--text-muted); margin-top: 4px;">Swallows</div>
-            </div>
+          <div id="aboutChips" style="display:flex; gap: var(--sp-md); margin-top: var(--sp-lg); flex-wrap: wrap; justify-content: center;">
+            <!-- Cuisine chips rendered dynamically by renderAboutChips() from CONFIG.RESTAURANT.cuisineTypes -->
           </div>
         </div>
 
@@ -393,16 +279,16 @@
   <section class="section section-dark" id="features">
     <div class="container">
       <div class="section-header reveal">
-        <p class="section-eyebrow">Why Mevish</p>
-        <h2 class="section-title">The Mevish Difference</h2>
-        <p class="section-subtitle">Premium Food. Fast Service. Real Flavour. — and so much more.</p>
+        <p class="section-eyebrow" id="featuresEyebrow">Why Us</p>
+        <h2 class="section-title" id="featuresTitle">The Difference</h2>
+        <p class="section-subtitle" id="featuresSubtitle">— and so much more.</p>
       </div>
 
       <div class="grid grid-3">
         <div class="feature-card reveal reveal-delay-1">
           <div class="feature-icon">🍽️</div>
           <h3 class="feature-title">Diverse Menu</h3>
-          <p class="feature-text">68+ dishes spanning Foods, Swallows, Pastries, and Drinks — something for everyone at every table.</p>
+          <p class="feature-text" id="featureDiverse">A wide range of dishes across every category — something for everyone at every table.</p>
         </div>
         <div class="feature-card reveal reveal-delay-2">
           <div class="feature-icon">⚡</div>
@@ -421,13 +307,13 @@
         </div>
         <div class="feature-card reveal reveal-delay-2">
           <div class="feature-icon">🥤</div>
-          <h3 class="feature-title">Nigerian Drinks</h3>
-          <p class="feature-text">Authentic Fura, Zobo, Tamarind, Coconut Fura, Kunan Aya and more — a taste of home.</p>
+          <h3 class="feature-title" id="featureDrinksTitle">Refreshing Drinks</h3>
+          <p class="feature-text" id="featureDrinksText">A selection of refreshing, handcrafted drinks — a taste of something special.</p>
         </div>
         <div class="feature-card reveal reveal-delay-3">
           <div class="feature-icon">🎂</div>
           <h3 class="feature-title">Pastries &amp; Desserts</h3>
-          <p class="feature-text">Banana Bread, Cakes, Ice Cream, Shawarma, Spring Rolls — treats for every craving.</p>
+          <p class="feature-text" id="featurePastriesText">Cakes, Ice Cream, Spring Rolls and more — treats for every craving.</p>
         </div>
       </div>
     </div>
@@ -441,7 +327,7 @@
       <div class="section-header reveal">
         <p class="section-eyebrow">Kitchen Stories</p>
         <h2 class="section-title">From Our Kitchen</h2>
-        <p class="section-subtitle">Insights, stories, and updates from the heart of Mevish Eatery.</p>
+        <p class="section-subtitle" id="blogSubtitle">Insights, stories, and updates from the heart of our kitchen.</p>
       </div>
 
       <div class="grid grid-blog">
@@ -453,10 +339,10 @@
           </div>
           <div class="blog-card-body">
             <span class="blog-card-category">Menu Spotlight</span>
-            <h3 class="blog-card-title">The Story Behind Mevish Pizza — Our Signature Creation</h3>
-            <p class="blog-card-excerpt">Discover how our signature Mevish Pizza was born — a labour of love combining pineapple, sausage, and chicken into one unforgettable slice.</p>
+            <h3 class="blog-card-title" id="blog1Title">Our Signature Dish</h3>
+            <p class="blog-card-excerpt" id="blog1Excerpt">Discover the story behind one of our most-loved signature creations.</p>
             <div class="blog-card-meta">
-              <span>May 2025</span>
+              <span id="blog1Date">Recently</span>
               <a href="blog.html" class="read-more" id="readBlog1">Read More →</a>
             </div>
           </div>
@@ -469,10 +355,10 @@
           </div>
           <div class="blog-card-body">
             <span class="blog-card-category">Food &amp; Culture</span>
-            <h3 class="blog-card-title">What Is Mandi Rice? The Arabian Dish Taking Yola by Storm</h3>
-            <p class="blog-card-excerpt">Mandi Rice is a slow-cooked marvel from the Arabian Peninsula — fragrant, tender, and deeply satisfying. We're bringing it to Yola, Adamawa.</p>
+            <h3 class="blog-card-title" id="blog2Title">A Dish Worth Travelling For</h3>
+            <p class="blog-card-excerpt" id="blog2Excerpt">Explore the flavours and traditions behind some of our most beloved dishes.</p>
             <div class="blog-card-meta">
-              <span>April 2025</span>
+              <span id="blog2Date">Recently</span>
               <a href="blog.html" class="read-more" id="readBlog2">Read More →</a>
             </div>
           </div>
@@ -485,10 +371,10 @@
           </div>
           <div class="blog-card-body">
             <span class="blog-card-category">News &amp; Events</span>
-            <h3 class="blog-card-title">Mevish Eatery: Your Go-To Restaurant in Yola, Adamawa</h3>
-            <p class="blog-card-excerpt">From humble beginnings to becoming Yola's favourite dining spot, here's the full story of Mevish Eatery and what makes us truly special.</p>
+            <h3 class="blog-card-title" id="blog3Title">Your Go-To Restaurant</h3>
+            <p class="blog-card-excerpt" id="blog3Excerpt">From humble beginnings to becoming a favourite dining spot — here's what makes us truly special.</p>
             <div class="blog-card-meta">
-              <span>March 2025</span>
+              <span id="blog3Date">Recently</span>
               <a href="blog.html" class="read-more" id="readBlog3">Read More →</a>
             </div>
           </div>
@@ -522,7 +408,8 @@
               <div style="font-size: 1.5rem; width: 48px; height: 48px; background: var(--gold-dim); border: 1px solid var(--border-accent); border-radius: var(--r-sm); display:flex; align-items:center; justify-content:center; flex-shrink:0;">📍</div>
               <div>
                 <div style="font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">Our Location</div>
-                <div style="color: var(--text-secondary); font-size: var(--fs-sm);">Yola, Adamawa State, Nigeria</div>
+                <div style="color: var(--text-secondary); font-size: var(--fs-sm);" id="contactAddress">Our address</div>
+                <div style="color: var(--text-muted); font-size: var(--fs-xs); margin-top: 2px;" id="contactFullAddress"></div>
               </div>
             </div>
 
@@ -530,7 +417,7 @@
               <div style="font-size: 1.5rem; width: 48px; height: 48px; background: var(--gold-dim); border: 1px solid var(--border-accent); border-radius: var(--r-sm); display:flex; align-items:center; justify-content:center; flex-shrink:0;">🕐</div>
               <div>
                 <div style="font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">Opening Hours</div>
-                <div style="color: var(--text-secondary); font-size: var(--fs-sm);">Monday – Sunday: 8:00 AM – 10:00 PM</div>
+                <div style="color: var(--text-secondary); font-size: var(--fs-sm);" id="contactHours">See hours</div>
                 <div style="color: var(--text-muted); font-size: var(--fs-xs); margin-top: 2px;">Open 7 days a week</div>
               </div>
             </div>
@@ -540,6 +427,7 @@
               <div>
                 <div style="font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">Phone / WhatsApp</div>
                 <div style="color: var(--text-secondary); font-size: var(--fs-sm);" id="contactPhone">Contact us for reservations</div>
+                <div style="color: var(--text-muted); font-size: var(--fs-xs); margin-top: 2px;" id="contactEmail"></div>
               </div>
             </div>
 
@@ -547,8 +435,8 @@
               <div style="font-size: 1.5rem; width: 48px; height: 48px; background: var(--gold-dim); border: 1px solid var(--border-accent); border-radius: var(--r-sm); display:flex; align-items:center; justify-content:center; flex-shrink:0;">📱</div>
               <div>
                 <div style="font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">Follow Us</div>
-                <div style="color: var(--text-secondary); font-size: var(--fs-sm);">@mevisheatery</div>
-                <div style="color: var(--text-muted); font-size: var(--fs-xs); margin-top: 2px;">Instagram · Facebook</div>
+                <div style="color: var(--text-secondary); font-size: var(--fs-sm);"><a href="#" id="contactInstagramLink" target="_blank" rel="noopener" style="color: inherit; text-decoration: none;"><span id="contactInstagram">Instagram</span></a> · <a href="#" id="contactFacebookLink" target="_blank" rel="noopener" style="color: inherit; text-decoration: none;">Facebook</a></div>
+                <div style="color: var(--text-muted); font-size: var(--fs-xs); margin-top: 2px;" id="contactSocial"></div>
               </div>
             </div>
 
@@ -579,12 +467,12 @@
 
         <!-- Col 1: Brand -->
         <div>
-          <div class="footer-brand-name">🍽️ Mevish <span>Eatery</span></div>
-          <p class="footer-tagline">Where Every Bite Tells a Story.<br>Premium Food. Fast Service. Real Flavour.</p>
+          <div class="footer-brand-name"><span id="footerBrandShort">Restaurant</span> <span id="footerBrandAccent">Eatery</span></div>
+          <p class="footer-tagline" id="footerTagline">Premium Food. Fast Service. Real Flavour.</p>
           <div style="display:flex; gap: var(--sp-sm); margin-top: var(--sp-md);">
-            <a href="https://instagram.com/mevisheatery" target="_blank" rel="noopener" class="social-link" id="footerInstagram" title="Instagram">📸</a>
-            <a href="https://wa.me/234000000000" target="_blank" rel="noopener" class="social-link" id="footerWhatsApp" title="WhatsApp">💬</a>
-            <a href="https://facebook.com/mevisheatery" target="_blank" rel="noopener" class="social-link" id="footerFacebook" title="Facebook">🌐</a>
+            <a href="#" id="footerInstagram" target="_blank" rel="noopener" class="social-link" title="Instagram">📸</a>
+            <a href="#" id="footerWhatsApp" target="_blank" rel="noopener" class="social-link" title="WhatsApp">💬</a>
+            <a href="#" id="footerFacebook" target="_blank" rel="noopener" class="social-link" title="Facebook">🌐</a>
           </div>
         </div>
 
@@ -615,9 +503,9 @@
         <div>
           <div class="footer-heading">Contact</div>
           <ul class="footer-links">
-            <li class="footer-link">📍 Yola, Adamawa State</li>
-            <li class="footer-link">🕐 Mon–Sun: 8 AM – 10 PM</li>
-            <li class="footer-link">📱 @mevisheatery</li>
+            <li class="footer-link">📍 <span id="footerAddress">Our address</span></li>
+            <li class="footer-link">🕐 <span id="footerHours">See hours</span></li>
+            <li class="footer-link">📱 <span id="footerInstagramHandle">@restaurant</span></li>
             <li style="margin-top: var(--sp-sm);">
               <a href="track.html" class="footer-link" id="footerTrack">📦 Track Your Order</a>
             </li>
@@ -627,7 +515,7 @@
       </div><!-- /footer-grid -->
 
       <div class="footer-bottom">
-        <span>© <span id="footerYear"></span> Mevish Eatery. All rights reserved. Yola, Adamawa, Nigeria.</span>
+        <span id="footerCopyright">© <span id="footerYear"></span> Restaurant. All rights reserved.</span>
         <div style="display:flex; gap: var(--sp-lg);">
           <a href="dashboard.html" class="footer-link" id="footerErpLogin" style="font-size: var(--fs-xs);">ERP Login</a>
           <a href="manager.html" class="footer-link" id="footerManager" style="font-size: var(--fs-xs);">Manager</a>
@@ -641,7 +529,8 @@
   <!-- ═══════════════════════════════════════ -->
   <script>
     // ── Footer year ─────────────────────────
-    document.getElementById('footerYear').textContent = new Date().getFullYear();
+    // (also set by the CONFIG init below, but keep a safe default here)
+    (function () { var yEl = document.getElementById('footerYear'); if (yEl) yEl.textContent = new Date().getFullYear(); })();
 
     // ── Mobile nav toggle ───────────────────
     const navToggle  = document.getElementById('navToggle');
@@ -689,6 +578,308 @@
         navbar.style.boxShadow = 'none';
       }
     });
+
+    // ═══════════════════════════════════════════════════════
+    //  HOME PAGE INIT — wires every dynamic value from CONFIG
+    // ═══════════════════════════════════════════════════════
+    (function () {
+      // Defensive: do nothing if CONFIG is unavailable
+      if (typeof CONFIG === 'undefined' || !CONFIG.RESTAURANT) return;
+      var R = CONFIG.RESTAURANT;
+
+      // Helper: set textContent safely
+      function setText(id, text) {
+        var el = document.getElementById(id);
+        if (el && text != null) el.textContent = text;
+      }
+      // Helper: set an attribute safely
+      function setAttr(id, attr, val) {
+        var el = document.getElementById(id);
+        if (el && val != null) el.setAttribute(attr, val);
+      }
+
+      // ── Title + meta tags ─────────────────
+      var tagline  = R.tagline || '';
+      var slogan   = R.slogan || '';
+      var fullName = R.name || 'Restaurant';
+      var city     = R.city || '';
+      var state    = R.state || '';
+      var cuisine  = (R.cuisineTypes && R.cuisineTypes.length) ? R.cuisineTypes.join(', ') : 'dining';
+
+      var metaDescription = fullName + ' is ' + (city ? city + "'s " : '') + 'premium dining destination. Enjoy ' + cuisine + '. Order online for dine-in or counter service.';
+      var metaKeywords = [fullName, (city ? 'restaurant ' + city : ''), (state ? state + ' restaurant' : ''), cuisine, 'order food online'].filter(Boolean).join(', ');
+      var ogTitle = fullName + (tagline ? ' — ' + tagline : '');
+
+      document.title = ogTitle;
+      setText('pageTitle', ogTitle);
+      setAttr('metaDescription', 'content', metaDescription);
+      setAttr('metaKeywords', 'content', metaKeywords);
+      setAttr('metaAuthor', 'content', fullName);
+      setAttr('ogTitle', 'content', ogTitle);
+      setAttr('ogDescription', 'content', slogan || metaDescription);
+      setAttr('ogSiteName', 'content', fullName);
+      setAttr('twitterTitle', 'content', ogTitle);
+      setAttr('twitterDescription', 'content', slogan || metaDescription);
+
+      // ── JSON-LD injection ──────────────────
+      try {
+        var jsonLd = {
+          "@context": "https://schema.org",
+          "@type": "Restaurant",
+          "name": fullName,
+          "description": metaDescription,
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": city,
+            "addressRegion": state,
+            "addressCountry": R.country || ''
+          },
+          "servesCuisine": (R.cuisineTypes || []),
+          "priceRange": (typeof CONFIG.CURRENCY !== 'undefined' ? CONFIG.CURRENCY : '') + (typeof CONFIG.CURRENCY !== 'undefined' ? CONFIG.CURRENCY : ''),
+          "openingHours": R.hours || '',
+          "hasMenu": "./index.html",
+          "url": "./home.html"
+        };
+        if (R.phone) jsonLd.telephone = R.phone;
+        if (R.email) jsonLd.email = R.email;
+        if (R.mapsEmbedUrl) jsonLd.hasMap = R.mapsEmbedUrl;
+        var ldEl = document.getElementById('jsonLd');
+        if (ldEl) ldEl.textContent = JSON.stringify(jsonLd);
+      } catch (e) { /* JSON-LD is best-effort */ }
+
+      // ── Navbar brand ───────────────────────
+      // shortName is the first word; accent is the remainder of the name
+      var brandParts = (fullName || 'Restaurant').trim().split(/\s+/);
+      var shortPart  = R.shortName || brandParts[0] || 'Restaurant';
+      var accentPart = brandParts.length > 1 ? brandParts.slice(1).join(' ') : '';
+      setText('navBrandShort', shortPart);
+      var navAccent = document.getElementById('navBrandAccent');
+      if (navAccent) {
+        navAccent.textContent = accentPart;
+        navAccent.style.display = accentPart ? '' : 'none';
+      }
+
+      // ── Hero ───────────────────────────────
+      setText('heroEyebrow', '⭐ ' + (city ? city + "'s " : '') + '#1 Premium Eatery');
+      var heroTitleEl = document.getElementById('heroTitle');
+      if (heroTitleEl) heroTitleEl.innerHTML = tagline || fullName;
+      setText('heroSubtitle', slogan || 'Premium food, fast service, real flavour — dine in or order online.');
+
+      // ── Stats bar ──────────────────────────
+      var seatCount = R.seatCount || 0;
+      setText('statSeats', seatCount ? (seatCount + '+') : '--');
+      setText('statOpenDays', '7 Days');
+
+      // ── About section ──────────────────────
+      setText('aboutPara1',
+        'At ' + fullName + ', every dish is a labour of love. We believe that great food starts with great ingredients, ' +
+        'made with care and served with pride. You deserve the absolute best.');
+      setText('aboutPara2',
+        (city ? 'Located in ' + city + (state ? ', ' + state : '') + ', we br' : 'We br') +
+        'ing together the finest flavours under one roof — fast, fresh, and authentically flavoured.');
+      setText('aboutSeatsLabel', seatCount ? (seatCount + '-Seat Dining Space') : 'Spacious Dining Space');
+      setText('aboutSeatsDesc', 'Comfortable, welcoming dining for families, friends and colleagues.');
+
+      // About cuisine chips (decorative)
+      try {
+        var chipsHost = document.getElementById('aboutChips');
+        if (chipsHost) {
+          var icons = (CONFIG.CATEGORY_ICONS) || {};
+          var types = R.cuisineTypes && R.cuisineTypes.length ? R.cuisineTypes : [];
+          if (types.length) {
+            chipsHost.innerHTML = '';
+            types.slice(0, 4).forEach(function (t, i) {
+              var emoji = icons[t] || '🍽️';
+              var chip = document.createElement('div');
+              chip.style.cssText = 'background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--sp-md) var(--sp-lg); text-align: center;' + (i ? 'animation: float ' + (4 + i) + 's ' + (i * 0.5) + 's ease-in-out infinite;' : '');
+              chip.innerHTML = '<div style="font-size: 2rem;">' + emoji + '</div><div style="font-size: var(--fs-xs); color: var(--text-muted); margin-top: 4px;">' + t + '</div>';
+              chipsHost.appendChild(chip);
+            });
+          }
+        }
+      } catch (e) { /* chips are decorative */ }
+
+      // ── Features ("Why …") section ─────────
+      setText('featuresEyebrow', 'Why ' + shortPart);
+      setText('featuresTitle', 'The ' + shortPart + ' Difference');
+      setText('featuresSubtitle', (slogan ? slogan + ' — ' : '') + 'and so much more.');
+
+      // ── Contact section ────────────────────
+      setText('contactAddress', R.address || (city ? city + (state ? ', ' + state : '') : ''));
+      setText('contactFullAddress', R.fullAddress || '');
+      setText('contactHours', R.hours || '');
+      setText('contactPhone', R.phone || '');
+      setText('contactEmail', R.email || '');
+
+      // Social links
+      var igHandle = (R.instagram || '').replace('@', '');
+      var igUrl    = igHandle ? ('https://instagram.com/' + igHandle) : '';
+      var fbUrl    = R.facebook ? ('https://facebook.com/' + R.facebook) : '';
+      setText('contactInstagram', R.instagram || (igHandle ? '@' + igHandle : 'Instagram'));
+      setAttr('contactInstagramLink', 'href', igUrl || '#');
+      setAttr('contactFacebookLink', 'href', fbUrl || '#');
+      setText('contactSocial', igHandle ? (R.instagram + ' · Instagram & Facebook') : 'Instagram · Facebook');
+
+      // ── Footer ─────────────────────────────
+      setText('footerBrandShort', shortPart);
+      var footerAccent = document.getElementById('footerBrandAccent');
+      if (footerAccent) {
+        footerAccent.textContent = accentPart;
+        footerAccent.style.display = accentPart ? '' : 'none';
+      }
+      setText('footerTagline', (tagline ? tagline + ' ' : '') + (slogan || ''));
+      setText('footerAddress', R.address || (city ? city + (state ? ', ' + state : '') : ''));
+      setText('footerHours', R.hours || '');
+      setText('footerInstagramHandle', R.instagram || ('@' + shortPart.toLowerCase()));
+      setAttr('footerInstagram', 'href', igUrl || '#');
+      setAttr('footerFacebook', 'href', fbUrl || '#');
+      // WhatsApp link via CONFIG helper if available
+      try {
+        if (typeof CONFIG.buildWhatsAppUrl === 'function') {
+          setAttr('footerWhatsApp', 'href', CONFIG.buildWhatsAppUrl('Hello ' + fullName + '!'));
+        } else if (R.whatsapp) {
+          setAttr('footerWhatsApp', 'href', 'https://wa.me/' + R.whatsapp.replace(/[^0-9]/g, ''));
+        }
+      } catch (e) {}
+
+      // Copyright year
+      var year = (typeof new Date().getFullYear === 'function') ? new Date().getFullYear() : (R.year || '');
+      setText('footerYear', year);
+      setText('footerCopyright', '© ' + year + ' ' + fullName + '. All rights reserved.' + ((city || state) ? (' ' + [city, state, R.country].filter(Boolean).join(', ') + '.') : ''));
+
+      // ── Blog preview (generic placeholders from CONFIG) ──
+      setText('blogSubtitle', 'Insights, stories, and updates from the heart of ' + fullName + '.');
+      setText('blog1Title', 'The Story Behind ' + shortPart + "'s Signature Dish");
+      setText('blog1Excerpt', 'Discover how one of our most-loved signature creations came to be — a labour of love in every bite.');
+      setText('blog2Title', 'A Dish Worth Travelling For' + (city ? ' in ' + city : ''));
+      setText('blog2Excerpt', 'Explore the flavours and traditions behind some of our most beloved dishes.');
+      setText('blog3Title', fullName + ': Your Go-To Restaurant' + (city ? ' in ' + city + (state ? ', ' + state : '') : ''));
+      setText('blog3Excerpt', 'From humble beginnings to becoming ' + (city ? city + "'s " : '') + 'favourite dining spot — here is what makes us truly special.');
+      // Generic recent dates using CONFIG locale
+      try {
+        var locale = R.locale || undefined;
+        var now = new Date();
+        var m1 = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+        var m2 = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+        var m3 = new Date(now.getFullYear(), now.getMonth() - 4, 1);
+        setText('blog1Date', m1.toLocaleDateString(locale, { month: 'long', year: 'numeric' }));
+        setText('blog2Date', m2.toLocaleDateString(locale, { month: 'long', year: 'numeric' }));
+        setText('blog3Date', m3.toLocaleDateString(locale, { month: 'long', year: 'numeric' }));
+      } catch (e) {
+        setText('blog1Date', 'Recently'); setText('blog2Date', 'Recently'); setText('blog3Date', 'Recently');
+      }
+
+      // ═══════════════════════════════════════════════════════
+      //  FEATURED MENU RENDERER
+      //  Fetches live menu, matches CONFIG.RESTAURANT.featuredItems by name.
+      // ═══════════════════════════════════════════════════════
+      function escapeHtml(str) {
+        return String(str == null ? '' : str).replace(/[&<>"']/g, function (c) {
+          return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
+      }
+
+      function featuredEmoji(item) {
+        if (item && item.emoji) return item.emoji;
+        var icons = (typeof CONFIG.CATEGORY_ICONS !== 'undefined') ? CONFIG.CATEGORY_ICONS : {};
+        if (item && item.category && icons[item.category]) return icons[item.category];
+        return '🍽️';
+      }
+
+      function renderFeatured(menuItems) {
+        var grid = document.getElementById('featuredGrid');
+        if (!grid) return;
+
+        // Build a name -> item lookup (case-insensitive, trimmed)
+        var lookup = {};
+        (menuItems || []).forEach(function (it) {
+          if (it && it.name) lookup[it.name.trim().toLowerCase()] = it;
+        });
+
+        var featured = (R.featuredItems && R.featuredItems.length) ? R.featuredItems : [];
+
+        // Fallback: if no menu data and no featured names, show a friendly empty state
+        if (!featured.length && !(menuItems && menuItems.length)) {
+          grid.innerHTML = '<p class="empty-text" style="grid-column:1/-1;">Featured dishes are loading. Please check back shortly.</p>';
+          return;
+        }
+
+        var cards = featured.slice(0, 6).map(function (name, i) {
+          var item = lookup[String(name).trim().toLowerCase()] || { name: name };
+          var emoji    = featuredEmoji(item);
+          var cat      = item.category || 'Featured';
+          var desc     = item.description || 'A guest favourite — handcrafted with care.';
+          var priceTxt = (item.price != null && typeof CONFIG.formatCurrency === 'function')
+            ? CONFIG.formatCurrency(item.price)
+            : '';
+          var delayClass = 'reveal-delay-' + (((i % 3)) + 1);
+
+          return '' +
+            '<div class="menu-card menu-card-featured reveal ' + delayClass + '">' +
+              '<div class="menu-card-image">' + emoji + '</div>' +
+              '<div class="menu-card-body">' +
+                '<div class="menu-card-category">' + escapeHtml(cat) + '</div>' +
+                '<div class="menu-card-name">' + escapeHtml(item.name) + '</div>' +
+                '<div class="menu-card-desc">' + escapeHtml(desc) + '</div>' +
+                '<div class="menu-card-controls">' +
+                  (priceTxt ? '<span class="menu-card-featured-price">' + escapeHtml(priceTxt) + '</span>' : '<span></span>') +
+                  '<a href="index.html?table=Counter" class="btn btn-primary btn-sm">Order →</a>' +
+                '</div>' +
+              '</div>' +
+            '</div>';
+        }).join('');
+
+        grid.innerHTML = cards;
+
+        // Re-observe the freshly injected cards for scroll-reveal
+        if (typeof revealObserver !== 'undefined') {
+          grid.querySelectorAll('.reveal').forEach(function (el) { revealObserver.observe(el); });
+        }
+      }
+
+      // Try to fetch menu from API; render whatever we have.
+      // Also drives the menu-item-count stat.
+      if (typeof CONFIG.apiGet === 'function') {
+        CONFIG.apiGet('menu').then(function (data) {
+          var items = [];
+          if (Array.isArray(data)) items = data;
+          else if (data && Array.isArray(data.data)) items = data.data;
+          else if (data && (data.menu || data.items)) items = data.menu || data.items;
+
+          if (items.length) {
+            setText('statMenuCount', items.length + '+');
+            // Cheapest item for "Starts From"
+            try {
+              var prices = items.map(function (i) { return Number(i.price); }).filter(function (n) { return isFinite(n) && n > 0; });
+              if (prices.length) {
+                var min = Math.min.apply(null, prices);
+                if (typeof CONFIG.formatCurrency === 'function') {
+                  setText('statStartPrice', CONFIG.formatCurrency(min));
+                } else {
+                  setText('statStartPrice', String(min));
+                }
+              } else {
+                setText('statStartPrice', 'Affordable');
+              }
+            } catch (e) {
+              setText('statStartPrice', 'Affordable');
+            }
+          } else {
+            setText('statMenuCount', 'Many');
+            setText('statStartPrice', 'Affordable');
+          }
+          renderFeatured(items);
+        }).catch(function () {
+          setText('statMenuCount', 'Many');
+          setText('statStartPrice', 'Affordable');
+          renderFeatured([]);
+        });
+      } else {
+        setText('statMenuCount', 'Many');
+        setText('statStartPrice', 'Affordable');
+        renderFeatured([]);
+      }
+    })();
   </script>
 </body>
 </html>

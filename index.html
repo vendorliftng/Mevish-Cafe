@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Order Now | Mevish Eatery — Yola, Adamawa</title>
-  <meta name="description" content="Order fresh, delicious food from Mevish Eatery in Yola, Adamawa. Browse our full menu of Rice dishes, Swallows, Shawarma, Pizza, Burgers and more." />
+  <title>Order Now | Loading...</title>
+  <meta name="description" content="Order fresh, delicious food online. Browse our full menu and place your order." />
+  <meta name="description" data-dynamic="true" />
   <meta name="theme-color" content="#0d1017" />
   <link rel="stylesheet" href="style.css" />
   <script src="config.js"></script>
@@ -561,6 +562,237 @@
       .reviews-grid { grid-template-columns: 1fr; padding: 0 var(--sp-md); }
       .reviews-section { padding: var(--sp-2xl) 0; }
     }
+
+    /* ═══════════════════════════════════════════
+       PHASE 2D — PHONE INPUT (Feature 1)
+       Inline field error text (matches existing toast/error palette)
+    ═══════════════════════════════════════════ */
+    .form-error {
+      color: var(--danger);
+      font-size: var(--fs-xs);
+      font-weight: 600;
+      margin-top: 4px;
+      min-height: 0;
+      transition: min-height var(--ease);
+      display: none;
+    }
+    .form-error.visible { display: block; }
+
+    /* ═══════════════════════════════════════════
+       PHASE 2E — LOYALTY BANNER (Feature 2)
+    ═══════════════════════════════════════════ */
+    .loyalty-banner {
+      background: linear-gradient(135deg, var(--gold-dim), rgba(245,166,35,.08));
+      border: 1px solid var(--border-accent);
+      border-radius: var(--r-md);
+      padding: 14px 16px;
+      margin-top: var(--sp-md);
+      width: 100%;
+      max-width: 340px;
+      text-align: center;
+    }
+    .loyalty-banner.reward-earned {
+      background: linear-gradient(135deg, var(--success-dim), rgba(52,211,153,.08));
+      border-color: var(--success-border);
+      animation: loyaltyPulse 1.6s ease-in-out infinite;
+    }
+    @keyframes loyaltyPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(52,211,153,.35); }
+      50% { box-shadow: 0 0 0 8px rgba(52,211,153,0); }
+    }
+    .loyalty-text {
+      font-size: var(--fs-sm);
+      font-weight: 700;
+      color: var(--gold-light);
+      margin-bottom: 8px;
+      line-height: 1.4;
+    }
+    .loyalty-banner.reward-earned .loyalty-text { color: var(--success); }
+    .loyalty-progress-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: var(--fs-xs);
+      color: var(--text-secondary);
+    }
+    .loyalty-progress-bar {
+      flex: 1;
+      height: 8px;
+      background: var(--bg-hover);
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .loyalty-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--gold), var(--gold-light));
+      border-radius: 999px;
+      transition: width .8s cubic-bezier(.32,1,.4,1);
+    }
+
+    /* ═══════════════════════════════════════════
+       PHASE 4A — WHATSAPP BUTTON (Feature 4)
+    ═══════════════════════════════════════════ */
+    .btn-whatsapp {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      max-width: 340px;
+      padding: 14px 18px;
+      border-radius: var(--r-md);
+      background: #25D366;
+      color: #fff;
+      font-weight: 800;
+      font-size: var(--fs-base);
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(37,211,102,.35);
+      transition: transform var(--ease), box-shadow var(--ease), background var(--ease);
+      animation: whatsappPulse 2s ease-in-out infinite;
+    }
+    .btn-whatsapp:hover {
+      transform: translateY(-1px);
+      background: #20bd5a;
+      box-shadow: 0 10px 28px rgba(37,211,102,.5);
+    }
+    .btn-whatsapp:active { transform: translateY(0); }
+    @keyframes whatsappPulse {
+      0%, 100% { box-shadow: 0 6px 20px rgba(37,211,102,.3); }
+      50% { box-shadow: 0 6px 24px rgba(37,211,102,.55); }
+    }
+
+    /* ═══════════════════════════════════════════
+       PHASE 3B — POPULAR TODAY STRIP (Feature 3)
+    ═══════════════════════════════════════════ */
+    .popular-section { margin-bottom: var(--sp-lg); }
+    .popular-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: var(--fs-lg);
+      font-weight: 800;
+      color: var(--text-primary);
+      margin-bottom: var(--sp-sm);
+    }
+    .popular-strip {
+      display: flex;
+      gap: 12px;
+      overflow-x: auto;
+      padding: 4px 2px 10px;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+    }
+    .popular-strip::-webkit-scrollbar { height: 6px; }
+    .popular-strip::-webkit-scrollbar-thumb {
+      background: var(--border-light);
+      border-radius: 999px;
+    }
+    .popular-card {
+      flex: 0 0 140px;
+      scroll-snap-align: start;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 6px;
+      transition: transform var(--ease), box-shadow var(--ease), border-color var(--ease);
+    }
+    .popular-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-gold);
+      border-color: var(--border-accent);
+    }
+    .popular-card-emoji { font-size: 1.8rem; }
+    .popular-card-name {
+      font-size: var(--fs-sm);
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1.2;
+      min-height: 2.4em;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .popular-card-price {
+      font-size: var(--fs-xs);
+      font-weight: 700;
+      color: var(--gold);
+    }
+    .popular-card .btn-add-to-cart {
+      width: 100%;
+      padding: 6px;
+      font-size: var(--fs-xs);
+    }
+
+    /* ═══════════════════════════════════════════
+       PHASE 3B — COMPLETE YOUR MEAL UPSELL (Feature 3)
+       Styled to match existing cart-item cards
+    ═══════════════════════════════════════════ */
+    .cart-upsell {
+      padding: 10px 14px 4px;
+      border-top: 1px dashed var(--border-light);
+      margin-top: 6px;
+    }
+    .upsell-title {
+      font-size: var(--fs-xs);
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+      color: var(--gold);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .upsell-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .upsell-card {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      transition: border-color var(--ease), transform var(--ease);
+    }
+    .upsell-card:hover {
+      border-color: var(--border-accent);
+      transform: translateX(2px);
+    }
+    .upsell-card-emoji { font-size: 1.3rem; flex-shrink: 0; }
+    .upsell-card-info { flex: 1; min-width: 0; }
+    .upsell-card-name {
+      font-size: var(--fs-sm);
+      font-weight: 600;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .upsell-card-price {
+      font-size: var(--fs-xs);
+      color: var(--gold);
+      font-weight: 700;
+    }
+    .upsell-card .btn-add-to-cart {
+      padding: 6px 10px;
+      font-size: var(--fs-xs);
+      flex-shrink: 0;
+    }
+    .hidden { display: none !important; }
   </style>
 </head>
 <body>
@@ -569,7 +801,7 @@
   <header class="page-header">
     <a href="index.html" class="logo" id="site-logo">
       <span class="logo-icon">🍽️</span>
-      <span class="logo-text" id="logo-text">Mevish Eatery</span>
+      <span class="logo-text" id="logo-text">Loading...</span>
     </a>
     <div class="header-right" style="display:flex;align-items:center;gap:12px;">
       <span class="table-badge" id="table-badge">
@@ -590,7 +822,7 @@
     <div class="slide" style="background-image:url('https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?auto=format&fit=crop&w=900&q=80');"></div>
     <div class="hero-overlay"></div>
     <div class="hero-text">
-      <h1 id="hero-greeting">Welcome to Mevish!</h1>
+              <h1 id="hero-greeting">Welcome!</h1>
       <p id="hero-sub">Freshly prepared, just for you.</p>
     </div>
     <div class="hero-dots" id="heroDots"></div>
@@ -610,6 +842,12 @@
 
       <!-- Category Tabs -->
       <div class="tab-bar" id="tab-bar" role="tablist" aria-label="Menu categories" style="margin-bottom:var(--sp-lg);"></div>
+
+      <!-- ── PHASE 3B: Popular Today strip (Feature 3) — hidden until populated ── -->
+      <div class="popular-section hidden" id="popular-section">
+        <div class="popular-header">🔥 Popular Today</div>
+        <div class="popular-strip" id="popular-strip"></div>
+      </div>
 
       <!-- Menu Grid -->
       <div id="menu-grid-wrapper">
@@ -636,6 +874,8 @@
         <button class="cart-item-remove" id="cart-clear-btn" aria-label="Clear cart" style="font-size:var(--fs-xs);font-weight:600;">Clear all</button>
       </div>
       <div class="cart-items" id="cart-items-desktop"></div>
+      <!-- ── PHASE 3B: Complete Your Meal upsell (Feature 3) — desktop ── -->
+      <div class="cart-upsell hidden" id="cart-upsell-desktop"></div>
       <div class="cart-footer">
         <div class="cart-total-row">
           <span class="cart-total-label">Total</span>
@@ -668,6 +908,8 @@
       <button class="cart-item-remove" id="cart-clear-btn-mobile" style="font-size:var(--fs-xs);font-weight:600;">Clear all</button>
     </div>
     <div class="cart-items" id="cart-items-mobile"></div>
+    <!-- ── PHASE 3B: Complete Your Meal upsell (Feature 3) — mobile ── -->
+    <div class="cart-upsell hidden" id="cart-upsell-mobile"></div>
     <div class="cart-footer">
       <div class="cart-total-row">
         <span class="cart-total-label">Total</span>
@@ -696,6 +938,14 @@
             <span>Total</span>
             <span id="modal-summary-total">&#8358;0</span>
           </div>
+        </div>
+
+        <!-- ── PHASE 2D: Phone Number Input (Feature 1) ── -->
+        <div class="form-group">
+          <label class="form-label required" id="phone-label" for="customerPhoneInput">Phone Number (for rewards)</label>
+          <input type="tel" inputmode="tel" class="form-control" id="customerPhoneInput"
+                 placeholder="e.g. 0803 123 4567" autocomplete="tel" required />
+          <p class="form-error" id="phone-error"></p>
         </div>
 
         <!-- Customer Name -->
@@ -763,6 +1013,21 @@
     <h2 class="text-gradient" style="font-size:var(--fs-4xl);">Order Placed!</h2>
     <p class="success-subtitle">Your order has been sent to the kitchen.</p>
     <div class="success-order-id" id="success-order-id">ORD-20260529-0001</div>
+
+    <!-- ── PHASE 4A: Send order to kitchen via WhatsApp (Feature 4) ── -->
+    <button class="btn-whatsapp" id="success-whatsapp-btn" type="button">
+      📱 Send Order to Kitchen via WhatsApp
+    </button>
+
+    <!-- ── PHASE 2E: Loyalty banner (Feature 2) ── -->
+    <div class="loyalty-banner" id="loyalty-banner">
+      <div class="loyalty-text" id="loyalty-text"></div>
+      <div class="loyalty-progress-wrap" id="loyalty-progress-wrap">
+        <div class="loyalty-progress-bar"><div class="loyalty-progress-fill" id="loyalty-progress-fill" style="width:0%;"></div></div>
+        <span id="loyalty-progress-label"></span>
+      </div>
+    </div>
+
     <div class="success-actions">
       <a href="#" class="success-track-link" id="success-track-link">Track your order →</a>
       <button class="btn btn-primary btn-full btn-lg" id="new-order-btn">New Order</button>
@@ -774,11 +1039,11 @@
     <div class="container" style="text-align:center;">
       <h2 class="text-gradient" style="font-size:var(--fs-2xl);margin-bottom:var(--sp-xs);">What Our Customers Say</h2>
       <p style="color:var(--text-muted);margin-bottom:var(--sp-xl);font-size:var(--fs-sm);">Rated on Google</p>
-      <div style="display:flex;justify-content:center;align-items:center;gap:var(--sp-sm);margin-bottom:var(--sp-xl);">
+      <div id="reviews-rating-summary" style="display:flex;justify-content:center;align-items:center;gap:var(--sp-sm);margin-bottom:var(--sp-xl);">
         <img src="https://www.google.com/favicon.ico" alt="Google" style="width:24px;height:24px;" />
-        <span style="font-size:var(--fs-2xl);font-weight:800;color:var(--gold);">3.5</span>
-        <span style="color:var(--gold);font-size:var(--fs-lg);letter-spacing:2px;">★★★½☆</span>
-        <span style="color:var(--text-muted);font-size:var(--fs-sm);">Based on 6 Google Reviews</span>
+        <span id="reviews-avg-score" style="font-size:var(--fs-2xl);font-weight:800;color:var(--gold);">3.5</span>
+        <span id="reviews-avg-stars" style="color:var(--gold);font-size:var(--fs-lg);letter-spacing:2px;">★★★½☆</span>
+        <span id="reviews-avg-count" style="color:var(--text-muted);font-size:var(--fs-sm);">Based on 6 Google Reviews</span>
       </div>
       <div class="reviews-grid" id="reviews-grid">
         <!-- Reviews loaded dynamically -->
@@ -787,7 +1052,7 @@
       <div id="reviews-embed-wrap" style="margin-top:var(--sp-lg);max-width:700px;margin-left:auto;margin-right:auto;">
         <!-- Google Maps embed iframe with reviews — no API key needed -->
       </div>
-      <a href="https://www.google.com/maps/place/Mevish+Eatery,+Modibbo+Aliyu+Way,+Karewa,+Jimeta+640101,+Adamawa" target="_blank" rel="noopener noreferrer" class="btn btn-ghost" style="margin-top:var(--sp-xl);border-color:var(--gold);color:var(--gold);">
+      <a href="#" id="google-review-link" target="_blank" rel="noopener noreferrer" class="btn btn-ghost" style="margin-top:var(--sp-xl);border-color:var(--gold);color:var(--gold);">
         Leave a Review on Google →
       </a>
     </div>
@@ -802,7 +1067,7 @@
 
     /* Destructure CONFIG helpers for clean local access */
     var C = (typeof CONFIG !== 'undefined') ? CONFIG : {};
-    var formatCurrency  = C.formatCurrency  || function (n) { return '₦' + (Number(n) || 0).toLocaleString(); };
+    var formatCurrency  = C.formatCurrency  || function (n) { return (C.CURRENCY || '₦') + (Number(n) || 0).toLocaleString(C.RESTAURANT ? C.RESTAURANT.locale : 'en-NG'); };
     var generateOrderId  = C.generateOrderId  || function () { var d = new Date(); return 'ORD-' + d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0') + '-' + Math.floor(1000+Math.random()*9000); };
     var generateGuestName = C.generateGuestName || function () { return 'Guest-' + Math.floor(100+Math.random()*900); };
 
@@ -832,12 +1097,20 @@
     ══════════════════════════════════════════ */
     var RESTAURANT_NAME = (typeof CONFIG !== 'undefined' && CONFIG.RESTAURANT && CONFIG.RESTAURANT.name)
       ? CONFIG.RESTAURANT.name
-      : 'Mevish Eatery';
+      : 'Restaurant';
+    var R_SHORT = RESTAURANT_NAME.split(' ')[0];
 
     document.getElementById('logo-text').textContent = RESTAURANT_NAME;
-    document.title = 'Order Now | ' + RESTAURANT_NAME;
-    document.querySelector('meta[name="description"]').content =
-      document.querySelector('meta[name="description"]').content.replace('Mevish Eatery', RESTAURANT_NAME);
+    document.title = 'Order Now | ' + RESTAURANT_NAME + ' — ' + (C.RESTAURANT ? C.RESTAURANT.city + ', ' + C.RESTAURANT.state : '');
+    var descMeta = document.querySelector('meta[name="description"]');
+    if (descMeta && C.RESTAURANT) {
+      descMeta.setAttribute('content', 'Order fresh, delicious food from ' + C.RESTAURANT.name + ' in ' + C.RESTAURANT.city + ', ' + C.RESTAURANT.state + '. Browse our full menu and place your order.');
+    }
+
+    // Initialize storage prefix from slug
+    if (typeof CONFIG !== 'undefined' && CONFIG.initStoragePrefix) {
+      CONFIG.initStoragePrefix();
+    }
 
     /* ══════════════════════════════════════════
        OFFLINE DETECTION
@@ -913,7 +1186,7 @@
     /* ══════════════════════════════════════════
        LOAD MENU
     ══════════════════════════════════════════ */
-    var CACHE_KEY = 'mevish_menu_cache';
+    var CACHE_KEY = (typeof CONFIG !== 'undefined' && CONFIG.STORAGE_PREFIX ? CONFIG.STORAGE_PREFIX : 'mevish_') + 'menu_cache';
 
     function loadMenuFromCache() {
       try {
@@ -974,9 +1247,17 @@
             throw new Error('Empty response');
           }
         } catch (e) {
-          showToast('Could not load menu from server — using local menu.', 'info');
-          allMenu = (typeof CONFIG !== 'undefined' && CONFIG.FALLBACK_MENU) ? CONFIG.FALLBACK_MENU : [];
-          // Do NOT cache FALLBACK_MENU so it doesn't persist across reloads
+          showToast('Could not load menu from server. Please try again.', 'error');
+          allMenu = (typeof CONFIG !== 'undefined' && CONFIG.FALLBACK_MENU && CONFIG.FALLBACK_MENU.length > 0) ? CONFIG.FALLBACK_MENU : [];
+          // If no fallback, show retry prompt
+          if (allMenu.length === 0) {
+            var emptyEl = document.getElementById('empty-state');
+            if (emptyEl) {
+              emptyEl.classList.remove('hidden');
+              emptyEl.querySelector('.empty-title').textContent = 'Menu Unavailable';
+              emptyEl.querySelector('.empty-subtitle').textContent = 'Could not load menu from server.';
+            }
+          }
         }
         loadingEl.classList.add('hidden');
         buildTabs();
@@ -1230,6 +1511,9 @@
 
       renderCartItems('cart-items-desktop');
       renderCartItems('cart-items-mobile');
+
+      // ── PHASE 3B: refresh "Complete Your Meal" suggestions when cart changes (Feature 3) ──
+      if (typeof updateSuggestions === 'function') updateSuggestions();
     }
 
     function renderCartItems(containerId) {
@@ -1416,6 +1700,38 @@
     });
 
     /* ══════════════════════════════════════════
+       PHASE 2D — PHONE VALIDATION (Feature 1)
+       Basic check: at least 7 digits after stripping non-digits.
+       Toggles inline error + red border (matches existing field-error style).
+    ══════════════════════════════════════════ */
+    var phoneInput = document.getElementById('customerPhoneInput');
+    var phoneError = document.getElementById('phone-error');
+
+    function isValidPhone(raw) {
+      if (!raw) return false;
+      var digits = String(raw).replace(/\D/g, '');
+      return digits.length >= 7;
+    }
+
+    function showPhoneError(msg) {
+      phoneError.textContent = msg;
+      phoneError.classList.add('visible');
+      phoneInput.style.borderColor = 'var(--danger)';
+      phoneInput.style.boxShadow = '0 0 0 3px var(--danger-dim)';
+      phoneInput.focus();
+    }
+
+    function clearPhoneError() {
+      phoneError.textContent = '';
+      phoneError.classList.remove('visible');
+      phoneInput.style.borderColor = '';
+      phoneInput.style.boxShadow = '';
+    }
+
+    // Clear error as the user types
+    phoneInput.addEventListener('input', clearPhoneError);
+
+    /* ══════════════════════════════════════════
        HERO CAROUSEL
     ══════════════════════════════════════════ */
     function initHero() {
@@ -1423,7 +1739,7 @@
       var greetEl = document.getElementById('hero-greeting');
       var subEl = document.getElementById('hero-sub');
       if (greetEl) {
-        var rName = RESTAURANT_NAME.split(' ')[0];
+        var rName = R_SHORT || RESTAURANT_NAME.split(' ')[0];
         if (hour < 12) { greetEl.textContent = 'Good Morning! Welcome to ' + rName; if (subEl) subEl.textContent = 'Start your day with something delicious.'; }
         else if (hour < 17) { greetEl.textContent = 'Good Afternoon! Welcome to ' + rName; if (subEl) subEl.textContent = 'What are you craving for lunch?'; }
         else { greetEl.textContent = 'Good Evening! Welcome to ' + rName; if (subEl) subEl.textContent = 'Treat yourself to a great dinner.'; }
@@ -1457,6 +1773,19 @@
       var nameInput = document.getElementById('customer-name');
       var name = nameInput.value.trim();
 
+      // ── PHASE 2D: Phone validation (Feature 1) ──
+      var phone = phoneInput.value.trim();
+      if (!phone) {
+        showPhoneError('Phone number is required (used for rewards).');
+        showToast('Please enter your phone number.', 'error');
+        return;
+      }
+      if (!isValidPhone(phone)) {
+        showPhoneError('Please enter a valid phone number (at least 7 digits).');
+        showToast('That phone number looks invalid.', 'error');
+        return;
+      }
+
       if (isCounter && !name) {
         nameInput.focus();
         nameInput.style.borderColor = 'var(--danger)';
@@ -1489,6 +1818,7 @@
         action: 'newOrder',
         orderId: orderId,
         customerName: name || generateGuestName(),
+        customerPhone: phone, // ── PHASE 2D: phone included for rewards (Feature 1)
         orderType: isCounter ? 'Counter' : 'Dine-In',
         location: selectedTable,
         cartItems: itemsStr,
@@ -1503,11 +1833,24 @@
       submitBtnText.style.opacity = '0';
       submitBtn.disabled = true;
 
+      // Snapshot for the success screen (WhatsApp + loyalty). Captured *before*
+      // any potential clearCart so the values survive into showSuccessScreen.
+      var successCtx = {
+        orderId: orderId,
+        customerName: payload.customerName,
+        customerPhone: phone,
+        itemsText: itemsStr,
+        totalPrice: payload.totalPrice,
+        location: selectedTable
+      };
+
       try {
+        var apiResponse = null;
         if (typeof CONFIG !== 'undefined' && CONFIG.apiPost) {
-          await CONFIG.apiPost('newOrder', {
+          apiResponse = await CONFIG.apiPost('newOrder', {
             orderId: payload.orderId,
             customerName: payload.customerName,
+            customerPhone: payload.customerPhone,
             orderType: payload.orderType,
             location: payload.location,
             cartItems: payload.cartItems,
@@ -1525,14 +1868,15 @@
         }
 
         closeOrderModal();
-        showSuccessScreen(orderId);
+        // ── PHASE 2E / 4A: pass loyalty fields + order snapshot to success screen ──
+        showSuccessScreen(successCtx, apiResponse);
         showToast('Order placed successfully!', 'success');
       } catch (err) {
         console.error('Order submission error:', err);
         closeOrderModal();
         showToast('⚠ Order may not have been saved! Please tell the cashier your order: ' + orderId, 'error', 8000);
         // Still show success screen so user has the order ID for reference at the counter
-        showSuccessScreen(orderId);
+        showSuccessScreen(successCtx, null);
       } finally {
         submitBtn.classList.remove('btn-submitting');
         submitBtnText.style.opacity = '1';
@@ -1541,15 +1885,101 @@
     }
 
     /* ══════════════════════════════════════════
-       SUCCESS SCREEN
+       SUCCESS SCREEN  (Features 2 + 4)
+       Accepts an order snapshot + the raw newOrder API response
+       (which now includes loyaltyPoints / nextRewardAt).
     ══════════════════════════════════════════ */
-    function showSuccessScreen(orderId) {
-      document.getElementById('success-order-id').textContent = orderId;
-      document.getElementById('success-track-link').href = 'track.html?orderId=' + encodeURIComponent(orderId);
+    function showSuccessScreen(orderCtx, apiResponse) {
+      // Backward-compat: accept a plain orderId string from older callers
+      if (orderCtx && typeof orderCtx === 'string') {
+        orderCtx = { orderId: orderCtx, customerName: '', customerPhone: '', itemsText: '', totalPrice: 0, location: '' };
+      }
+      orderCtx = orderCtx || {};
+      apiResponse = apiResponse || {};
+
+      document.getElementById('success-order-id').textContent = orderCtx.orderId;
+      document.getElementById('success-track-link').href = 'track.html?orderId=' + encodeURIComponent(orderCtx.orderId);
+
+      // ── PHASE 4A: WhatsApp send-to-kitchen button (Feature 4) ──
+      var whatsappBtn = document.getElementById('success-whatsapp-btn');
+      try {
+        if (typeof CONFIG !== 'undefined' && CONFIG.buildWhatsAppUrl && CONFIG.buildOrderMessage) {
+          var msg = CONFIG.buildOrderMessage(
+            orderCtx.orderId,
+            orderCtx.customerName,
+            orderCtx.customerPhone,
+            orderCtx.itemsText,
+            orderCtx.totalPrice,
+            orderCtx.location
+          );
+          var url = CONFIG.buildWhatsAppUrl(msg);
+          whatsappBtn.onclick = function () { window.open(url, '_blank'); };
+          whatsappBtn.style.display = '';
+        } else {
+          // No CONFIG helpers — hide gracefully
+          whatsappBtn.style.display = 'none';
+        }
+      } catch (e) {
+        console.error('WhatsApp link build failed:', e);
+        whatsappBtn.style.display = 'none';
+      }
+
+      // ── PHASE 2E: Loyalty banner (Feature 2) ──
+      renderLoyaltyBanner(apiResponse);
 
       var successScreen = document.getElementById('success-screen');
       successScreen.classList.add('show');
       document.body.style.overflow = 'hidden';
+    }
+
+    /* ── PHASE 2E: Loyalty banner renderer ──
+       Reads loyaltyPoints / nextRewardAt from the API response (or falls
+       back to CONFIG defaults). Degrades gracefully to hidden if unknown. */
+    function renderLoyaltyBanner(apiResponse) {
+      var banner = document.getElementById('loyalty-banner');
+      var textEl = document.getElementById('loyalty-text');
+      var fillEl = document.getElementById('loyalty-progress-fill');
+      var labelEl = document.getElementById('loyalty-progress-label');
+      var progressWrap = document.getElementById('loyalty-progress-wrap');
+      if (!banner) return;
+
+      var pointsPerOrder = (typeof CONFIG !== 'undefined' && CONFIG.RESTAURANT && CONFIG.RESTAURANT.loyaltyPointsPerOrder)
+        ? CONFIG.RESTAURANT.loyaltyPointsPerOrder : 1;
+      var threshold = (typeof CONFIG !== 'undefined' && CONFIG.RESTAURANT && CONFIG.RESTAURANT.loyaltyRewardThreshold)
+        ? CONFIG.RESTAURANT.loyaltyRewardThreshold : 10;
+
+      // Prefer API-reported totals; otherwise estimate from this order only.
+      var totalPoints = null;
+      var nextRewardAt = null;
+      try {
+        if (apiResponse && typeof apiResponse.loyaltyPoints === 'number') {
+          totalPoints = apiResponse.loyaltyPoints;
+        }
+        if (apiResponse && typeof apiResponse.nextRewardAt === 'number') {
+          nextRewardAt = apiResponse.nextRewardAt;
+        }
+      } catch (e) {}
+
+      if (nextRewardAt == null) nextRewardAt = threshold;
+      if (totalPoints == null) totalPoints = pointsPerOrder; // best-effort fallback
+
+      var earned = pointsPerOrder;
+      var rewardEarned = totalPoints >= nextRewardAt;
+
+      banner.classList.toggle('reward-earned', rewardEarned);
+
+      if (rewardEarned) {
+        textEl.innerHTML = '🎉 FREE item earned! Show cashier your phone number to claim.';
+        progressWrap.style.display = 'none';
+      } else {
+        textEl.innerHTML = '⭐ You earned ' + earned + ' point' + (earned === 1 ? '' : 's') +
+          '! Total: ' + totalPoints + ' points. Free item at ' + nextRewardAt + ' points.';
+        var pct = nextRewardAt > 0 ? Math.min(100, Math.round((totalPoints / nextRewardAt) * 100)) : 0;
+        fillEl.style.width = pct + '%';
+        labelEl.textContent = totalPoints + ' / ' + nextRewardAt;
+        progressWrap.style.display = '';
+      }
+      banner.style.display = '';
     }
 
     document.getElementById('new-order-btn').addEventListener('click', function () {
@@ -1558,8 +1988,197 @@
       clearCart();
       document.getElementById('customer-name').value = '';
       document.getElementById('notes').value = '';
+      // ── PHASE 2D: reset phone field for the next order (Feature 1) ──
+      phoneInput.value = '';
+      clearPhoneError();
       renderCartUI();
     });
+
+    /* ══════════════════════════════════════════
+       PHASE 3B — POPULAR TODAY + COMPLETE YOUR MEAL (Feature 3)
+
+       Both features draw from API items that may not exist in the local
+       allMenu array (e.g. a popular item from another category). We resolve
+       them against allMenu first, and otherwise build a lightweight item
+       object so addToCart still works. addExternalItem centralises this.
+    ══════════════════════════════════════════ */
+    function resolveItem(raw) {
+      if (!raw) return null;
+      var name = raw.name;
+      // Match an existing menu item by name (case-insensitive) so the same
+      // cart line / qty control is reused.
+      var existing = allMenu.find(function (m) {
+        return m.name && name && m.name.toLowerCase() === name.toLowerCase();
+      });
+      if (existing) return existing;
+      // Otherwise synthesise a stable item. Use a negative id range so it
+      // never collides with real menu ids.
+      return {
+        id: 900000 + Math.abs(hashCode(name)),
+        name: name,
+        price: Number(raw.price) || 0,
+        emoji: raw.emoji || '🍽️',
+        category: raw.category || 'Foods'
+      };
+    }
+
+    function hashCode(str) {
+      var h = 0;
+      str = String(str);
+      for (var i = 0; i < str.length; i++) {
+        h = ((h << 5) - h) + str.charCodeAt(i);
+        h |= 0;
+      }
+      return h;
+    }
+
+    // Adds an item that came from an external source (popular strip / upsell)
+    // to the cart, ensuring allMenu contains it so the menu card qty controls
+    // stay in sync if it is later rendered in the grid.
+    function addExternalItem(raw) {
+      var item = resolveItem(raw);
+      if (!item) return;
+      if (!allMenu.find(function (m) { return m.id === item.id; })) {
+        allMenu.push(item);
+      }
+      addToCart(item);
+      showToast(item.emoji + ' ' + item.name + ' added to order.', 'success', 1800);
+    }
+
+    /* ── Popular Today strip ── */
+    async function initPopularToday() {
+      var section = document.getElementById('popular-section');
+      var strip = document.getElementById('popular-strip');
+      if (!section || !strip) return;
+      try {
+        if (typeof CONFIG === 'undefined' || !CONFIG.apiGet) return;
+        var res = await CONFIG.apiGet('popularToday');
+        var items = (res && res.data) ? res.data : [];
+        if (!Array.isArray(items) || items.length === 0) {
+          section.classList.add('hidden');
+          return;
+        }
+        // Show up to 8 cards
+        items.slice(0, 8).forEach(function (raw) {
+          var item = resolveItem(raw);
+          if (!item) return;
+          var card = document.createElement('div');
+          card.className = 'popular-card';
+          card.innerHTML =
+            '<div class="popular-card-emoji">' + (item.emoji || '🍽️') + '</div>' +
+            '<div class="popular-card-name">' + escapeHtml(item.name) + '</div>' +
+            '<div class="popular-card-price">' + formatCurrency(item.price) + '</div>' +
+            '<button class="btn-add-to-cart" type="button">+ Add</button>';
+          var addBtn = card.querySelector('.btn-add-to-cart');
+          addBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            addExternalItem(raw);
+          });
+          strip.appendChild(card);
+        });
+        section.classList.remove('hidden');
+      } catch (e) {
+        // Hide gracefully — never break ordering
+        section.classList.add('hidden');
+      }
+    }
+
+    /* ── Complete Your Meal upsell (cart sidebar / sheet) ── */
+    var suggestionsDebounce = null;
+    var lastSuggestionKey = '';
+
+    function updateSuggestions() {
+      // Debounce so rapid add/remove doesn't spam the API
+      clearTimeout(suggestionsDebounce);
+      suggestionsDebounce = setTimeout(fetchSuggestions, 350);
+    }
+
+    async function fetchSuggestions() {
+      var desktopEl = document.getElementById('cart-upsell-desktop');
+      var mobileEl = document.getElementById('cart-upsell-mobile');
+      // Nothing in the cart → hide both upsells
+      if (cart.length === 0) {
+        hideUpsell(desktopEl);
+        hideUpsell(mobileEl);
+        lastSuggestionKey = '';
+        return;
+      }
+
+      // Build a stable key from current cart names so we skip refetches when
+      // only quantities changed.
+      var cartKey = cart.map(function (c) { return c.name; }).sort().join(',');
+      if (cartKey === lastSuggestionKey) return;
+      lastSuggestionKey = cartKey;
+
+      try {
+        if (typeof CONFIG === 'undefined' || !CONFIG.apiGet) {
+          hideUpsell(desktopEl);
+          hideUpsell(mobileEl);
+          return;
+        }
+        var res = await CONFIG.apiGet('suggestions', { cart: cartKey });
+        var items = (res && res.data) ? res.data : [];
+        if (!Array.isArray(items) || items.length === 0) {
+          hideUpsell(desktopEl);
+          hideUpsell(mobileEl);
+          return;
+        }
+        // Filter out items already in the cart, show up to 3
+        var picks = items
+          .filter(function (raw) {
+            return raw && raw.name && !cart.find(function (c) {
+              return c.name.toLowerCase() === raw.name.toLowerCase();
+            });
+          })
+          .slice(0, 3);
+        if (picks.length === 0) {
+          hideUpsell(desktopEl);
+          hideUpsell(mobileEl);
+          return;
+        }
+        renderUpsell(desktopEl, picks);
+        renderUpsell(mobileEl, picks);
+      } catch (e) {
+        // Degrade gracefully
+        hideUpsell(desktopEl);
+        hideUpsell(mobileEl);
+      }
+    }
+
+    function renderUpsell(container, picks) {
+      if (!container) return;
+      var html = '<div class="upsell-title">✨ Complete Your Meal</div><div class="upsell-list">';
+      picks.forEach(function (raw, idx) {
+        var item = resolveItem(raw);
+        html +=
+          '<div class="upsell-card">' +
+            '<span class="upsell-card-emoji">' + (item.emoji || '🍽️') + '</span>' +
+            '<div class="upsell-card-info">' +
+              '<div class="upsell-card-name">' + escapeHtml(item.name) + '</div>' +
+              '<div class="upsell-card-price">' + formatCurrency(item.price) + '</div>' +
+            '</div>' +
+            '<button class="btn-add-to-cart" type="button" data-upsell-idx="' + idx + '">+ Add</button>' +
+          '</div>';
+      });
+      html += '</div>';
+      container.innerHTML = html;
+      container.classList.remove('hidden');
+
+      // Attach handlers (scope picks to this closure)
+      container.querySelectorAll('.btn-add-to-cart').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          var i = Number(btn.dataset.upsellIdx);
+          addExternalItem(picks[i]);
+        });
+      });
+    }
+
+    function hideUpsell(container) {
+      if (!container) return;
+      container.classList.add('hidden');
+      container.innerHTML = '';
+    }
 
     /* ══════════════════════════════════════════
        SEARCH
@@ -1588,58 +2207,174 @@
     });
 
     /* ══════════════════════════════════════════
-       GOOGLE REVIEWS
+       PHASE 5D — REAL REVIEWS + GOOGLE LINK (Feature 5)
+       Loads approved reviews + average rating from the API, falling back to
+       the original generic placeholders if the API is missing/empty/fails.
     ══════════════════════════════════════════ */
+    var PLACEHOLDER_REVIEWS = [
+      { name: 'Aisha M.', rating: 5, text: 'Amazing food and great service! Definitely a must-visit.', time: '2 weeks ago' },
+      { name: 'Ibrahim K.', rating: 5, text: 'Love the cozy atmosphere and the pastries are always fresh. Highly recommend!', time: '1 month ago' },
+      { name: 'Fatima B.', rating: 4, text: 'Great variety on the menu and the drinks are refreshing.', time: '3 weeks ago' }
+    ];
+
     function initReviews() {
-      var grid = document.getElementById('reviews-grid');
       var PLACE_ID = (typeof CONFIG !== 'undefined' && CONFIG.RESTAURANT && CONFIG.RESTAURANT.GOOGLE_PLACE_ID) ? CONFIG.RESTAURANT.GOOGLE_PLACE_ID : '';
 
-      if (!PLACE_ID) {
-        // No Place ID configured — show placeholder reviews
-        var fallback = [
-          { name: 'Aisha M.', rating: 5, text: 'Amazing food and great service! The jollof rice is the best in Yola.', time: '2 weeks ago' },
-          { name: 'Ibrahim K.', rating: 5, text: 'Love the cozy atmosphere and the pastries are always fresh. Highly recommend!', time: '1 month ago' },
-          { name: 'Fatima B.', rating: 4, text: 'Good variety of swallows and soups. The kunu is refreshing on a hot day.', time: '3 weeks ago' }
-        ];
-        renderReviews(fallback);
-        return;
+      // ── Fix the Google review link (Feature 5) ──
+      // Build from Place ID when available; otherwise hide the link entirely
+      // (the previous code left a dead "#"-href anchor).
+      var reviewLink = document.getElementById('google-review-link');
+      if (reviewLink && PLACE_ID) {
+        reviewLink.href = 'https://www.google.com/maps/search/?api=1&query=Google&query_place_id=' + encodeURIComponent(PLACE_ID);
+        reviewLink.style.display = '';
+        reviewLink.removeAttribute('aria-hidden');
+      } else if (reviewLink) {
+        reviewLink.style.display = 'none';
       }
 
-      // Embed Google Maps reviews iframe — works without API key
-      var embedWrap = document.getElementById('reviews-embed-wrap');
-      if (embedWrap) {
-        var mapsUrl = 'https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d3937.9!2d12.4550871!3d9.2492094!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x10fc6bed79158337%3A0xfe937db2e8e91aca!2sMevish%20Eatery!5e0!3m2!1sen!2sng!4v1';
-        embedWrap.innerHTML = '<iframe src="' + mapsUrl + '" width="100%" height="350" style="border:0;border-radius:var(--radius-lg);margin-top:var(--sp-md);" allowfullscreen="" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>';
+      // Keep the optional maps embed (only if configured) — unchanged behaviour
+      if (PLACE_ID) {
+        var embedWrap = document.getElementById('reviews-embed-wrap');
+        if (embedWrap) {
+          var mapsUrl = (typeof CONFIG !== 'undefined' && CONFIG.RESTAURANT && CONFIG.RESTAURANT.mapsEmbedUrl)
+            ? CONFIG.RESTAURANT.mapsEmbedUrl
+            : 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3920.5!2d12.5!3d9.2!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2sRestaurant!5e0!3m2!1sen!2sng';
+          embedWrap.innerHTML = '<iframe src="' + mapsUrl + '" width="100%" height="350" style="border:0;border-radius:var(--radius-lg);margin-top:var(--sp-md);" allowfullscreen="" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>';
+        }
       }
 
-      // Show placeholder reviews alongside the embed (actual reviews require Places API key)
-      var fallback = [
-        { name: 'Aisha M.', rating: 5, text: 'Amazing food and great service! The jollof rice is the best in Yola.', time: '2 weeks ago' },
-        { name: 'Ibrahim K.', rating: 5, text: 'Love the cozy atmosphere and the pastries are always fresh. Highly recommend!', time: '1 month ago' },
-        { name: 'Fatima B.', rating: 4, text: 'Good variety of swallows and soups. The kunu is refreshing on a hot day.', time: '3 weeks ago' }
-      ];
-      renderReviews(fallback);
+      // Load real average rating + reviews in parallel; both degrade to the
+      // existing static UI on failure so the page never breaks.
+      loadAverageRating();
+      loadApprovedReviews();
+    }
+
+    /* ── Average rating summary (Feature 5) ── */
+    async function loadAverageRating() {
+      try {
+        if (typeof CONFIG === 'undefined' || !CONFIG.apiGet) return;
+        var res = await CONFIG.apiGet('averageRating');
+        var data = (res && res.data) ? res.data : null;
+        if (!data) return;
+        var avg = parseFloat(data.average);
+        var count = parseInt(data.count, 10);
+        if (isNaN(avg)) return;
+
+        var scoreEl = document.getElementById('reviews-avg-score');
+        var starsEl = document.getElementById('reviews-avg-stars');
+        var countEl = document.getElementById('reviews-avg-count');
+        if (scoreEl) scoreEl.textContent = (!isNaN(avg) ? avg.toFixed(1) : '—');
+        if (starsEl) starsEl.innerHTML = renderStars(avg);
+        if (countEl && !isNaN(count)) {
+          countEl.textContent = 'Based on ' + count + ' review' + (count === 1 ? '' : 's');
+        }
+      } catch (e) {
+        // Leave the existing static "3.5 / 6 reviews" display as-is
+      }
+    }
+
+    function renderStars(rating) {
+      var r = Math.round(Number(rating) || 0);
+      if (r < 0) r = 0; if (r > 5) r = 5;
+      return '★'.repeat(r) + '☆'.repeat(5 - r);
+    }
+
+    /* ── Approved reviews from the API (Feature 5) ── */
+    async function loadApprovedReviews() {
+      var grid = document.getElementById('reviews-grid');
+      if (!grid) return;
+      try {
+        if (typeof CONFIG === 'undefined' || !CONFIG.apiGet) {
+          renderReviews(PLACEHOLDER_REVIEWS);
+          return;
+        }
+        var res = await CONFIG.apiGet('reviews', { status: 'approved' });
+        var raw = (res && res.data) ? res.data : [];
+        if (!Array.isArray(raw) || raw.length === 0) {
+          // API returned nothing — fall back to placeholders
+          renderReviews(PLACEHOLDER_REVIEWS);
+          return;
+        }
+        // Map API shape → card shape, keep newest first, cap at 6
+        var mapped = raw.map(mapApiReview).filter(function (r) { return r !== null; });
+        mapped.sort(function (a, b) { return b.sortKey - a.sortKey; });
+        renderReviews(mapped.slice(0, 6));
+      } catch (e) {
+        // Degrade gracefully to placeholders
+        renderReviews(PLACEHOLDER_REVIEWS);
+      }
+    }
+
+    // Maps a backend review record to the card render shape.
+    // Backend fields: {timestamp, orderId, phone, rating, comment, customerName, status}
+    function mapApiReview(raw) {
+      if (!raw) return null;
+      var rating = parseInt(raw.rating, 10);
+      if (isNaN(rating)) rating = 5;
+      if (rating < 1) rating = 1; if (rating > 5) rating = 5;
+      var name = (raw.customerName && String(raw.customerName).trim()) ||
+                 (raw.name && String(raw.name).trim()) ||
+                 'Guest';
+      var text = (raw.comment != null ? String(raw.comment) : (raw.text || ''));
+      if (!text.trim()) text = '—';
+      var ts = raw.timestamp || raw.time;
+      return {
+        name: name,
+        rating: rating,
+        text: text,
+        time: formatReviewDate(ts),
+        sortKey: parseTimestamp(ts)
+      };
+    }
+
+    function formatReviewDate(ts) {
+      if (!ts) return '';
+      var d = parseDate(ts);
+      if (!d || isNaN(d.getTime())) return String(ts);
+      try {
+        return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+      } catch (e) {
+        return String(ts);
+      }
+    }
+
+    function parseTimestamp(ts) {
+      var d = parseDate(ts);
+      return d && !isNaN(d.getTime()) ? d.getTime() : 0;
+    }
+
+    function parseDate(ts) {
+      if (!ts) return null;
+      // Google Sheets date serial (number) → convert to ms
+      if (typeof ts === 'number') {
+        // Sheets epoch: 1899-12-30
+        return new Date(Math.round((ts - 25569) * 86400 * 1000));
+      }
+      var d = new Date(ts);
+      return isNaN(d.getTime()) ? null : d;
     }
 
     function renderReviews(reviews) {
       var grid = document.getElementById('reviews-grid');
-
-      if (reviews.length === 0) {
+      if (!grid) return;
+      if (!reviews || reviews.length === 0) {
         grid.innerHTML = '<div class="empty-state"><div class="empty-title">Be the first to review us!</div></div>';
         return;
       }
 
       var html = '';
       reviews.forEach(function(r) {
-        var stars = '★'.repeat(r.rating) + '☆'.repeat(5 - r.rating);
-        var initials = r.name.split(' ').map(function(w) { return w[0] || ''; }).join('').toUpperCase().slice(0, 2);
+        var rating = Math.max(0, Math.min(5, parseInt(r.rating, 10) || 0));
+        var stars = '★'.repeat(rating) + '☆'.repeat(5 - rating);
+        var safeName = escapeHtml(r.name || 'Guest');
+        var initials = String(r.name || 'G').trim().split(/\s+/).map(function(w) { return w[0] || ''; }).join('').toUpperCase().slice(0, 2);
         html += '<div class="review-card">'
           + '<div class="review-card-header">'
-          + '<div class="review-avatar">' + initials + '</div>'
-          + '<div><div class="review-author">' + r.name + '</div><div class="review-date">' + r.time + '</div></div>'
+          + '<div class="review-avatar">' + escapeHtml(initials || 'G') + '</div>'
+          + '<div><div class="review-author">' + safeName + '</div><div class="review-date">' + escapeHtml(r.time || '') + '</div></div>'
           + '</div>'
           + '<div class="review-stars">' + stars + '</div>'
-          + '<div class="review-text">' + r.text + '</div>'
+          + '<div class="review-text">' + escapeHtml(r.text || '') + '</div>'
           + '</div>';
       });
       grid.innerHTML = html;
@@ -1661,6 +2396,8 @@
     (async function () {
       await initTables();
       await initMenu();
+      // ── PHASE 3B: Popular Today needs allMenu loaded to resolve items (Feature 3) ──
+      initPopularToday();
     })();
 
   })();

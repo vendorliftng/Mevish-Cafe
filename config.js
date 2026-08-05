@@ -1,6 +1,7 @@
 // ============================================================
-// Mevish Eatery ERP — Central Configuration
-// Edit this file to reconfigure the entire system.
+// Restaurant QR Ordering System — Central Configuration
+// Edit ONLY this file to reconfigure the entire system.
+// Every restaurant gets their own copy of the codebase.
 // ============================================================
 
 const CONFIG = {
@@ -12,24 +13,56 @@ const CONFIG = {
 
   // ─── Restaurant Identity ─────────────────────────────────
   RESTAURANT: {
-    name:     "Mevish Eatery",
-    tagline:  "Where Every Bite Tells a Story",
-    slogan:   "Premium Food. Fast Service. Real Flavour.",
-    city:     "Yola",
-    state:    "Adamawa",
-    country:  "Nigeria",
-    address:  "Yola, Adamawa State, Nigeria",
-    phone:    "+234 9036648535",
-    email:    "vendorliftng@gmail.com",
-    whatsapp: "+234 9036648535",
-    instagram:"@mevisheatery",
-    facebook: "mevisheatery",
-    hours:    "Monday – Sunday: 8:00 AM – 09:00 PM",
+    name:          "Mevish Eatery",
+    shortName:     "Mevish",            // First word — used in greetings
+    tagline:       "Where Every Bite Tells a Story",
+    slogan:        "Premium Food. Fast Service. Real Flavour.",
+    city:          "Yola",
+    state:         "Adamawa",
+    country:       "Nigeria",
+    fullAddress:   "Modibbo Aliyu Way, Karewa, Jimeta",
+    address:       "Yola, Adamawa State, Nigeria",
+    phone:         "+234 9036648535",
+    email:         "vendorliftng@gmail.com",
+    whatsapp:      "+234 9036648535",
+    kitchenWhatsapp: "+234 9036648535",  // WhatsApp for kitchen orders (can differ from main)
+    instagram:     "@mevisheatery",
+    facebook:      "mevisheatery",
+    hours:         "Monday – Sunday: 8:00 AM – 09:00 PM",
+    year:          "2026",
 
-  // ─── Google Place ID (for reviews embed) ──────────────────
-  // Hex CID extracted from https://maps.app.goo.gl/83dYVqV9tGSDxYS58
-  GOOGLE_PLACE_ID: "0x10fc6bed79158337:0xfe937db2e8e91aca",
-    year:     "2026",
+    // ─── Locale & Formatting ────────────────────────────────
+    locale:        "en-NG",             // Used by toLocaleDateString / toLocaleTimeString
+
+    // ─── Google Place ID (for reviews embed) ──────────────────
+    // Hex CID extracted from https://maps.app.goo.gl/83dYVqV9tGSDxYS58
+    GOOGLE_PLACE_ID: "0x10fc6bed79158337:0xfe937db2e8e91aca",
+
+    // ─── Google Maps Embed ──────────────────────────────────
+    // Full embed URL for the restaurant location iframe
+    mapsEmbedUrl: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3920.5!2d12.5!3d9.2!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMevish+Eatery!5e0!3m2!1sen!2sng",
+
+    // ─── Replication ────────────────────────────────────────
+    slug:          "mevish",            // Used for localStorage keys, CSS prefixes
+
+    // ─── Cuisine & Capacity ──────────────────────────────────
+    cuisineTypes:  ["African", "Continental", "Pastries", "Drinks"],
+    seatCount:     60,
+
+    // ─── Featured Items (shown on homepage) ───────────────────
+    // List up to 6 item names that match items in your Menu sheet
+    featuredItems: [
+      "Jollof/Fried Rice Chicken",
+      "Mevish Pizza (Pineapple/Sausage/Chicken)",
+      "Shawarma Double Sausage",
+      "Swallow & Soup with Chicken",
+      "Burger with Cheese & Fries",
+      "Ice Cream Cone"
+    ],
+
+    // ─── Loyalty Program ────────────────────────────────────
+    loyaltyPointsPerOrder: 1,   // Points earned per order
+    loyaltyRewardThreshold: 10, // Points needed for a free item
   },
 
   // ─── Currency ────────────────────────────────────────────
@@ -37,8 +70,11 @@ const CONFIG = {
 
   formatCurrency(amount) {
     const n = Number(amount) || 0;
-    return "₦" + n.toLocaleString("en-NG", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    return CONFIG.CURRENCY + n.toLocaleString(CONFIG.RESTAURANT.locale, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
   },
+
+  // ─── Storage Prefix (prevents collisions between restaurants) ──
+  STORAGE_PREFIX: "mevish_",
 
   // ─── GitHub Pages Base URL ──────────────────────────────
   BASE_URL: "https://vendorliftng.github.io/Mevish-Cafe/",
@@ -188,12 +224,12 @@ const CONFIG = {
     root.style.setProperty("--c-info",          theme.info);
     root.style.setProperty("--c-shadow",        theme.shadow);
     root.style.setProperty("--c-radius",        theme.radius);
-    localStorage.setItem("mevish_theme", themeId);
+    localStorage.setItem(CONFIG.STORAGE_PREFIX + "theme", themeId);
   },
 
   // Load theme: try localStorage first, then fall back to "default"
   loadSavedTheme() {
-    const saved = localStorage.getItem("mevish_theme");
+    const saved = localStorage.getItem(CONFIG.STORAGE_PREFIX + "theme");
     if (saved && this.THEMES[saved]) {
       this.applyTheme(saved);
       return saved;
@@ -297,7 +333,26 @@ const CONFIG = {
   ],
 
   // ─── Receipt ─────────────────────────────────────────────
-  RECEIPT_FOOTER: "Thank you for dining at Mevish Eatery!\nFollow us @mevisheatery",
+  get RECEIPT_FOOTER() {
+    return "Thank you for dining at " + CONFIG.RESTAURANT.name + "!\nFollow us " + CONFIG.RESTAURANT.instagram;
+  },
+
+  // ─── WhatsApp Helper ─────────────────────────────────────
+  // Build a wa.me link to send a pre-filled message to the restaurant
+  buildWhatsAppUrl(message) {
+    const phone = (CONFIG.RESTAURANT.kitchenWhatsapp || CONFIG.RESTAURANT.whatsapp).replace(/[^0-9]/g, "");
+    return "https://wa.me/" + phone + "?text=" + encodeURIComponent(message);
+  },
+
+  // Build order message for WhatsApp
+  buildOrderMessage(orderId, customerName, customerPhone, itemsText, totalPrice, location) {
+    return "🛎️ New Order!\n\n" +
+      "Order: " + orderId + "\n" +
+      "Customer: " + customerName + (customerPhone ? " (" + customerPhone + ")" : "") + "\n" +
+      "Items: " + itemsText + "\n" +
+      "Total: " + CONFIG.formatCurrency(totalPrice) + "\n" +
+      "Table: " + (location || "N/A");
+  },
 
   // ─── API Helpers ───────────────────────────────────────
   // Standard GET wrapper
@@ -337,70 +392,15 @@ const CONFIG = {
   },
 
   // ─── Fallback Menu (used if API is unavailable) ──────────
-  FALLBACK_MENU: [
-    {id:1,  category:"Foods",    name:"Jollof/Fried Rice only",           price:2000},
-    {id:3,  category:"Foods",    name:"Jollof/Fried Rice Chicken",        price:6000},
-    {id:6,  category:"Foods",    name:"Jollof/Fried Rice Beef",           price:3500},
-    {id:5,  category:"Foods",    name:"Jollof/Fried Rice Fish",           price:5000},
-    {id:9,  category:"Foods",    name:"Spaghetti Fish",                   price:5000},
-    {id:10, category:"Foods",    name:"Spaghetti Chicken",                price:6000},
-    {id:11, category:"Foods",    name:"Spaghetti Beef",                   price:3500},
-    {id:12, category:"Foods",    name:"Peppered Chicken",                 price:4000},
-    {id:19, category:"Foods",    name:"Peppered Beef",                    price:1500},
-    {id:20, category:"Foods",    name:"Peppered Fish",                    price:3000},
-    {id:21, category:"Foods",    name:"Mandi Rice",                       price:3000},
-    {id:22, category:"Foods",    name:"Briyani",                          price:3000},
-    {id:16, category:"Foods",    name:"Mandi Rice & Chicken",             price:7000},
-    {id:17, category:"Foods",    name:"Mandi Rice & Fish",                price:6000},
-    {id:18, category:"Foods",    name:"Mandi Rice & Beef",                price:4500},
-    {id:13, category:"Foods",    name:"Briyani Rice & Chicken",           price:7000},
-    {id:14, category:"Foods",    name:"Briyani Rice & Fish",              price:6000},
-    {id:15, category:"Foods",    name:"Briyani Rice & Beef",              price:4500},
-    {id:23, category:"Swallows", name:"Swallow & Soup with Chicken",      price:5500},
-    {id:24, category:"Swallows", name:"Swallow & Soup with Fish",         price:5000},
-    {id:25, category:"Swallows", name:"Swallow & Soup with Beef",         price:3000},
-    {id:26, category:"Pastries", name:"Shawarma Single Sausage",          price:4000},
-    {id:27, category:"Pastries", name:"Shawarma Double Sausage",          price:4500},
-    {id:28, category:"Pastries", name:"Shawarma without Sausage",         price:3500},
-    {id:29, category:"Pastries", name:"Chicken Pizza",                    price:6000},
-    {id:30, category:"Pastries", name:"Beef Pizza",                       price:12000},
-    {id:31, category:"Pastries", name:"Margarita (Tomato & Cheese)",      price:8000},
-    {id:32, category:"Pastries", name:"Mevish Pizza (Pineapple/Sausage/Chicken)", price:15000},
-    {id:33, category:"Pastries", name:"Burger",                           price:2500},
-    {id:34, category:"Pastries", name:"Burger with Cheese",               price:3000},
-    {id:35, category:"Pastries", name:"Burger with Cheese & Fries",       price:4500},
-    {id:36, category:"Pastries", name:"Burger with Fries",                price:3500},
-    {id:37, category:"Pastries", name:"Milky Doughnut",                   price:1500},
-    {id:38, category:"Pastries", name:"Bread",                            price:1500},
-    {id:39, category:"Pastries", name:"Fruit Bread",                      price:1700},
-    {id:40, category:"Pastries", name:"Samosa",                           price:400},
-    {id:41, category:"Pastries", name:"Spring Rolls",                     price:400},
-    {id:61, category:"Pastries", name:"Banana Bread",                     price:3000},
-    {id:62, category:"Pastries", name:"Block Chocolate Cake",             price:2000},
-    {id:63, category:"Pastries", name:"Block Red Velvet Cake",            price:2000},
-    {id:64, category:"Pastries", name:"Cake Parfait",                     price:2500},
-    {id:65, category:"Pastries", name:"Ice Cream per Scoop",              price:1000},
-    {id:66, category:"Pastries", name:"Ice Cream Cone",                   price:1200},
-    {id:67, category:"Pastries", name:"Popcorn",                          price:800},
-    {id:68, category:"Pastries", name:"Caramel Popcorn",                  price:250},
-    {id:42, category:"Drinks",   name:"Chivita",                          price:2500},
-    {id:43, category:"Drinks",   name:"Fura",                             price:1200},
-    {id:44, category:"Drinks",   name:"Coconut Fura",                     price:1400},
-    {id:45, category:"Drinks",   name:"Yogo Fura",                        price:1500},
-    {id:46, category:"Drinks",   name:"5 Alive",                          price:1700},
-    {id:47, category:"Drinks",   name:"5 Alive Blast",                    price:2000},
-    {id:48, category:"Drinks",   name:"Coke",                             price:700},
-    {id:49, category:"Drinks",   name:"Mirinda",                          price:700},
-    {id:50, category:"Drinks",   name:"Malt",                             price:700},
-    {id:51, category:"Drinks",   name:"Pepsi",                            price:700},
-    {id:52, category:"Drinks",   name:"Sprite",                           price:700},
-    {id:53, category:"Drinks",   name:"Fanta",                            price:700},
-    {id:54, category:"Drinks",   name:"Smoov",                            price:700},
-    {id:55, category:"Drinks",   name:"Zobo",                             price:500},
-    {id:56, category:"Drinks",   name:"Tamarind",                         price:500},
-    {id:57, category:"Drinks",   name:"Water",                            price:500},
-    {id:58, category:"Drinks",   name:"Yoghurt Parfait",                  price:3000},
-    {id:59, category:"Drinks",   name:"Greek Yoghurt",                    price:2000},
-    {id:60, category:"Drinks",   name:"Kunan Aya",                        price:1000},
-  ],
+  // Keep empty to force API load; restaurants should always use their Google Sheet.
+  // If API fails, the UI will show a retry button.
+  FALLBACK_MENU: [],
+
+  // ─── Initialize Storage Prefix from Slug ─────────────────
+  // Called once at startup in each page's init function
+  initStoragePrefix() {
+    if (CONFIG.RESTAURANT.slug && CONFIG.STORAGE_PREFIX === "mevish_") {
+      CONFIG.STORAGE_PREFIX = CONFIG.RESTAURANT.slug + "_";
+    }
+  },
 };

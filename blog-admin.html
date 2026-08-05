@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Blog Admin | Mevish Eatery CMS</title>
+  <title id="adminTitle">Blog Admin</title>
   <meta name="robots" content="noindex, nofollow">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -333,7 +333,7 @@
   <div class="pin-card" role="main">
     <div class="pin-logo">🔐</div>
     <h1>Blog Admin</h1>
-    <p>Enter your 4-digit PIN to access the Mevish Eatery content manager.</p>
+    <p id="pinGateDesc">Enter your 4-digit PIN to access the content manager.</p>
 
     <label class="pin-label" for="pinInput">Your PIN</label>
     <div class="pin-dots" aria-hidden="true">
@@ -362,7 +362,7 @@
   <header class="topbar">
     <div class="topbar-brand">
       <span class="logo">🍽️</span>
-      <span class="name">Mevish Eatery</span>
+      <span class="name" id="topbarBrandName">Restaurant</span>
       <span class="sub">Blog CMS</span>
     </div>
     <div class="topbar-right">
@@ -581,8 +581,12 @@
 // ═══════════════════════════════════════
 // CONFIG DEFAULTS (if config.js not loaded)
 // ═══════════════════════════════════════
+const R = (typeof CONFIG !== 'undefined' && CONFIG.RESTAURANT) ? CONFIG.RESTAURANT : null;
+const REST_NAME = (R && R.name) || 'Restaurant';
+const LOCALE = (R && R.locale) || 'en-US';
 const BLOG_PIN = (typeof CONFIG !== 'undefined' && CONFIG.BLOG_ADMIN_PIN) ? CONFIG.BLOG_ADMIN_PIN : '5678';
 const API = (typeof CONFIG !== 'undefined') ? CONFIG.API_URL : '';
+const STORAGE = (typeof CONFIG !== 'undefined' && CONFIG.STORAGE_PREFIX) ? CONFIG.STORAGE_PREFIX : 'mevish_';
 const CATS = (typeof CONFIG !== 'undefined' && CONFIG.BLOG_CATEGORIES)
   ? CONFIG.BLOG_CATEGORIES
   : ['Food & Culture','Menu Spotlight','News & Events','Recipes & Tips','Behind the Scenes'];
@@ -695,8 +699,9 @@ function resetForm() {
 // ═══════════════════════════════════════
 async function loadArticleList() {
   try {
-    const res = await fetch(`${API}?type=blogs&all=true`);
-    const data = await res.json();
+    const data = (typeof CONFIG !== 'undefined' && CONFIG.apiGet)
+      ? await CONFIG.apiGet('blogs', { all: 'true' })
+      : await (await fetch(`${API}?type=blogs&all=true`)).json();
     allArticles = data.data || [];
   } catch {
     // No API available — show empty state
@@ -735,7 +740,7 @@ function renderArticleTable(articles) {
     return;
   }
   tbody.innerHTML = articles.map(a => {
-    const date = a.date ? new Date(a.date).toLocaleDateString('en-NG',{day:'numeric',month:'short',year:'numeric'}) : '—';
+    const date = a.date ? new Date(a.date).toLocaleDateString(LOCALE,{day:'numeric',month:'short',year:'numeric'}) : '—';
     const statusBadge = a.status === 'Published'
       ? '<span class="badge badge-published">● Published</span>'
       : '<span class="badge badge-draft">○ Draft</span>';
@@ -877,7 +882,7 @@ async function savePost(statusOverride) {
     imageUrl: document.getElementById('fImage').value.trim(),
     content,
     metaDescription: document.getElementById('fMeta').value.trim(),
-    author: 'Mevish Eatery',
+    author: REST_NAME,
     date: new Date().toISOString().split('T')[0],
     status,
   };
@@ -891,8 +896,9 @@ async function savePost(statusOverride) {
 
   try {
     if (!API) throw new Error('No API configured');
-    const res = await fetch(API, { method:'POST', body:JSON.stringify(payload) });
-    const data = await res.json();
+    const data = (typeof CONFIG !== 'undefined' && CONFIG.apiPost)
+      ? await CONFIG.apiPost('saveBlogPost', payload)
+      : await (await fetch(API, { method:'POST', body:JSON.stringify(payload) })).json();
     if (data.status === 'success') {
       showToast('success', status === 'Published' ? '🎉 Article published successfully!' : '💾 Draft saved!');
       setTimeout(() => { showListView(); loadArticleList(); }, 1200);
@@ -935,7 +941,11 @@ async function confirmDelete() {
   btn.textContent = 'Deleting…';
   btn.disabled = true;
   try {
-    await fetch(API, { method:'POST', body:JSON.stringify({ action:'deleteBlogPost', id:pendingDeleteId }) });
+    if (typeof CONFIG !== 'undefined' && CONFIG.apiPost) {
+      await CONFIG.apiPost('deleteBlogPost', { id: pendingDeleteId });
+    } else {
+      await fetch(API, { method:'POST', body:JSON.stringify({ action:'deleteBlogPost', id:pendingDeleteId }) });
+    }
   } catch {}
   closeConfirm();
   showToast('success', '🗑 Article deleted.');
@@ -967,8 +977,43 @@ function escHtml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+// ═══════════════════════════════════════
+// DYNAMIC BRAND/META INIT
+// ═══════════════════════════════════════
+function applyBrand() {
+  // Title
+  document.title = `${REST_NAME} Blog Admin`;
+  const titleEl = document.getElementById('adminTitle');
+  if (titleEl) titleEl.textContent = `${REST_NAME} Blog Admin`;
+
+  // PIN gate description
+  const pinDesc = document.getElementById('pinGateDesc');
+  if (pinDesc) pinDesc.textContent = `Enter your 4-digit PIN to access the ${REST_NAME} content manager.`;
+
+  // Topbar brand
+  const topbarBrand = document.getElementById('topbarBrandName');
+  if (topbarBrand) topbarBrand.textContent = REST_NAME;
+
+  // Populate category <select> options from CONFIG.BLOG_CATEGORIES (filter + form)
+  const populateSelect = (sel) => {
+    if (!sel) return;
+    // Preserve any selected value or placeholder
+    const placeholder = sel.querySelector('option[value=""]');
+    sel.innerHTML = placeholder ? placeholder.outerHTML : '';
+    CATS.forEach(c => {
+      const o = document.createElement('option');
+      o.textContent = c;
+      o.value = c;
+      sel.appendChild(o);
+    });
+  };
+  populateSelect(document.getElementById('listCatFilter'));
+  populateSelect(document.getElementById('fCategory'));
+}
+
 // Content word count listener
 document.addEventListener('DOMContentLoaded', () => {
+  try { applyBrand(); } catch (e) { console.warn('Brand init error:', e); }
   const content = document.getElementById('fContent');
   if (content) content.addEventListener('input', updateWordCount);
 });

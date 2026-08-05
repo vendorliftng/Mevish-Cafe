@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mevish Eatery — Menu Board</title>
+  <title>Menu Board</title>
   <meta name="robots" content="noindex, nofollow">
 
   <link rel="stylesheet" href="style.css">
@@ -406,7 +406,7 @@
     // ── CONFIG helpers with fallbacks ──────────────
     var C            = (typeof CONFIG !== 'undefined') ? CONFIG : {};
     var API_URL      = C.API_URL || '';
-    var RESTAURANT   = C.RESTAURANT || { name: 'Mevish Eatery', slogan: 'Premium Food. Fast Service. Real Flavour.' };
+    var RESTAURANT   = C.RESTAURANT || { name: 'Restaurant', slogan: 'Delicious food, freshly prepared.', locale: 'en-US' };
     var CATEGORIES   = C.CATEGORIES || ['All', 'Foods', 'Swallows', 'Pastries', 'Drinks'];
     var CAT_ICONS    = C.CATEGORY_ICONS || { Foods: '🍽️', Swallows: '🥘', Pastries: '🥐', Drinks: '🥤', All: '🍴' };
     var FALLBACK_MENU = C.FALLBACK_MENU || [];
@@ -454,14 +454,14 @@
     // ── Date label ──────────────────────────────
     function updateDate() {
       var d = new Date();
-      document.getElementById('mbDate').textContent = d.toLocaleDateString('en-NG', {
+      document.getElementById('mbDate').textContent = d.toLocaleDateString(RESTAURANT.locale || 'en-US', {
         weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
       });
     }
 
     // ── Clock ───────────────────────────────────
     function updateClock() {
-      document.getElementById('mbClock').textContent = new Date().toLocaleTimeString('en-NG', {
+      document.getElementById('mbClock').textContent = new Date().toLocaleTimeString(RESTAURANT.locale || 'en-US', {
         hour: '2-digit', minute: '2-digit'
       });
     }

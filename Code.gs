@@ -17,13 +17,16 @@ var TABLES_SHEET = "Tables";
 var EXPENSES_SHEET = "Expenses";
 var AUDIT_SHEET = "Audit Log";
 var BLOG_SHEET = "Blog";
+var CUSTOMERS_SHEET = "Customers";
+var REVIEWS_SHEET = "Reviews";
 
 // Column indexes for Orders sheet (0-based)
 var ORD = {
   TIMESTAMP: 0, ORDER_ID: 1, NAME: 2, TYPE: 3, LOCATION: 4,
   ITEMS: 5, TOTAL_REVENUE: 6, TOTAL_COST: 7, PROFIT: 8, STATUS: 9,
   PAYMENT_METHOD: 10, CASHIER: 11, PREP_STARTED: 12, READY_AT: 13,
-  SERVED_AT: 14, PAID_AT: 15, PREP_TIME: 16, ACTUAL_TIME: 17, NOTES: 18
+  SERVED_AT: 14, PAID_AT: 15, PREP_TIME: 16, ACTUAL_TIME: 17, NOTES: 18,
+  PHONE: 19
 };
 
 // Column indexes for Menu sheet
@@ -40,6 +43,18 @@ var INV = {
 
 // Column indexes for Recipes sheet
 var RCP = { MENU_ITEM: 0, INGREDIENT: 1, QTY_NEEDED: 2, UNIT: 3 };
+
+// Column indexes for Customers sheet
+var CUST = {
+  PHONE: 0, NAME: 1, TOTAL_ORDERS: 2, TOTAL_SPENT: 3,
+  LOYALTY_POINTS: 4, LAST_VISIT: 5, CREATED_AT: 6
+};
+
+// Column indexes for Reviews sheet
+var REV = {
+  TIMESTAMP: 0, ORDER_ID: 1, PHONE: 2, RATING: 3,
+  COMMENT: 4, CUSTOMER_NAME: 5, STATUS: 6
+};
 
 // ─── HELPERS ───────────────────────────────────────────────────
 
@@ -294,7 +309,8 @@ function doGet(e) {
           servedAt: data[i][ORD.SERVED_AT] || "",
           paidAt: data[i][ORD.PAID_AT] || "",
           prepTime: data[i][ORD.PREP_TIME] || "",
-          actualTime: data[i][ORD.ACTUAL_TIME] || ""
+          actualTime: data[i][ORD.ACTUAL_TIME] || "",
+          phone: data[i][ORD.PHONE] || ""
         });
       }
       return jsonResponse({ status: "success", data: orders });
@@ -327,7 +343,8 @@ function doGet(e) {
               readyAt: data[i][ORD.READY_AT] || "",
               servedAt: data[i][ORD.SERVED_AT] || "",
               paidAt: data[i][ORD.PAID_AT] || "",
-              prepTime: data[i][ORD.PREP_TIME] || ""
+              prepTime: data[i][ORD.PREP_TIME] || "",
+              phone: data[i][ORD.PHONE] || ""
             }
           });
         }
@@ -715,6 +732,357 @@ function doGet(e) {
       });
     }
 
+    // ── SINGLE CUSTOMER (by phone) ─────────────────────────
+    if (type === "customer") {
+      var phoneToFind = e.parameter.phone;
+      if (!phoneToFind) return errorResponse("Phone required");
+      var sheet = ss.getSheetByName(CUSTOMERS_SHEET);
+      if (!sheet) return jsonResponse({ status: "not_found" });
+      var data = sheet.getDataRange().getValues();
+      for (var i = 1; i < data.length; i++) {
+        if (String(data[i][CUST.PHONE]) === String(phoneToFind)) {
+          return jsonResponse({
+            status: "success",
+            data: {
+              phone: data[i][CUST.PHONE],
+              name: data[i][CUST.NAME],
+              totalOrders: parseInt(data[i][CUST.TOTAL_ORDERS]) || 0,
+              totalSpent: parseFloat(data[i][CUST.TOTAL_SPENT]) || 0,
+              loyaltyPoints: parseInt(data[i][CUST.LOYALTY_POINTS]) || 0,
+              lastVisit: data[i][CUST.LAST_VISIT],
+              createdAt: data[i][CUST.CREATED_AT]
+            }
+          });
+        }
+      }
+      return jsonResponse({ status: "not_found" });
+    }
+
+    // ── ALL CUSTOMERS (newest by last visit) ───────────────
+    if (type === "customers") {
+      var sheet = ss.getSheetByName(CUSTOMERS_SHEET);
+      if (!sheet) return jsonResponse({ status: "success", data: [] });
+      var data = sheet.getDataRange().getValues();
+      var customers = [];
+      for (var i = 1; i < data.length; i++) {
+        if (data[i][CUST.PHONE] === "") continue;
+        customers.push({
+          phone: data[i][CUST.PHONE],
+          name: data[i][CUST.NAME],
+          totalOrders: parseInt(data[i][CUST.TOTAL_ORDERS]) || 0,
+          totalSpent: parseFloat(data[i][CUST.TOTAL_SPENT]) || 0,
+          loyaltyPoints: parseInt(data[i][CUST.LOYALTY_POINTS]) || 0,
+          lastVisit: data[i][CUST.LAST_VISIT],
+          createdAt: data[i][CUST.CREATED_AT]
+        });
+      }
+      // Newest first by LAST_VISIT
+      customers.sort(function(a, b) {
+        var da = new Date(a.lastVisit).getTime();
+        var db = new Date(b.lastVisit).getTime();
+        if (isNaN(da)) da = 0;
+        if (isNaN(db)) db = 0;
+        return db - da;
+      });
+      return jsonResponse({ status: "success", data: customers });
+    }
+
+    // ── LOYALTY REWARD CHECK ───────────────────────────────
+    if (type === "loyaltyReward") {
+      var phoneToFind = e.parameter.phone;
+      if (!phoneToFind) return errorResponse("Phone required");
+      var sheet = ss.getSheetByName(CUSTOMERS_SHEET);
+      var threshold = 10;
+      var points = 0;
+      if (sheet) {
+        var data = sheet.getDataRange().getValues();
+        for (var i = 1; i < data.length; i++) {
+          if (String(data[i][CUST.PHONE]) === String(phoneToFind)) {
+            points = parseInt(data[i][CUST.LOYALTY_POINTS]) || 0;
+            break;
+          }
+        }
+      }
+      return jsonResponse({
+        status: "success",
+        data: {
+          qualifies: points >= threshold,
+          points: points,
+          threshold: threshold,
+          rewardsAvailable: Math.floor(points / threshold)
+        }
+      });
+    }
+
+    // ── POPULAR TODAY (best sellers today) ─────────────────
+    if (type === "popularToday") {
+      var orderSheet = ss.getSheetByName(ORDERS_SHEET);
+      if (!orderSheet) return jsonResponse({ status: "success", data: [] });
+      var orderData = orderSheet.getDataRange().getValues();
+      var todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      var todayEnd = new Date();
+      todayEnd.setHours(23, 59, 59, 999);
+
+      // Build menu lookup map once
+      var menuLookup = buildMenuLookup(ss);
+
+      var qtyByName = {};
+      for (var i = 1; i < orderData.length; i++) {
+        var status = orderData[i][ORD.STATUS] || "";
+        if (status.indexOf("Void") !== -1) continue;
+        var rowDate = new Date(orderData[i][ORD.TIMESTAMP]);
+        if (isNaN(rowDate.getTime())) continue;
+        if (rowDate < todayStart || rowDate > todayEnd) continue;
+        var parsed = parseItemNames(orderData[i][ORD.ITEMS]);
+        parsed.forEach(function(it) {
+          if (!qtyByName[it.name]) qtyByName[it.name] = 0;
+          qtyByName[it.name] += it.qty;
+        });
+      }
+
+      var aggregated = Object.keys(qtyByName).map(function(name) {
+        return { name: name, qty: qtyByName[name] };
+      });
+      aggregated.sort(function(a, b) { return b.qty - a.qty; });
+      var top5 = aggregated.slice(0, 5).map(function(item) {
+        var meta = menuLookup[item.name] || {};
+        return {
+          name: item.name,
+          qty: item.qty,
+          price: meta.price || 0,
+          emoji: meta.emoji || "",
+          category: meta.category || ""
+        };
+      });
+      return jsonResponse({ status: "success", data: top5 });
+    }
+
+    // ── SUGGESTIONS (frequently bought together) ───────────
+    if (type === "suggestions") {
+      var cartParam = e.parameter.cart || "";
+      var cartItems = decodeURIComponent(cartParam).split(",").map(function(s) {
+        return s.trim();
+      }).filter(function(s) { return s !== ""; });
+      if (cartItems.length === 0) return jsonResponse({ status: "success", data: [] });
+
+      var orderSheet = ss.getSheetByName(ORDERS_SHEET);
+      var coOccurrence = {};
+      if (orderSheet) {
+        var orderData = orderSheet.getDataRange().getValues();
+        for (var i = 1; i < orderData.length; i++) {
+          var parsed = parseItemNames(orderData[i][ORD.ITEMS]);
+          var orderNames = parsed.map(function(it) { return it.name; });
+          // Does this order contain ANY cart item?
+          var containsCart = false;
+          for (var c = 0; c < cartItems.length; c++) {
+            if (orderNames.indexOf(cartItems[c]) !== -1) { containsCart = true; break; }
+          }
+          if (!containsCart) continue;
+          // Tally the OTHER items
+          orderNames.forEach(function(nm) {
+            if (cartItems.indexOf(nm) === -1) {
+              if (!coOccurrence[nm]) coOccurrence[nm] = 0;
+              coOccurrence[nm]++;
+            }
+          });
+        }
+      }
+
+      var menuLookup = buildMenuLookup(ss);
+      var ranked = Object.keys(coOccurrence).map(function(name) {
+        return { name: name, freq: coOccurrence[name] };
+      });
+      ranked.sort(function(a, b) { return b.freq - a.freq; });
+      var top5sug = ranked.slice(0, 5).map(function(item) {
+        var meta = menuLookup[item.name] || {};
+        return {
+          name: item.name,
+          freq: item.freq,
+          price: meta.price || 0,
+          emoji: meta.emoji || "",
+          category: meta.category || ""
+        };
+      });
+      return jsonResponse({ status: "success", data: top5sug });
+    }
+
+    // ── REVIEWS (by status) ────────────────────────────────
+    if (type === "reviews") {
+      var statusFilter = e.parameter.status || "approved";
+      var statusMatch = statusFilter === "pending" ? "Pending" : "Approved";
+      var sheet = ss.getSheetByName(REVIEWS_SHEET);
+      if (!sheet) return jsonResponse({ status: "success", data: [] });
+      var data = sheet.getDataRange().getValues();
+      var reviews = [];
+      for (var i = 1; i < data.length; i++) {
+        if (String(data[i][REV.STATUS]) !== statusMatch) continue;
+        reviews.push({
+          timestamp: data[i][REV.TIMESTAMP],
+          orderId: data[i][REV.ORDER_ID],
+          phone: data[i][REV.PHONE],
+          rating: parseInt(data[i][REV.RATING]) || 0,
+          comment: data[i][REV.COMMENT] || "",
+          customerName: data[i][REV.CUSTOMER_NAME] || "",
+          status: data[i][REV.STATUS]
+        });
+      }
+      // Newest first
+      reviews.sort(function(a, b) {
+        var da = new Date(a.timestamp).getTime();
+        var db = new Date(b.timestamp).getTime();
+        if (isNaN(da)) da = 0;
+        if (isNaN(db)) db = 0;
+        return db - da;
+      });
+      return jsonResponse({ status: "success", data: reviews });
+    }
+
+    // ── AVERAGE RATING ─────────────────────────────────────
+    if (type === "averageRating") {
+      var sheet = ss.getSheetByName(REVIEWS_SHEET);
+      if (!sheet) return jsonResponse({ status: "success", data: { average: 0, count: 0 } });
+      var data = sheet.getDataRange().getValues();
+      var sum = 0, count = 0;
+      for (var i = 1; i < data.length; i++) {
+        if (String(data[i][REV.STATUS]) !== "Approved") continue;
+        var r = parseFloat(data[i][REV.RATING]);
+        if (!isNaN(r)) { sum += r; count++; }
+      }
+      var average = count > 0 ? (sum / count) : 0;
+      return jsonResponse({
+        status: "success",
+        data: { average: Math.round(average * 100) / 100, count: count }
+      });
+    }
+
+    // ── PEAK HOURS (hour & day-of-week distribution) ───────
+    if (type === "peakHours") {
+      var days = parseInt(e.parameter.days) || 30;
+      var cutoff = new Date(new Date().getTime() - days * 86400000);
+      var orderSheet = ss.getSheetByName(ORDERS_SHEET);
+      var hours = [];
+      for (var h = 0; h < 24; h++) hours.push(0);
+      var byDay = [];
+      for (var d = 0; d < 7; d++) {
+        var dayArr = [];
+        for (var hh = 0; hh < 24; hh++) dayArr.push(0);
+        byDay.push(dayArr);
+      }
+      if (orderSheet) {
+        var orderData = orderSheet.getDataRange().getValues();
+        for (var i = 1; i < orderData.length; i++) {
+          var rowDate = new Date(orderData[i][ORD.TIMESTAMP]);
+          if (isNaN(rowDate.getTime())) continue;
+          if (rowDate < cutoff) continue;
+          var hr = rowDate.getHours();
+          var dy = rowDate.getDay();
+          hours[hr]++;
+          byDay[dy][hr]++;
+        }
+      }
+      return jsonResponse({
+        status: "success",
+        data: { hours: hours, byDay: byDay }
+      });
+    }
+
+    // ── CATEGORY BREAKDOWN (revenue by category) ───────────
+    if (type === "categoryBreakdown") {
+      var days = parseInt(e.parameter.days) || 30;
+      var cutoff = new Date(new Date().getTime() - days * 86400000);
+      var orderSheet = ss.getSheetByName(ORDERS_SHEET);
+      var categoryAgg = {};
+      if (orderSheet) {
+        var orderData = orderSheet.getDataRange().getValues();
+        var menuLookup = buildMenuLookup(ss);
+        for (var i = 1; i < orderData.length; i++) {
+          var status = orderData[i][ORD.STATUS] || "";
+          if (status.indexOf("Paid") === -1) continue;
+          var rowDate = new Date(orderData[i][ORD.TIMESTAMP]);
+          if (isNaN(rowDate.getTime())) continue;
+          if (rowDate < cutoff) continue;
+          var total = parseFloat(orderData[i][ORD.TOTAL_REVENUE]) || 0;
+          var parsed = parseItemNames(orderData[i][ORD.ITEMS]);
+          // Distribute order total across items proportionally by unit-price
+          var unitTotal = 0;
+          var itemCats = [];
+          parsed.forEach(function(it) {
+            var meta = menuLookup[it.name] || {};
+            var unitPrice = meta.price || 0;
+            var lineValue = unitPrice * it.qty;
+            unitTotal += lineValue;
+            itemCats.push({ cat: meta.category || "Other", lineValue: lineValue });
+          });
+          for (var k = 0; k < itemCats.length; k++) {
+            var share = unitTotal > 0 ? (itemCats[k].lineValue / unitTotal) * total : 0;
+            var cat = itemCats[k].cat;
+            if (!categoryAgg[cat]) categoryAgg[cat] = { revenue: 0, orderCount: 0 };
+            categoryAgg[cat].revenue += share;
+            categoryAgg[cat].orderCount += (k === 0 ? 1 : 0); // count order once
+          }
+          // If no items parsed, attribute to "Other" so revenue isn't lost
+          if (itemCats.length === 0) {
+            if (!categoryAgg["Other"]) categoryAgg["Other"] = { revenue: 0, orderCount: 0 };
+            categoryAgg["Other"].revenue += total;
+            categoryAgg["Other"].orderCount++;
+          }
+        }
+      }
+      var catList = Object.keys(categoryAgg).map(function(cat) {
+        return {
+          category: cat,
+          revenue: Math.round(categoryAgg[cat].revenue * 100) / 100,
+          orderCount: categoryAgg[cat].orderCount
+        };
+      });
+      catList.sort(function(a, b) { return b.revenue - a.revenue; });
+      return jsonResponse({ status: "success", data: catList });
+    }
+
+    // ── TOP CUSTOMERS (by phone) ───────────────────────────
+    if (type === "topCustomers") {
+      var days = parseInt(e.parameter.days) || 30;
+      var cutoff = new Date(new Date().getTime() - days * 86400000);
+      var orderSheet = ss.getSheetByName(ORDERS_SHEET);
+      var custAgg = {};
+      if (orderSheet) {
+        var orderData = orderSheet.getDataRange().getValues();
+        for (var i = 1; i < orderData.length; i++) {
+          var status = orderData[i][ORD.STATUS] || "";
+          if (status.indexOf("Void") !== -1) continue;
+          var phone = orderData[i][ORD.PHONE] || "";
+          if (phone === "") continue; // skip rows missing phone
+          var rowDate = new Date(orderData[i][ORD.TIMESTAMP]);
+          if (isNaN(rowDate.getTime())) continue;
+          if (rowDate < cutoff) continue;
+          var total = parseFloat(orderData[i][ORD.TOTAL_REVENUE]) || 0;
+          if (!custAgg[phone]) custAgg[phone] = { totalSpent: 0, orderCount: 0 };
+          custAgg[phone].totalSpent += total;
+          custAgg[phone].orderCount++;
+        }
+      }
+      // Pull customer names from Customers sheet if present
+      var customerNames = {};
+      var custSheet = ss.getSheetByName(CUSTOMERS_SHEET);
+      if (custSheet) {
+        var custData = custSheet.getDataRange().getValues();
+        for (var r = 1; r < custData.length; r++) {
+          customerNames[String(custData[r][CUST.PHONE])] = custData[r][CUST.NAME] || "";
+        }
+      }
+      var topList = Object.keys(custAgg).map(function(phone) {
+        return {
+          phone: phone,
+          name: customerNames[phone] || "",
+          totalSpent: Math.round(custAgg[phone].totalSpent * 100) / 100,
+          orderCount: custAgg[phone].orderCount
+        };
+      });
+      topList.sort(function(a, b) { return b.totalSpent - a.totalSpent; });
+      return jsonResponse({ status: "success", data: topList.slice(0, 10) });
+    }
+
     // ── FALLTHROUGH ─────────────────────────────────────────
     return errorResponse("Unknown type: " + type);
 
@@ -752,6 +1120,7 @@ function doPost(e) {
       var itemsString = payload.cartItems || "";
       var totalCost = calculateOrderCost(itemsString);
       var profit = totalRevenue - totalCost;
+      var customerPhone = payload.customerPhone || "";
 
       // Handle backdating
       var transactionDate = new Date();
@@ -784,14 +1153,28 @@ function doPost(e) {
         "",                        // P: Paid At
         "",                        // Q: Prep Time
         "",                        // R: Actual Time
-        payload.notes || ""        // S: Notes
+        payload.notes || "",       // S: Notes
+        customerPhone              // T: Customer Phone
       ]);
 
+      // Loyalty: create or update the customer record if a phone was provided
+      var loyaltyInfo = null;
+      if (customerPhone) {
+        loyaltyInfo = upsertCustomer(customerPhone, payload.customerName || "", totalRevenue);
+      }
+
       logAudit("ORDER_CREATED", orderId,
-        (payload.location || "") + ", ₦" + totalRevenue,
+        (payload.location || "") + ", " + totalRevenue,
         payload.customerName || "Customer");
 
-      return jsonResponse({ status: "success", orderId: orderId, cost: totalCost, profit: profit });
+      return jsonResponse({
+        status: "success",
+        orderId: orderId,
+        cost: totalCost,
+        profit: profit,
+        loyaltyPoints: loyaltyInfo ? loyaltyInfo.loyaltyPoints : 0,
+        nextRewardAt: 10
+      });
     }
 
     // ── UPDATE STATUS ───────────────────────────────────────
@@ -1289,6 +1672,59 @@ function doPost(e) {
       return errorResponse("Order not found");
     }
 
+    // ── SAVE REVIEW ────────────────────────────────────────
+    if (action === "saveReview") {
+      var rating = parseInt(payload.rating);
+      if (isNaN(rating) || rating < 1 || rating > 5) {
+        return errorResponse("Rating must be between 1 and 5");
+      }
+      if (!payload.orderId) return errorResponse("Order ID required");
+
+      var sheet = ss.getSheetByName(REVIEWS_SHEET);
+      if (!sheet) {
+        sheet = ss.insertSheet(REVIEWS_SHEET);
+        sheet.appendRow(["Timestamp", "Order ID", "Phone", "Rating", "Comment", "Customer Name", "Status"]);
+      }
+      sheet.appendRow([
+        new Date(),
+        payload.orderId,
+        payload.phone || "",
+        rating,
+        payload.comment || "",
+        payload.customerName || "",
+        "Pending"
+      ]);
+      logAudit("REVIEW_SUBMITTED", payload.orderId,
+        rating + " stars", payload.customerName || "Customer");
+      return jsonResponse({ status: "success" });
+    }
+
+    // ── APPROVE / REJECT REVIEW ────────────────────────────
+    if (action === "approveReview") {
+      var sheet = ss.getSheetByName(REVIEWS_SHEET);
+      if (!sheet) return errorResponse("Reviews sheet not found");
+      var data = sheet.getDataRange().getValues();
+      var decision = payload.decision || "approve";
+      var newStatus = (decision === "reject") ? "Rejected" : "Approved";
+
+      for (var i = 1; i < data.length; i++) {
+        var match = false;
+        // Match by orderId (preferred) or by row index
+        if (payload.orderId && String(data[i][REV.ORDER_ID]) === String(payload.orderId)) {
+          match = true;
+        } else if (payload.rowIndex && (parseInt(payload.rowIndex) === i)) {
+          match = true;
+        }
+        if (match) {
+          sheet.getRange(i + 1, REV.STATUS + 1).setValue(newStatus);
+          logAudit("REVIEW_" + newStatus.toUpperCase(),
+            data[i][REV.ORDER_ID], "", payload.performedBy || "Manager");
+          return jsonResponse({ status: "success" });
+        }
+      }
+      return errorResponse("Review not found");
+    }
+
     // ── FALLTHROUGH ─────────────────────────────────────────
     return errorResponse("Unknown action: " + action);
 
@@ -1352,6 +1788,95 @@ function estimatePrepTime(itemsString) {
     }
   });
   return maxTime || 10;
+}
+
+/**
+ * Parse a pipe-separated items string into [{qty, name}] pairs.
+ * Strips any "(Notes:" suffix. Shared by tracker, recommendations & analytics.
+ * Input:  "2x Jollof Rice | 1x Chicken (Notes: extra spicy)"
+ * Output: [{qty: 2, name: "Jollof Rice"}, {qty: 1, name: "Chicken"}]
+ */
+function parseItemNames(itemsString) {
+  if (!itemsString) return [];
+  var cleanStr = String(itemsString).split(" (Notes:")[0];
+  var itemsList = cleanStr.split(" | ");
+  var result = [];
+  itemsList.forEach(function(item) {
+    var parts = item.trim().split("x ");
+    if (parts.length === 2) {
+      var qty = parseInt(parts[0]);
+      if (!isNaN(qty)) {
+        result.push({ qty: qty, name: parts[1].trim() });
+      }
+    }
+  });
+  return result;
+}
+
+/**
+ * Build a menu lookup map keyed by item name -> {price, emoji, category}.
+ * Returns an empty object if the Menu sheet is missing.
+ */
+function buildMenuLookup(ss) {
+  var lookup = {};
+  var menuSheet = ss.getSheetByName(MENU_SHEET);
+  if (!menuSheet) return lookup;
+  var menuData = menuSheet.getDataRange().getValues();
+  for (var m = 1; m < menuData.length; m++) {
+    var nm = menuData[m][MNU.NAME];
+    if (nm) {
+      lookup[nm] = {
+        price: parseFloat(menuData[m][MNU.PRICE]) || 0,
+        emoji: menuData[m][MNU.EMOJI] || "",
+        category: menuData[m][MNU.CATEGORY] || ""
+      };
+    }
+  }
+  return lookup;
+}
+
+/**
+ * Create or update a customer record for loyalty tracking.
+ * Auto-creates the Customers sheet if missing. Never throws —
+ * returns zeros on failure so order creation is never blocked.
+ * Returns: {loyaltyPoints, totalOrders}
+ */
+function upsertCustomer(phone, name, totalSpent) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName(CUSTOMERS_SHEET);
+    if (!sheet) {
+      sheet = ss.insertSheet(CUSTOMERS_SHEET);
+      sheet.appendRow(["Phone", "Name", "Total Orders", "Total Spent", "Loyalty Points", "Last Visit", "Created At"]);
+    }
+
+    var data = sheet.getDataRange().getValues();
+    var addSpent = parseFloat(totalSpent) || 0;
+    var now = new Date();
+
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][CUST.PHONE]) === String(phone)) {
+        var newOrders = (parseInt(data[i][CUST.TOTAL_ORDERS]) || 0) + 1;
+        var newSpent = (parseFloat(data[i][CUST.TOTAL_SPENT]) || 0) + addSpent;
+        var newPoints = (parseInt(data[i][CUST.LOYALTY_POINTS]) || 0) + 1;
+        var row = i + 1;
+        sheet.getRange(row, CUST.TOTAL_ORDERS + 1).setValue(newOrders);
+        sheet.getRange(row, CUST.TOTAL_SPENT + 1).setValue(Math.round(newSpent * 100) / 100);
+        sheet.getRange(row, CUST.LOYALTY_POINTS + 1).setValue(newPoints);
+        sheet.getRange(row, CUST.LAST_VISIT + 1).setValue(now);
+        if (name && name !== "") {
+          sheet.getRange(row, CUST.NAME + 1).setValue(name);
+        }
+        return { loyaltyPoints: newPoints, totalOrders: newOrders };
+      }
+    }
+
+    // No match — append a new customer
+    sheet.appendRow([phone, name || "Customer", 1, addSpent, 1, now, now]);
+    return { loyaltyPoints: 1, totalOrders: 1 };
+  } catch (err) {
+    return { loyaltyPoints: 0, totalOrders: 0 };
+  }
 }
 
 

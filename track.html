@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <!-- SEO -->
-  <title>Track Your Order | Mevish Eatery</title>
-  <meta name="description" content="Track your Mevish Eatery order status in real-time. Enter your Order ID to see if your food is being prepared or ready for pickup.">
+  <title>Track Your Order</title>
+  <meta name="description" content="Track your order status in real-time. Enter your Order ID to see if your food is being prepared or ready for pickup.">
   <meta name="robots" content="noindex, nofollow">
   <link rel="canonical" href="./track.html">
 
@@ -433,6 +433,94 @@
       top: 64px;
     }
 
+    /* ── WhatsApp button (Phase 4B) ── */
+    .btn-whatsapp {
+      background: #25D366;
+      color: #ffffff;
+      border: 1px solid #1da851;
+      transition: background 0.2s ease, transform 0.1s ease;
+    }
+
+    .btn-whatsapp:hover {
+      background: #1fb455;
+      color: #ffffff;
+    }
+
+    .btn-whatsapp:active {
+      transform: scale(0.98);
+    }
+
+    /* ── Review form (Phase 5C) ── */
+    .tracker-review {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-accent);
+      border-radius: var(--r-md);
+      padding: var(--sp-lg);
+      margin-bottom: var(--sp-lg);
+    }
+
+    .tracker-review-title {
+      font-size: var(--fs-lg);
+      font-weight: 800;
+      color: var(--text-primary);
+      margin-bottom: var(--sp-xs);
+      text-align: center;
+    }
+
+    .tracker-review-sub {
+      font-size: var(--fs-sm);
+      color: var(--text-muted);
+      text-align: center;
+      margin-bottom: var(--sp-md);
+    }
+
+    .tracker-stars {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--sp-xs);
+      margin-bottom: var(--sp-md);
+    }
+
+    .tracker-star {
+      background: none;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      font-size: 2rem;
+      line-height: 1;
+      color: var(--border);
+      transition: color 0.15s ease, transform 0.1s ease;
+    }
+
+    .tracker-star:hover {
+      transform: scale(1.15);
+    }
+
+    .tracker-star.selected,
+    .tracker-star.preview {
+      color: var(--gold);
+      text-shadow: 0 0 8px rgba(245,166,35,0.4);
+    }
+
+    .tracker-review textarea {
+      width: 100%;
+      min-height: 80px;
+      resize: vertical;
+      margin-bottom: var(--sp-md);
+      font-family: inherit;
+      font-size: var(--fs-sm);
+    }
+
+    .tracker-review-actions {
+      display: flex;
+      justify-content: center;
+    }
+
+    .tracker-review-actions .btn {
+      min-width: 160px;
+    }
+
     /* ── Responsive ── */
     @media (max-width: 600px) {
       .tracker-order-header { flex-direction: column; align-items: flex-start; }
@@ -452,7 +540,7 @@
     <div class="container">
       <a href="index.html" class="navbar-brand" id="trackNavLogo">
         <div class="brand-icon">🍽️</div>
-        <span class="brand-text">Mevish</span> <span class="brand-accent">Eatery</span>
+        <span class="brand-text">Restaurant</span> <span class="brand-accent"></span>
       </a>
       <div style="display:flex; align-items:center; gap: var(--sp-md);">
         <a href="index.html" class="nav-link" id="trackNavHome">← Back to Menu</a>
@@ -527,7 +615,7 @@
     var C                = (typeof CONFIG !== 'undefined') ? CONFIG : {};
     var API_URL          = C.API_URL          || '';
     var TRACKER_INTERVAL = C.TRACKER_INTERVAL || 15000;
-    var RESTAURANT       = C.RESTAURANT       || { name: 'Mevish Eatery' };
+    var RESTAURANT       = C.RESTAURANT       || { name: 'Restaurant', locale: 'en-US' };
     var STATUS           = C.STATUS           || {};
 
     var apiGet = C.apiGet || function (type, params) {
@@ -541,7 +629,7 @@
     };
 
     var formatCurrency = C.formatCurrency || function (n) {
-      return '\u20A6' + (Number(n) || 0).toLocaleString();
+      return (C.CURRENCY || '') + (Number(n) || 0).toLocaleString();
     };
 
     var isPaid   = STATUS.isPaid   || function (s) { return !!(s && s.includes('Paid')); };
@@ -564,6 +652,9 @@
     var refreshTimer      = null;
     var prepTimerInterval = null;
     var refreshCountdown  = Math.floor(TRACKER_INTERVAL / 1000);
+
+    // Phase 5C: orders already reviewed this session (prevents re-prompting after submit)
+    var submittedReviews  = {};
 
     // ── Helpers ─────────────────────────────────
     function esc(str) {
@@ -673,6 +764,155 @@
       clearInterval(prepTimerInterval);
     }
 
+    // ── Review form (Phase 5C) ────────────────────
+    // Current star selection + the order being reviewed, scoped per render so
+    // the star UI callbacks always point at fresh elements.
+    var reviewSelectedRating = 0;
+
+    // Builds the review form HTML. Only called when the order is Paid and not
+    // yet reviewed this session.
+    function buildReviewHtml(order) {
+      return (
+        '<div class="tracker-review" id="reviewForm">' +
+          '<div class="tracker-review-title">How was your experience?</div>' +
+          '<div class="tracker-review-sub">We\'d love to hear your feedback.</div>' +
+          '<div class="tracker-stars" id="reviewStars" role="radiogroup" aria-label="Rate 1 to 5 stars">' +
+            buildStarsHtml(0) +
+          '</div>' +
+          '<textarea id="reviewComment" class="form-control" placeholder="Tell us about your meal…" maxlength="500"></textarea>' +
+          '<div class="tracker-review-actions">' +
+            '<button class="btn btn-primary" id="submitReviewBtn">⭐ Submit Review</button>' +
+          '</div>' +
+        '</div>'
+      );
+    }
+
+    // Renders the 5 star buttons. `selected` is the current rating (0-5).
+    function buildStarsHtml(selected) {
+      var out = '';
+      for (var i = 1; i <= 5; i++) {
+        out += '<button type="button" class="tracker-star' + (i <= selected ? ' selected' : '') + '" ' +
+               'data-value="' + i + '" aria-label="' + i + ' star' + (i > 1 ? 's' : '') + '">★</button>';
+      }
+      return out;
+    }
+
+    // Wires up the star interactions + submit button. Must run after the form
+    // HTML is injected into the DOM.
+    function wireReviewForm(order) {
+      var starsWrap   = document.getElementById('reviewStars');
+      var commentEl   = document.getElementById('reviewComment');
+      var submitBtn   = document.getElementById('submitReviewBtn');
+      var formEl      = document.getElementById('reviewForm');
+      if (!starsWrap || !submitBtn || !formEl) return;
+
+      var stars = starsWrap.querySelectorAll('.tracker-star');
+
+      function paint(toSelect, asPreview) {
+        stars.forEach(function (btn) {
+          var val = Number(btn.getAttribute('data-value'));
+          btn.classList.remove('selected', 'preview');
+          if (val <= toSelect) {
+            btn.classList.add(asPreview ? 'preview' : 'selected');
+          }
+        });
+      }
+
+      // Hover preview
+      stars.forEach(function (btn) {
+        btn.addEventListener('mouseenter', function () {
+          paint(Number(btn.getAttribute('data-value')), true);
+        });
+      });
+      starsWrap.addEventListener('mouseleave', function () {
+        paint(reviewSelectedRating, false);
+      });
+
+      // Click to select
+      stars.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          reviewSelectedRating = Number(btn.getAttribute('data-value'));
+          paint(reviewSelectedRating, false);
+        });
+      });
+
+      // Submit
+      submitBtn.addEventListener('click', function () {
+        if (reviewSelectedRating < 1 || reviewSelectedRating > 5) {
+          showToast('Please select a star rating first.', 'error');
+          return;
+        }
+        submitReview(order, reviewSelectedRating, commentEl, formEl, submitBtn);
+      });
+    }
+
+    // Sends the review to the backend, degrades gracefully on error.
+    function submitReview(order, rating, commentEl, formEl, submitBtn) {
+      var orderId = order.orderId || currentOrderId || '';
+      var payload = {
+        orderId: orderId,
+        phone: order.phone || '',
+        rating: rating,
+        comment: (commentEl && commentEl.value) ? commentEl.value.trim() : '',
+        customerName: order.name || ''
+      };
+
+      // Lock the button while in flight
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Submitting…';
+      }
+
+      var apiPost = C.apiPost;
+      if (typeof apiPost !== 'function') {
+        // No API helper available — treat as soft failure.
+        markReviewDone(formEl, orderId, false);
+        return;
+      }
+
+      apiPost('saveReview', payload)
+        .then(function (res) {
+          markReviewDone(formEl, orderId, true);
+        })
+        .catch(function () {
+          markReviewDone(formEl, orderId, false);
+        });
+    }
+
+    // Records the order as reviewed, swaps the form for a thank-you note, and
+    // toasts the outcome. `ok` toggles the success vs. error copy.
+    function markReviewDone(formEl, orderId, ok) {
+      if (orderId) submittedReviews[orderId] = true;
+      if (formEl) {
+        formEl.innerHTML =
+          '<div style="text-align:center; padding: var(--sp-sm);">' +
+            '<div style="font-size:1.8rem; margin-bottom: var(--sp-xs);">' + (ok ? '🙏' : '✅') + '</div>' +
+            '<div style="font-weight:700; color: var(--text-primary);">' +
+              (ok ? 'Thanks for your review! ⭐' : 'Review saved.') +
+            '</div>' +
+            '<div style="font-size: var(--fs-xs); color: var(--text-muted); margin-top:4px;">We appreciate your feedback.</div>' +
+          '</div>';
+      }
+      showToast(ok ? 'Thanks for your review! ⭐' : 'Your review was saved.', ok ? 'success' : 'info');
+    }
+
+    // ── WhatsApp message (Phase 4B) ───────────────
+    function openWhatsApp(order) {
+      try {
+        var id = (order && order.orderId) || currentOrderId || '';
+        var url = C.buildWhatsAppUrl
+          ? C.buildWhatsAppUrl("Hi, I'm waiting for my order " + id)
+          : null;
+        if (url) {
+          window.open(url, '_blank');
+        } else {
+          showToast('WhatsApp is unavailable right now.', 'error');
+        }
+      } catch (e) {
+        showToast('Unable to open WhatsApp.', 'error');
+      }
+    }
+
     // ── Render result ────────────────────────────
     function renderResult(order) {
       var status = order.status || 'Active';
@@ -744,6 +984,13 @@
           '</div>';
       }
 
+      // Review form (Phase 5C) — only when Paid and not yet reviewed this session
+      var orderIdKey = order.orderId || currentOrderId;
+      var showReview = paid && !void_ && orderIdKey && !submittedReviews[orderIdKey];
+      var reviewHtml = showReview ? buildReviewHtml(order) : '';
+      // Reset star selection for a fresh render of the form
+      if (showReview) reviewSelectedRating = 0;
+
       // Timestamp badges
       var tsHtml = '';
       var tsItems = [];
@@ -794,6 +1041,9 @@
           // Status message
           '<div class="tracker-status-msg ' + msgClass + '">' + msgText + '</div>' +
 
+          // Review form (Phase 5C) — shown after the status message on Paid orders
+          reviewHtml +
+
           // Prep countdown timer
           prepTimerHtml +
 
@@ -816,6 +1066,7 @@
           // Footer links
           '<div class="tracker-footer-links">' +
             '<a href="index.html?table=Counter" class="btn btn-secondary btn-sm">🍔 Order Another</a>' +
+            '<button class="btn btn-whatsapp btn-sm" id="messageRestaurantBtn">💬 Message Restaurant</button>' +
             '<button class="btn btn-ghost btn-sm" id="refreshNowBtn">↻ Refresh Now</button>' +
           '</div>' +
         '</div>';
@@ -827,6 +1078,17 @@
       if (refreshBtn) refreshBtn.addEventListener('click', function () {
         if (currentOrderId) trackOrder(currentOrderId);
       });
+
+      // Wire WhatsApp "Message Restaurant" button (Phase 4B) — all states
+      var waBtn = document.getElementById('messageRestaurantBtn');
+      if (waBtn) waBtn.addEventListener('click', function () {
+        openWhatsApp(order);
+      });
+
+      // Wire review form (Phase 5C) — only present on Paid + unreviewed orders
+      if (showReview) {
+        wireReviewForm(order);
+      }
 
       // Start prep timer
       if (status === 'Active' && order.prepStarted) {
