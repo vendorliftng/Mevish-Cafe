@@ -1430,8 +1430,16 @@
     updateManualCartUI();
     document.getElementById('mo_search').value = '';
     
+    document.getElementById('mo_backdate_toggle').checked = false;
+    document.getElementById('mo_backdate_fields').style.display = 'none';
+    
     document.getElementById('manualOrderModal').classList.add('open');
     loadManualMenu();
+  }
+  
+  function toggleBackdate() {
+    var checked = document.getElementById('mo_backdate_toggle').checked;
+    document.getElementById('mo_backdate_fields').style.display = checked ? 'flex' : 'none';
   }
   
   let manualOrderMenu = [];
@@ -1532,14 +1540,15 @@
     var totalRaw = document.getElementById('mo_total').value;
     var total = parseFloat(totalRaw);
     var items = (document.getElementById('mo_items').value || '').trim();
+    var backdateChecked = document.getElementById('mo_backdate_toggle').checked;
     var dateVal = document.getElementById('mo_date').value;
     var timeVal = document.getElementById('mo_time').value;
 
     if (!items) { showToast('Please enter at least one item', 'warning'); return; }
     if (!totalRaw || isNaN(total) || total < 0) { showToast('Please enter a valid total amount', 'warning'); return; }
 
-    // Append backdate note if both date+time provided
-    if (dateVal && timeVal) {
+    // Append backdate note if both date+time provided and checkbox is ticked
+    if (backdateChecked && dateVal && timeVal) {
       items += ' ⚠️ BACKDATED TO: ' + dateVal + ' ' + timeVal;
     }
 
