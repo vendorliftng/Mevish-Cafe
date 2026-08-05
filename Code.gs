@@ -618,6 +618,26 @@ function doGet(e) {
       return jsonResponse({ status: "success", data: expenses });
     }
 
+    // ── AUDIT LOG ──────────────────────────────────────────
+    if (type === "auditLog") {
+      var sheet = ss.getSheetByName(AUDIT_SHEET);
+      if (!sheet) return jsonResponse({ status: "success", data: [] });
+      var data = sheet.getDataRange().getValues();
+      var logs = [];
+      for (var i = data.length - 1; i >= 1; i--) {  // newest first
+        if (data[i][0] === "") continue;
+        logs.push({
+          timestamp: data[i][0],
+          action: data[i][1] || "",
+          orderId: data[i][2] || "",
+          details: data[i][3] || "",
+          performedBy: data[i][4] || "",
+          notes: data[i][5] || ""
+        });
+      }
+      return jsonResponse({ status: "success", data: logs });
+    }
+
     // ── POPULAR ITEMS (best sellers) ────────────────────────
     if (type === "popularItems") {
       var sheet = ss.getSheetByName(ORDERS_SHEET);

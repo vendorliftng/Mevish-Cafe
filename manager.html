@@ -1684,7 +1684,7 @@ function openCashierModal(editName) {
     <div class="form-group"><label>PIN (4 digits)</label><input id="cf_pin" maxlength="4" pattern="[0-9]*" inputmode="numeric" placeholder="4-digit PIN" value="${cashier ? (cashier.pin||'') : ''}" /></div>
     ${cashier ? `<div class="form-group"><label>Active</label><select id="cf_active"><option value="Yes" ${cashier.active!=='No'?'selected':''}>Yes</option><option value="No" ${cashier.active==='No'?'selected':''}>No</option></select></div>` : ''}
   </div>`;
-  const actions = `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveCashier(${editName ? "'"+editName.replace(/'/g,"\\'")+"'" : 'null'})">${saveLabel}</button>`;
+  const actions = `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveCashier(${editName ? "'"+editName+"'" : 'null'})">${saveLabel}</button>`;
   openModal(title, body, actions);
 }
 
@@ -1898,6 +1898,29 @@ async function selectTheme(id) {
     toast('Theme applied locally', 'info');
   }
   renderThemePicker();
+}
+
+/* ═══════════════════════════════════════════════════════════
+   AUDIT LOG
+   ═══════════════════════════════════════════════════════════ */
+async function loadAuditLog() {
+  const wrap = document.getElementById('auditTableWrap');
+  try {
+    const res = await CONFIG.apiGet('auditLog');
+    const logs = (res.data || []);
+    if (logs.length === 0) { wrap.innerHTML = '<div class="empty-state"><div class="empty-title">No audit entries yet</div></div>'; return; }
+    const loc = CONFIG.RESTAURANT.locale || 'en-US';
+    let rows = '';
+    logs.forEach(l => {
+      const d = new Date(l.timestamp);
+      const dateStr = isNaN(d) ? (l.timestamp || '—') : d.toLocaleDateString(loc, { day: '2-digit', month: 'short' }) + ' ' + d.toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' });
+      rows += `<tr><td style="font-size:0.78rem;color:var(--c-text-light);white-space:nowrap;">${dateStr}</td><td><span class="badge badge-info">${l.action || '—'}</span></td><td style="font-family:monospace;font-size:0.78rem;">${l.orderId || '—'}</td><td>${l.details || '—'}</td><td>${l.performedBy || '—'}</td></tr>`;
+    });
+    wrap.innerHTML = `<table><thead><tr><th>Time</th><th>Action</th><th>Order ID</th><th>Details</th><th>By</th></tr></thead><tbody>${rows}</tbody></table>`;
+  } catch (e) {
+    console.error('loadAuditLog error', e);
+    wrap.innerHTML = '<div class="empty-state"><div class="empty-title">Could not load audit log</div><div class="empty-text">Check your connection and try refreshing.</div></div>';
+  }
 }
 </script>
 </body>

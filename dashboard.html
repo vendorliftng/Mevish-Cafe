@@ -788,7 +788,7 @@
       // Keep Active, Preparing, Ready, Served (non-paid, non-void)
       allOrders = raw.filter(o => {
         const s = o.status || '';
-        if (s.includes('Paid') || s.includes('Void') || s.includes('Void')) return false;
+        if (s.includes('Paid') || s.includes('Void') || s.includes('Credit')) return false;
         return true;
       });
       renderGrid();
@@ -918,7 +918,7 @@
       actions = `<button class="btn btn-info" onclick="event.stopPropagation();handleStartPreparing('${escAttr(order.orderId || order.id)}')">Start Preparing</button>`;
       actions += `<button class="btn btn-primary" onclick="event.stopPropagation();handlePayPOS('${escAttr(order.orderId || order.id)}')">POS</button>`;
       actions += `<button class="btn btn-cash" onclick="event.stopPropagation();handlePayCash('${escAttr(order.orderId || order.id)}')">Cash</button>`;
-      if (currentUser.isManager) {
+      if (currentUser && currentUser.isManager) {
         actions += `<button class="btn btn-danger-outline" id="voidBtn-${escAttr(order.orderId || order.id)}" onclick="event.stopPropagation();handleVoid('${escAttr(order.orderId || order.id)}')">Void</button>`;
       }
     } else if (cat === 'preparing') {
@@ -1155,7 +1155,7 @@
       footer.innerHTML += `<button class="btn btn-primary" onclick="closeDetailModal();handlePayPOS('${escAttr(order.orderId || order.id)}')">Pay POS</button>`;
       footer.innerHTML += `<button class="btn btn-cash" onclick="closeDetailModal();handlePayCash('${escAttr(order.orderId || order.id)}')">Pay Cash</button>`;
     }
-    if (currentUser.isManager) {
+    if (currentUser && currentUser.isManager) {
       footer.innerHTML += `<button class="btn btn-danger-outline" onclick="closeDetailModal();handleVoid('${escAttr(order.orderId || order.id)}')">Void</button>`;
     }
 
@@ -1368,6 +1368,7 @@
         location: location,
         cartItems: items,
         totalPrice: total,
+        orderType: 'Counter',
         status: 'Active'
       });
       if (res && res.status === 'error') {

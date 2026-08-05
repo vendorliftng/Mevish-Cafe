@@ -635,7 +635,7 @@
             "addressCountry": R.country || ''
           },
           "servesCuisine": (R.cuisineTypes || []),
-          "priceRange": (typeof CONFIG.CURRENCY !== 'undefined' ? CONFIG.CURRENCY : '') + (typeof CONFIG.CURRENCY !== 'undefined' ? CONFIG.CURRENCY : ''),
+          "priceRange": (typeof CONFIG !== 'undefined' && CONFIG.CURRENCY) ? CONFIG.CURRENCY : '',
           "openingHours": R.hours || '',
           "hasMenu": "./index.html",
           "url": "./home.html"

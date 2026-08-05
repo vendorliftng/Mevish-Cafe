@@ -1168,8 +1168,8 @@
             var emptyEl = document.getElementById('empty-state');
             if (emptyEl) {
               emptyEl.classList.remove('hidden');
-              emptyEl.querySelector('.empty-title').textContent = 'Menu Unavailable';
-              emptyEl.querySelector('.empty-subtitle').textContent = 'Could not load menu from server.';
+              emptyEl.querySelector('.empty-icon').textContent = '⚠️';
+              emptyEl.querySelector('.empty-text').textContent = 'Menu unavailable — could not load from server. Please check your connection and try again.';
             }
           }
         }
