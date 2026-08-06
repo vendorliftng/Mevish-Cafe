@@ -889,3 +889,23 @@ body.menu-board-page { overflow: hidden; background: var(--bg-deep); }
   .pin-gate-card { padding: var(--sp-xl); }
   .order-actions .btn { font-size: 11px; padding: 6px 10px; }
 }
+
+/* === UX IMPROVEMENTS === */
+.fly-item { position: fixed; z-index: 9999; pointer-events: none; transition: all 0.6s cubic-bezier(0.2, 1, 0.3, 1); opacity: 1; transform: scale(1); }
+.fly-item.fly-target { opacity: 0; transform: scale(0.1); }
+
+.sticky-mobile-cart { display: none; position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg-surface); padding: var(--sp-md); box-shadow: var(--shadow-md); z-index: var(--z-sticky); border-top: 1px solid var(--border); }
+@media (max-width: 768px) { .sticky-mobile-cart.visible { display: flex; justify-content: space-between; align-items: center; } .floating-cart { bottom: 80px; } }
+
+.btn-add-to-cart:active, .menu-card:active, .qty-btn:active, .btn:active { transform: scale(0.95) !important; transition: transform 0.1s; }
+
+.order-card.status-active { border-left: 4px solid var(--danger); }
+.order-card.status-preparing { border-left: 4px solid var(--warning); }
+.order-card.status-ready { border-left: 4px solid var(--success); }
+
+.modal-overlay { transition: opacity 0.3s ease; }
+.modal { transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s; transform: translateY(20px) scale(0.95); opacity: 0; }
+.modal-overlay.open .modal { transform: translateY(0) scale(1); opacity: 1; }
+
+.table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; box-shadow: inset -10px 0 10px -10px rgba(0,0,0,0.5); border-radius: var(--r-sm); margin-bottom: var(--sp-md); }
+
