@@ -202,7 +202,7 @@
     .chart-box { position: relative; height: 280px; display: flex; align-items: center; justify-content: center; }
 
     /* ── TABLES ────────────────────────────────────────────── */
-    .table-wrap { overflow-x: auto; }
+    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; box-shadow: inset -10px 0 10px -10px rgba(0,0,0,0.3); border-radius: 8px; margin-bottom: 1rem; }
     table { width: 100%; border-collapse: collapse; }
     thead th {
       padding: 0.75rem 1rem; text-align: left; font-size: 0.7rem;
@@ -1488,7 +1488,9 @@ function renderMenuTable() {
   let rows = '';
   menuData.forEach(item => {
     const avail = item.available === 'Yes';
-    rows += `<tr><td><strong>${item.name}</strong></td><td>${item.category||''}</td><td>${fmt(parseFloat(item.price)||0)}</td><td>${item.prepTime||10} min</td><td><span class="badge ${avail?'badge-success':'badge-danger'}">${avail?'Available':'Unavailable'}</span></td><td><button class="btn btn-ghost btn-sm" onclick="openMenuModal(${item.id})">Edit</button> <button class="btn btn-danger btn-sm" onclick="deleteMenuItem(${item.id},'${(item.name||'').replace(/'/g,"\\'")}')">Delete</button></td></tr>`;
+    rows += `<tr><td><strong>${item.name}</strong></td><td>${item.category||''}</td><td>${fmt(parseFloat(item.price)||0)}</td><td>${item.prepTime||10} min</td>
+    <td><span class="badge ${avail?'badge-success':'badge-danger'}" style="cursor:pointer; user-select:none; padding:0.4em 0.8em; box-shadow:var(--shadow-xs);" onclick="toggleMenuStatus(${item.id})" title="Click to toggle status">${avail?'Available':'Sold Out'}</span></td>
+    <td><button class="btn btn-ghost btn-sm" onclick="openMenuModal(${item.id})">Edit</button> <button class="btn btn-danger btn-sm" onclick="deleteMenuItem(${item.id},'${(item.name||'').replace(/'/g,"\\'")}')">Delete</button></td></tr>`;
   });
   wrap.innerHTML = `<table><thead><tr><th>Name</th><th>Category</th><th>Price</th><th>Prep Time</th><th>Status</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
@@ -1508,6 +1510,29 @@ function openMenuModal(editId) {
     </div>`;
   const actions = `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveMenuItem(${editId||'null'})">${item?'Update':'Add'}</button>`;
   openModal(title, body, actions);
+}
+
+async function toggleMenuStatus(id) {
+  const item = menuData.find(m => String(m.id) === String(id));
+  if (!item) return;
+  const newAvail = item.available === 'Yes' ? false : true;
+  const payload = {
+    id: item.id,
+    name: item.name,
+    category: item.category,
+    price: item.price,
+    cost: item.cost,
+    prepTime: item.prepTime,
+    available: newAvail,
+    description: item.description,
+    performedBy: 'Manager'
+  };
+  const res = await CONFIG.apiPost('updateMenuItem', payload);
+  if (res.status === 'success') { 
+    CONFIG.clearCache('menu'); 
+    await loadAllData(); 
+    renderMenuTable(); 
+  } else toast(res.message || 'Failed to update', 'error');
 }
 
 async function saveMenuItem(editId) {

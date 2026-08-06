@@ -808,8 +808,8 @@
         </div>
         <button class="cart-item-remove" id="cart-clear-btn" aria-label="Clear cart" style="font-size:var(--fs-xs);font-weight:600;">Clear all</button>
       </div>
-      <div class="cart-items" id="cart-items-desktop"></div>
       <!-- ── PHASE 3B: Complete Your Meal upsell (Feature 3) — desktop ── -->
+      <div class="cart-items" id="cart-items-desktop"></div>
       <div class="cart-upsell hidden" id="cart-upsell-desktop"></div>
       <div class="cart-footer">
         <div class="cart-total-row">
@@ -1327,7 +1327,29 @@
     /* ══════════════════════════════════════════
        CART OPERATIONS
     ══════════════════════════════════════════ */
+    function flyToCart(itemId) {
+      var card = document.querySelector('.menu-card[data-id="' + itemId + '"] .menu-card-emoji');
+      var cartTarget = window.innerWidth > 768 ? document.getElementById('cart-sidebar') : document.getElementById('cart-fab');
+      if (!card || !cartTarget) return;
+      var clone = card.cloneNode(true);
+      var rect = card.getBoundingClientRect();
+      var cartRect = cartTarget.getBoundingClientRect();
+      clone.classList.add('fly-item');
+      clone.style.left = rect.left + 'px';
+      clone.style.top = rect.top + 'px';
+      clone.style.fontSize = rect.width + 'px';
+      document.body.appendChild(clone);
+      
+      requestAnimationFrame(function() {
+        clone.style.left = (cartRect.left + cartRect.width/2 - rect.width/2) + 'px';
+        clone.style.top = (cartRect.top + cartRect.height/2 - rect.height/2) + 'px';
+        clone.classList.add('fly-target');
+      });
+      setTimeout(function() { clone.remove(); }, 600);
+    }
+
     function addToCart(item) {
+      flyToCart(item.id);
       var existing = cart.find(function (c) { return c.id === item.id; });
       if (existing) {
         existing.qty++;
