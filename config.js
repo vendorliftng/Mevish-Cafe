@@ -486,7 +486,16 @@ const CONFIG = {
   // ─── Fallback Menu (used if API is unavailable) ──────────
   // Keep empty to force API load; restaurants should always use their Google Sheet.
   // If API fails, the UI will show a retry button.
-  FALLBACK_MENU: [],
+  FALLBACK_MENU: [
+    { name: "Jollof/Fried Rice Chicken", category: "Foods", price: 3500, available: true, emoji: "🍗", desc: "Delicious local rice with spiced chicken.", prepTime: 15 },
+    { name: "Mevish Pizza (Pineapple/Sausage/Chicken)", category: "Pastries", price: 5000, available: true, emoji: "🍕", desc: "Our signature pizza with all the toppings.", prepTime: 25 },
+    { name: "Shawarma Double Sausage", category: "Pastries", price: 2500, available: true, emoji: "🌯", desc: "Juicy shawarma loaded with double sausage.", prepTime: 10 },
+    { name: "Swallow & Soup with Chicken", category: "Swallows", price: 4000, available: true, emoji: "🍲", desc: "Traditional swallow with rich soup and chicken.", prepTime: 20 },
+    { name: "Burger with Cheese & Fries", category: "Pastries", price: 3000, available: true, emoji: "🍔", desc: "Cheeseburger served with crispy fries.", prepTime: 15 },
+    { name: "Ice Cream Cone", category: "Drinks", price: 1000, available: true, emoji: "🍦", desc: "Sweet and creamy vanilla ice cream.", prepTime: 2 },
+    { name: "Coke / Fanta / Sprite", category: "Drinks", price: 500, available: true, emoji: "🥤", desc: "Chilled soft drinks.", prepTime: 1 },
+    { name: "Bottled Water", category: "Drinks", price: 300, available: true, emoji: "💧", desc: "Cold refreshing water.", prepTime: 1 }
+  ],
 
   // ─── Initialize Storage Prefix from Slug ─────────────────
   // Called once at startup in each page's init function

@@ -9,6 +9,7 @@
     <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
@@ -23,39 +24,33 @@
 <!-- ══════════════════════════════════════════════════════════ -->
 <!--  PIN GATE                                                -->
 <!-- ══════════════════════════════════════════════════════════ -->
-<div id="pinGate" class="pin-gate">
+<div id="authGate" class="pin-gate">
   <div style="display:flex;flex-direction:column;align-items:center;">
     <div class="pin-gate-brand">
-      <div class="logo-text" id="pinRestName">Restaurant</div>
+      <div class="logo-text" id="authRestName">Restaurant</div>
       <div class="logo-sub">Manager Panel</div>
     </div>
-    <div class="pin-card">
-      <div class="pin-label">Enter Manager PIN</div>
-      <div class="pin-dots">
-        <div class="pin-dot"></div><div class="pin-dot"></div>
-        <div class="pin-dot"></div><div class="pin-dot"></div>
+    <div class="pin-card" style="padding: 2rem; width: 340px; text-align: left;">
+      <h3 style="margin-bottom: 1.5rem; text-align: center; color: var(--c-text); font-weight: 700;">Admin Login</h3>
+      <div style="margin-bottom: 1rem;">
+        <label style="font-size: 0.8rem; font-weight: 600; color: var(--c-text-light); margin-bottom: 0.3rem; display: block;">Email Address</label>
+        <input type="email" id="adminEmail" class="form-control" style="width: 100%; padding: 0.8rem; border-radius: 8px; border: 1px solid var(--c-border); background: var(--c-bg-card); color: var(--c-text);" />
       </div>
-      <div class="pin-pad">
-        <button class="pin-key" onclick="addDigit(1)">1</button>
-        <button class="pin-key" onclick="addDigit(2)">2</button>
-        <button class="pin-key" onclick="addDigit(3)">3</button>
-        <button class="pin-key" onclick="addDigit(4)">4</button>
-        <button class="pin-key" onclick="addDigit(5)">5</button>
-        <button class="pin-key" onclick="addDigit(6)">6</button>
-        <button class="pin-key" onclick="addDigit(7)">7</button>
-        <button class="pin-key" onclick="addDigit(8)">8</button>
-        <button class="pin-key" onclick="addDigit(9)">9</button>
-        <button class="pin-key back" onclick="backspace()">&#9003;</button>
-        <button class="pin-key" onclick="addDigit(0)">0</button>
-        <button class="pin-key empty"></button>
+      <div style="margin-bottom: 1.5rem;">
+        <label style="font-size: 0.8rem; font-weight: 600; color: var(--c-text-light); margin-bottom: 0.3rem; display: block;">Password</label>
+        <input type="password" id="adminPassword" class="form-control" style="width: 100%; padding: 0.8rem; border-radius: 8px; border: 1px solid var(--c-border); background: var(--c-bg-card); color: var(--c-text);" />
       </div>
-      <div class="pin-error" id="pinError">Incorrect PIN. Try again.</div>
+      <button onclick="loginAdmin()" class="btn btn-primary" style="width: 100%; padding: 0.8rem; border-radius: 8px; font-weight: 700;">Secure Login</button>
+      <div class="pin-error" id="authError" style="margin-top: 1rem; text-align: center;"></div>
+      
+      <div style="margin-top: 1.5rem; font-size: 0.75rem; color: var(--c-text-light); text-align: center;">
+        Don't have an admin account? <br/>
+        <a href="#" onclick="registerAdmin()" style="color: var(--c-primary); text-decoration: underline;">Register First Admin</a>
+      </div>
     </div>
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════════════════════ -->
-<!--  APP LAYOUT                                             -->
 <!-- ══════════════════════════════════════════════════════════ -->
 <div id="appLayout" class="app-layout" style="display:none;">
 
@@ -111,9 +106,12 @@
         <span class="nav-icon">&#128203;</span> Audit Log
       </a>
     </nav>
-    <div class="sidebar-footer">
-      <a href="dashboard.html">Kitchen Dashboard</a> &middot;
-      <a href="index.html">Order Portal</a>
+    <div class="sidebar-footer" style="display:flex; flex-direction:column; gap:0.5rem;">
+      <div>
+        <a href="dashboard.html">Kitchen Dashboard</a> &middot;
+        <a href="index.html">Order Portal</a>
+      </div>
+      <button onclick="logoutAdmin()" class="btn btn-ghost btn-sm" style="color: var(--c-danger); width: 100%; border: 1px solid var(--c-danger);">Log Out</button>
     </div>
   </aside>
 
@@ -382,47 +380,51 @@
 /* ═══════════════════════════════════════════════════════════
    PIN GATE
    ═══════════════════════════════════════════════════════════ */
-let pin = '';
-const CORRECT_PIN = CONFIG.MANAGER_PIN || '1234';
 
-function addDigit(d) {
-  if (pin.length >= 4) return;
-  pin += String(d);
-  updateDots();
-  if (pin.length === 4) setTimeout(verifyPin, 200);
-}
-function backspace() {
-  pin = pin.slice(0, -1);
-  updateDots();
-  document.getElementById('pinError').classList.remove('visible');
-}
-function updateDots() {
-  document.querySelectorAll('.pin-dot').forEach((dot, i) => {
-    dot.classList.toggle('filled', i < pin.length);
-    dot.classList.remove('error');
-  });
-}
-function verifyPin() {
-  if (pin === CORRECT_PIN) {
-    document.getElementById('pinGate').style.transition = 'opacity 0.4s';
-    document.getElementById('pinGate').style.opacity = '0';
-    setTimeout(() => {
-      document.getElementById('pinGate').style.display = 'none';
-      document.getElementById('appLayout').style.display = 'flex';
-      CONFIG.loadSavedTheme();
-      initApp();
-    }, 380);
+const auth = firebase.auth();
+
+auth.onAuthStateChanged(user => {
+  if (user) {
+    document.getElementById('authGate').style.display = 'none';
+    document.getElementById('appLayout').style.display = 'flex';
+    CONFIG.loadSavedTheme();
+    initApp();
   } else {
-    document.querySelectorAll('.pin-dot').forEach(d => d.classList.add('error'));
-    document.getElementById('pinError').classList.add('visible');
-    setTimeout(() => { pin = ''; updateDots(); document.getElementById('pinError').classList.remove('visible'); }, 900);
+    document.getElementById('authGate').style.display = 'flex';
+    document.getElementById('appLayout').style.display = 'none';
   }
-}
-document.addEventListener('keydown', (e) => {
-  if (document.getElementById('pinGate').style.display === 'none') return;
-  if (e.key >= '0' && e.key <= '9') addDigit(parseInt(e.key));
-  if (e.key === 'Backspace') backspace();
 });
+
+function showError(msg) {
+  const el = document.getElementById('authError');
+  el.textContent = msg;
+  el.classList.add('visible');
+  setTimeout(() => el.classList.remove('visible'), 4000);
+}
+
+function loginAdmin() {
+  const email = document.getElementById('adminEmail').value.trim();
+  const pass = document.getElementById('adminPassword').value;
+  if(!email || !pass) return showError('Enter email and password');
+  
+  auth.signInWithEmailAndPassword(email, pass)
+    .then(() => toast('Logged in successfully', 'success'))
+    .catch(err => showError(err.message));
+}
+
+function registerAdmin() {
+  const email = document.getElementById('adminEmail').value.trim();
+  const pass = document.getElementById('adminPassword').value;
+  if(!email || !pass) return showError('Enter email and password to register');
+  
+  auth.createUserWithEmailAndPassword(email, pass)
+    .then(() => toast('Admin created successfully', 'success'))
+    .catch(err => showError(err.message));
+}
+
+function logoutAdmin() {
+  auth.signOut();
+}
 
 /* ═══════════════════════════════════════════════════════════
    APP INIT
