@@ -1386,21 +1386,30 @@ async function loadSettings() {
 
 function renderSettingsForm() {
   const wrap = document.getElementById('settingsForm');
-  let html = `
-    <div class="form-group">
-      <label>Restaurant Name</label>
-      <input id="sf_restaurantName" value="${(currentSettings.restaurantName || '').replace(/"/g, '&quot;')}" class="form-control" />
-    </div>
-    <div class="form-group">
-      <label>Tax Rate (%)</label>
-      <input type="number" id="sf_taxRate" value="${currentSettings.taxRate || 0}" class="form-control" />
-    </div>
-    <div class="form-group form-full">
-      <label>Tables (Comma-separated)</label>
-      <input id="sf_tables" value="${(currentSettings.tables || []).join(', ')}" class="form-control" />
-    </div>
-  `;
-  wrap.innerHTML = html;
+  try {
+    const rName = String(currentSettings.restaurantName || '').replace(/"/g, '&quot;');
+    const tRate = Number(currentSettings.taxRate) || 0;
+    const tArr = Array.isArray(currentSettings.tables) ? currentSettings.tables : [];
+    
+    let html = `
+      <div class="form-group">
+        <label>Restaurant Name</label>
+        <input id="sf_restaurantName" value="${rName}" class="form-control" />
+      </div>
+      <div class="form-group">
+        <label>Tax Rate (%)</label>
+        <input type="number" id="sf_taxRate" value="${tRate}" class="form-control" />
+      </div>
+      <div class="form-group form-full">
+        <label>Tables (Comma-separated)</label>
+        <input id="sf_tables" value="${tArr.join(', ')}" class="form-control" />
+      </div>
+    `;
+    wrap.innerHTML = html;
+  } catch (err) {
+    wrap.innerHTML = `<div class="pin-error visible">Error rendering settings: ${err.message}</div>`;
+    console.error("renderSettingsForm error:", err);
+  }
 }
 
 async function saveSettings() {
