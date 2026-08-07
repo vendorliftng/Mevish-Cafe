@@ -504,6 +504,35 @@ const CONFIG = {
       CONFIG.STORAGE_PREFIX = CONFIG.RESTAURANT.slug + "_";
     }
   },
+
+  // ─── Dynamic Settings ──────────────────────────────────────
+  async initGlobalSettings() {
+    if (typeof db !== 'undefined' && db) {
+      try {
+        const docRef = db.collection('system_config').doc('global');
+        const doc = await docRef.get();
+        if (doc.exists) {
+          const data = doc.data();
+          if (data.restaurantName) CONFIG.RESTAURANT.name = data.restaurantName;
+          if (data.tables && Array.isArray(data.tables)) CONFIG.TABLES = data.tables;
+          if (data.taxRate) CONFIG.TAX_RATE = data.taxRate;
+          if (data.categories && Array.isArray(data.categories)) CONFIG.CATEGORIES = data.categories;
+        } else {
+          // Create default document if it doesn't exist
+          await docRef.set({
+            restaurantName: CONFIG.RESTAURANT.name,
+            tables: CONFIG.FALLBACK_TABLES,
+            taxRate: 0,
+            categories: ["Foods", "Swallows", "Pastries", "Drinks"]
+          });
+          CONFIG.TABLES = CONFIG.FALLBACK_TABLES;
+          CONFIG.CATEGORIES = ["Foods", "Swallows", "Pastries", "Drinks"];
+        }
+      } catch (err) {
+        console.error("Failed to load global settings from Firestore:", err);
+      }
+    }
+  }
 };
 
 
@@ -520,6 +549,7 @@ const firebaseConfig = {
 
 // Initialize Firebase if the SDK is loaded (compat version)
 let db = null;
+let settingsLoadedPromise = Promise.resolve();
 if (typeof firebase !== 'undefined') {
   if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
@@ -529,6 +559,7 @@ if (typeof firebase !== 'undefined') {
     console.warn("Firebase persistence error: ", err);
   });
   console.log("🔥 Firebase Firestore initialized with offline support.");
+  settingsLoadedPromise = CONFIG.initGlobalSettings();
 } else {
   console.warn("⚠️ Firebase SDK not found. Make sure to include firebase-app-compat.js");
 }

@@ -10,7 +10,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-  <script src="config.js"></script>
+  <script src="config.js?v=103"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 </head>
@@ -1366,9 +1366,19 @@ async function saveExpense() {
    ═══════════════════════════════════════════════════════════ */
 async function loadSettings() {
   try {
-    const res = await CONFIG.apiGet('settings');
-    currentSettings = res.data || {};
+    const doc = await db.collection('system_config').doc('global').get();
+    if (doc.exists) {
+      currentSettings = doc.data();
+    } else {
+      currentSettings = {
+        restaurantName: CONFIG.RESTAURANT.name,
+        taxRate: 0,
+        tables: CONFIG.FALLBACK_TABLES,
+        categories: ["Foods", "Swallows", "Pastries", "Drinks"]
+      };
+    }
   } catch (e) {
+    console.error("Failed to load settings", e);
     currentSettings = {};
   }
   renderSettingsForm();
@@ -1376,27 +1386,44 @@ async function loadSettings() {
 
 function renderSettingsForm() {
   const wrap = document.getElementById('settingsForm');
-  const skipKeys = ['Manager PIN', 'Blog Admin PIN', 'Date Created', 'Last Updated'];
-  let html = '';
-  Object.keys(currentSettings).forEach(key => {
-    if (skipKeys.includes(key)) return;
-    html += `<div class="form-group"><label>${key}</label><input id="sf_${CSS.escape(key)}" value="${currentSettings[key] || ''}" /></div>`;
-  });
+  let html = `
+    <div class="form-group">
+      <label>Restaurant Name</label>
+      <input id="sf_restaurantName" value="${escAttr(currentSettings.restaurantName || '')}" class="form-control" />
+    </div>
+    <div class="form-group">
+      <label>Tax Rate (%)</label>
+      <input type="number" id="sf_taxRate" value="${currentSettings.taxRate || 0}" class="form-control" />
+    </div>
+    <div class="form-group form-full">
+      <label>Tables (Comma-separated)</label>
+      <input id="sf_tables" value="${(currentSettings.tables || []).join(', ')}" class="form-control" />
+    </div>
+  `;
   wrap.innerHTML = html;
 }
 
 async function saveSettings() {
-  const changes = {};
-  const skipKeys = ['Manager PIN', 'Blog Admin PIN', 'Date Created', 'Last Updated'];
-  Object.keys(currentSettings).forEach(key => {
-    if (skipKeys.includes(key)) return;
-    const el = document.getElementById('sf_' + CSS.escape(key));
-    if (el) changes[key] = el.value;
-  });
+  try {
+    const rName = document.getElementById('sf_restaurantName').value.trim();
+    const tRate = parseFloat(document.getElementById('sf_taxRate').value) || 0;
+    const tablesStr = document.getElementById('sf_tables').value;
+    const tablesArr = tablesStr.split(',').map(s => s.trim()).filter(s => s);
 
-  const res = await CONFIG.apiPost('updateSettings', { settings: changes, performedBy: 'Manager' });
-  if (res.status === 'success') { toast('Settings saved (' + (res.updated || 0) + ' updated)', 'success'); }
-  else toast(res.message || 'Failed to save', 'error');
+    await db.collection('system_config').doc('global').set({
+      restaurantName: rName,
+      taxRate: tRate,
+      tables: tablesArr,
+      categories: currentSettings.categories || [] // preserve categories
+    }, { merge: true });
+
+    CONFIG.RESTAURANT.name = rName;
+    document.getElementById('topBarTitle').textContent = rName + ' Settings';
+    toast('Settings saved successfully! Refresh customer page to see changes.', 'success');
+  } catch (err) {
+    console.error(err);
+    toast('Failed to save settings: ' + err.message, 'error');
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════
