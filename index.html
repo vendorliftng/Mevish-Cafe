@@ -927,9 +927,14 @@
   <!-- ══ SUCCESS SCREEN ══ -->
   <div class="success-screen" id="success-screen" role="status" aria-live="polite">
     <div class="success-icon">✅</div>
-    <h2 class="text-gradient" style="font-size:var(--fs-4xl);">Order Placed!</h2>
-    <p class="success-subtitle">Your order has been sent to the kitchen.</p>
-    <div class="success-order-id" id="success-order-id">ORD-20260529-0001</div>
+    <h2>Order Placed!</h2>
+    <p>Your order <strong id="success-order-id" class="text-gold">--</strong> has been sent to the kitchen.</p>
+    
+    <!-- New Countdown Timer -->
+    <div id="success-timer" style="margin: 1.5rem auto; background: var(--bg-surface); padding: 1rem; border-radius: var(--r-md); border: 1px solid var(--glass-border); display: inline-block;">
+      <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.25rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Estimated Prep Time</div>
+      <div id="success-countdown" style="font-size: 2rem; font-weight: 800; color: var(--gold); font-variant-numeric: tabular-nums;">15:00</div>
+    </div>
 
     <!-- ── PHASE 4A: Send order to kitchen via WhatsApp (Feature 4) ── -->
     <button class="btn-whatsapp" id="success-whatsapp-btn" type="button">
@@ -1780,6 +1785,8 @@
        Accepts an order snapshot + the raw newOrder API response
        (which now includes loyaltyPoints / nextRewardAt).
     ══════════════════════════════════════════ */
+    let successTimerInterval = null;
+
     function showSuccessScreen(orderCtx, apiResponse) {
       // Backward-compat: accept a plain orderId string from older callers
       if (orderCtx && typeof orderCtx === 'string') {
@@ -1790,6 +1797,23 @@
 
       document.getElementById('success-order-id').textContent = orderCtx.orderId;
       document.getElementById('success-track-link').href = 'track.html?orderId=' + encodeURIComponent(orderCtx.orderId);
+
+      // Start 15-minute countdown
+      clearInterval(successTimerInterval);
+      let timeLeft = 15 * 60; // 15 minutes
+      const countdownEl = document.getElementById('success-countdown');
+      countdownEl.textContent = '15:00';
+      successTimerInterval = setInterval(() => {
+        timeLeft--;
+        if (timeLeft <= 0) {
+          clearInterval(successTimerInterval);
+          countdownEl.textContent = 'Ready soon!';
+        } else {
+          const m = Math.floor(timeLeft / 60);
+          const s = String(timeLeft % 60).padStart(2, '0');
+          countdownEl.textContent = m + ':' + s;
+        }
+      }, 1000);
 
       // ── PHASE 4A: WhatsApp send-to-kitchen button (Feature 4) ──
       var whatsappBtn = document.getElementById('success-whatsapp-btn');
