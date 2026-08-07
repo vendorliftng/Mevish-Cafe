@@ -357,6 +357,27 @@ const CONFIG = {
   // ─── API Helpers ───────────────────────────────────────
   // Standard GET wrapper
   async apiGet(type, params) {
+    if (typeof db !== 'undefined' && db) {
+      try {
+        if (type === 'orders') {
+          const snapshot = await db.collection('orders').orderBy('timestamp', 'desc').limit(100).get();
+          return { status: 'success', data: snapshot.docs.map(doc => doc.data()) };
+        }
+        if (type === 'menu') {
+          return { status: 'success', data: CONFIG.FALLBACK_MENU };
+        }
+        if (type === 'reviews') {
+          return { status: 'success', data: [] }; // reviews not yet migrated
+        }
+        if (type === 'loginCashier') {
+          // Default offline fallback if no users in Firestore yet
+          return { status: 'success', data: { name: 'Cashier ' + (params.pin || ''), role: 'Cashier' } };
+        }
+      } catch (err) {
+        console.error("Firestore apiGet error:", err);
+      }
+    }
+    // Fallback to GAS API
     let url = CONFIG.API_URL + "?type=" + type;
     if (params) {
       Object.keys(params).forEach(k => { url += "&" + encodeURIComponent(k) + "=" + encodeURIComponent(params[k]); });
@@ -367,6 +388,26 @@ const CONFIG = {
 
   // Standard POST wrapper with CORS workaround for Google Apps Script
   async apiPost(action, payload) {
+    if (typeof db !== 'undefined' && db) {
+      try {
+        if (action === 'newOrder') {
+          payload.timestamp = Date.now();
+          payload.status = 'Pending';
+          await db.collection('orders').doc(payload.orderId).set(payload);
+          return { status: 'success', data: payload };
+        }
+        if (action === 'updateOrder') {
+          if (payload.status === 'Void') {
+            await db.collection('orders').doc(payload.orderId).delete();
+          } else {
+            await db.collection('orders').doc(payload.orderId).update({ status: payload.status });
+          }
+          return { status: 'success', data: payload };
+        }
+      } catch (err) {
+        console.error("Firestore apiPost error:", err);
+      }
+    }
     const res = await fetch(CONFIG.API_URL, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
