@@ -1389,7 +1389,7 @@ function renderSettingsForm() {
   let html = `
     <div class="form-group">
       <label>Restaurant Name</label>
-      <input id="sf_restaurantName" value="${escAttr(currentSettings.restaurantName || '')}" class="form-control" />
+      <input id="sf_restaurantName" value="${(currentSettings.restaurantName || '').replace(/"/g, '&quot;')}" class="form-control" />
     </div>
     <div class="form-group">
       <label>Tax Rate (%)</label>
