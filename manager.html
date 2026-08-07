@@ -1388,6 +1388,7 @@ function renderSettingsForm() {
     const rName = String(currentSettings.restaurantName || '').replace(/"/g, '&quot;');
     const tRate = Number(currentSettings.taxRate) || 0;
     const tArr = Array.isArray(currentSettings.tables) ? currentSettings.tables : [];
+    const cArr = Array.isArray(currentSettings.categories) ? currentSettings.categories : [];
     
     let html = `
       <div class="form-group">
@@ -1401,6 +1402,10 @@ function renderSettingsForm() {
       <div class="form-group form-full">
         <label>Tables (Comma-separated)</label>
         <input id="sf_tables" value="${tArr.join(', ')}" class="form-control" />
+      </div>
+      <div class="form-group form-full">
+        <label>Categories (Comma-separated)</label>
+        <input id="sf_categories" value="${cArr.join(', ')}" class="form-control" />
       </div>
     `;
     wrap.innerHTML = html;
@@ -1416,12 +1421,14 @@ async function saveSettings() {
     const tRate = parseFloat(document.getElementById('sf_taxRate').value) || 0;
     const tablesStr = document.getElementById('sf_tables').value;
     const tablesArr = tablesStr.split(',').map(s => s.trim()).filter(s => s);
+    const catStr = document.getElementById('sf_categories').value;
+    const catArr = catStr.split(',').map(s => s.trim()).filter(s => s);
 
     await db.collection('system_config').doc('global').set({
       restaurantName: rName,
       taxRate: tRate,
       tables: tablesArr,
-      categories: currentSettings.categories || [] // preserve categories
+      categories: catArr
     }, { merge: true });
 
     CONFIG.RESTAURANT.name = rName;

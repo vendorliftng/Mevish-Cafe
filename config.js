@@ -364,6 +364,14 @@ const CONFIG = {
           return { status: 'success', data: snapshot.docs.map(doc => doc.data()) };
         }
         if (type === 'menu') {
+          const snapshot = await db.collection('menu_items').get();
+          if (!snapshot.empty) {
+            return { status: 'success', data: snapshot.docs.map(doc => {
+              let item = doc.data();
+              item.id = doc.id;
+              return item;
+            }) };
+          }
           return { status: 'success', data: CONFIG.FALLBACK_MENU };
         }
         if (type === 'reviews') {
@@ -403,6 +411,19 @@ const CONFIG = {
             await db.collection('orders').doc(payload.orderId).update({ status: payload.status });
           }
           return { status: 'success', data: payload };
+        }
+        if (action === 'addMenuItem') {
+          // payload.id is already generated via Date.now() in manager.html
+          await db.collection('menu_items').doc(String(payload.id)).set(payload);
+          return { status: 'success', data: payload };
+        }
+        if (action === 'updateMenuItem') {
+          await db.collection('menu_items').doc(String(payload.id)).update(payload);
+          return { status: 'success', data: payload };
+        }
+        if (action === 'deleteMenuItem') {
+          await db.collection('menu_items').doc(String(payload.id)).delete();
+          return { status: 'success' };
         }
       } catch (err) {
         console.error("Firestore apiPost error:", err);
@@ -511,13 +532,7 @@ const CONFIG = {
       try {
         const docRef = db.collection('system_config').doc('global');
         const doc = await docRef.get();
-        if (doc.exists) {
-          const data = doc.data();
-          if (data.restaurantName) CONFIG.RESTAURANT.name = data.restaurantName;
-          if (data.tables && Array.isArray(data.tables)) CONFIG.TABLES = data.tables;
-          if (data.taxRate) CONFIG.TAX_RATE = data.taxRate;
-          if (data.categories && Array.isArray(data.categories)) CONFIG.CATEGORIES = data.categories;
-        } else {
+        if (!doc.exists) {
           // Create default document if it doesn't exist
           await docRef.set({
             restaurantName: CONFIG.RESTAURANT.name,
@@ -527,6 +542,26 @@ const CONFIG = {
           });
           CONFIG.TABLES = CONFIG.FALLBACK_TABLES;
           CONFIG.CATEGORIES = ["Foods", "Swallows", "Pastries", "Drinks"];
+        } else {
+          // Document exists, update CONFIG locally
+          const data = doc.data();
+          if (data.restaurantName) CONFIG.RESTAURANT.name = data.restaurantName;
+          if (data.tables && Array.isArray(data.tables)) CONFIG.TABLES = data.tables;
+          if (data.taxRate) CONFIG.TAX_RATE = data.taxRate;
+          if (data.categories && Array.isArray(data.categories)) CONFIG.CATEGORIES = data.categories;
+        }
+
+        // --- Auto-Migrate Menu Items ---
+        const menuSnap = await db.collection('menu_items').limit(1).get();
+        if (menuSnap.empty) {
+          console.log("Migrating fallback menu to Firestore...");
+          const batch = db.batch();
+          CONFIG.FALLBACK_MENU.forEach(item => {
+            const newRef = db.collection('menu_items').doc();
+            batch.set(newRef, item);
+          });
+          await batch.commit();
+          console.log("Migration complete!");
         }
       } catch (err) {
         console.error("Failed to load global settings from Firestore:", err);
