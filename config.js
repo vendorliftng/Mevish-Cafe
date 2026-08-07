@@ -475,7 +475,10 @@ if (typeof firebase !== 'undefined') {
     firebase.initializeApp(firebaseConfig);
   }
   db = firebase.firestore();
-  console.log("🔥 Firebase Firestore initialized successfully.");
+  db.enablePersistence().catch(err => {
+    console.warn("Firebase persistence error: ", err);
+  });
+  console.log("🔥 Firebase Firestore initialized with offline support.");
 } else {
   console.warn("⚠️ Firebase SDK not found. Make sure to include firebase-app-compat.js");
 }
