@@ -455,3 +455,28 @@ const CONFIG = {
     }
   },
 };
+
+
+// ─── FIREBASE CONFIGURATION ──────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyAjJ-A8jMW6picivMFxImHM_zsKAOe2WSo",
+  authDomain: "mevish-eatery.firebaseapp.com",
+  projectId: "mevish-eatery",
+  storageBucket: "mevish-eatery.firebasestorage.app",
+  messagingSenderId: "135587898458",
+  appId: "1:135587898458:web:e0f4a6625e7758523ee463",
+  measurementId: "G-B9YC2FHQEM"
+};
+
+// Initialize Firebase if the SDK is loaded (compat version)
+let db = null;
+if (typeof firebase !== 'undefined') {
+  if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+  }
+  db = firebase.firestore();
+  console.log("🔥 Firebase Firestore initialized successfully.");
+} else {
+  console.warn("⚠️ Firebase SDK not found. Make sure to include firebase-app-compat.js");
+}
+

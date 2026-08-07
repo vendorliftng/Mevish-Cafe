@@ -2086,3 +2086,60 @@ function sendLowStockAlert() {
     body: body
   });
 }
+
+/**
+ * BACKUP FIRESTORE TO GOOGLE SHEETS
+ * Set this up on a Time-Driven Trigger to run daily at 2:00 AM.
+ */
+function backupFirestoreToSheet() {
+  var projectId = 'mevish-eatery';
+  var url = 'https://firestore.googleapis.com/v1/projects/' + projectId + '/databases/(default)/documents/orders';
+  
+  try {
+    var response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+    if (response.getResponseCode() === 200) {
+      var json = JSON.parse(response.getContentText());
+      var docs = json.documents || [];
+      
+      var ss = SpreadsheetApp.getActiveSpreadsheet();
+      var sheet = ss.getSheetByName('Orders (Backup)');
+      if (!sheet) {
+        sheet = ss.insertSheet('Orders (Backup)');
+        sheet.appendRow(['Timestamp', 'Order ID', 'Customer', 'Phone', 'Location', 'Items', 'Total', 'Status', 'Payment Method', 'Cashier', 'Order Type']);
+      }
+      
+      // Clear existing data (except header) and re-sync
+      if (sheet.getLastRow() > 1) {
+        sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).clearContent();
+      }
+      
+      var rows = [];
+      docs.forEach(function(doc) {
+        var fields = doc.fields || {};
+        var getVal = function(f) { return fields[f] ? (fields[f].stringValue || fields[f].integerValue || fields[f].doubleValue || '') : ''; };
+        
+        rows.push([
+          getVal('timestamp'),
+          getVal('orderId'),
+          getVal('customerName'),
+          getVal('customerPhone'),
+          getVal('location'),
+          getVal('cartItems'),
+          getVal('totalPrice'),
+          getVal('status'),
+          getVal('paymentMethod'),
+          getVal('cashier'),
+          getVal('orderType')
+        ]);
+      });
+      
+      if (rows.length > 0) {
+        sheet.getRange(2, 1, rows.length, rows[0].length).setValues(rows);
+      }
+      Logger.log('Backed up ' + rows.length + ' orders from Firestore.');
+    }
+  } catch (e) {
+    Logger.log('Firestore Backup Error: ' + e.toString());
+  }
+}
+

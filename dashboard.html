@@ -6,6 +6,9 @@
   <title>Command Center</title>
   <meta name="description" content="Restaurant Command Center — Kitchen Display System and Cashier Checkout Terminal with Receipt Printing.">
   <link rel="stylesheet" href="style.css">
+    <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="config.js"></script>
 </head>
 <body>
@@ -113,12 +116,37 @@
   <!--  MAIN CONTENT                                    -->
   <!-- ═══════════════════════════════════════════════ -->
   <main class="main-content">
+    
+    
     <div class="section-meta" id="sectionMeta">
       <span id="sectionTitle">All Orders</span>
       <span class="count-pill" id="orderCount">0</span>
     </div>
+    
+    <!-- 💰 NEW REVENUE METRICS -->
+    <div style="display:flex; gap:1rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+      <div style="background:var(--c-bg-card); padding:1rem 1.5rem; border-radius:var(--r-lg); border:1px solid var(--border-light); flex:1; min-width:200px;">
+        <div style="font-size:0.8rem; color:var(--c-text-light); font-weight:700; text-transform:uppercase;">Owner: Today's Total Sales</div>
+        <div id="metricTotalSales" style="font-size:1.6rem; font-weight:900; color:var(--c-text); margin-top:0.25rem;">₦0</div>
+      </div>
+      <div style="background:var(--c-bg-card); padding:1rem 1.5rem; border-radius:var(--r-lg); border:1px solid var(--border-light); flex:1; min-width:200px;">
+        <div style="font-size:0.8rem; color:var(--c-text-light); font-weight:700; text-transform:uppercase;">Cashier: My Sales Today</div>
+        <div id="metricCashierSales" style="font-size:1.6rem; font-weight:900; color:var(--c-primary); margin-top:0.25rem;">₦0</div>
+      </div>
+    </div>
+
     <div class="grid-orders" id="ordersGrid">
       <div class="loading-state"><div class="spinner"></div><span>Loading orders...</span></div>
+    </div>
+    
+    <div class="section-meta" style="margin-top: 3rem;">
+      <span>Cleared Orders</span>
+      <span class="count-pill" id="clearedCount">0</span>
+    </div>
+    <div class="grid-orders" id="clearedGrid">
+      <div class="empty-state" style="padding:2rem;"><div class="empty-state-sub">No cleared orders yet.</div></div>
+    </div>
+<span>Loading orders...</span></div>
     </div>
   </main>
 
