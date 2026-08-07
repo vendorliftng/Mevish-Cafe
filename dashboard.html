@@ -463,6 +463,61 @@
     }
   }
 
+
+  function initAudio() {
+    if (!audioCtx) {
+      try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
+    } else if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+  }
+
+  function playDing() {
+    if (!audioCtx) return;
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    try {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, audioCtx.currentTime); 
+      osc.frequency.exponentialRampToValueAtTime(1760, audioCtx.currentTime + 0.1); 
+      gain.gain.setValueAtTime(0, audioCtx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.5, audioCtx.currentTime + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.5);
+    } catch(e) {}
+  }
+
+  /* ═══════════════════════════════════════════════════
+     OFFLINE / ONLINE
+     ═══════════════════════════════════════════════════ */
+  window.addEventListener('offline', () => {
+    document.getElementById('offlineBanner').classList.add('show');
+    showToast('Connection lost -- payments locked', 'error');
+  });
+  window.addEventListener('online', () => {
+    document.getElementById('offlineBanner').classList.remove('show');
+    showToast('Back online', 'success');
+  });
+
+  /* ═══════════════════════════════════════════════════
+     CURRENT USER (replaces old cashier dropdown)
+     ═══════════════════════════════════════════════════ */
+  function renderUserDisplay() {
+    var el = document.getElementById('userDisplay');
+    if (!el || !currentUser) return;
+    var badgeClass = currentUser.isManager ? 'badge-served' : 'badge-active';
+    el.innerHTML = '<span class="user-name">👤 ' + escHtml(currentUser.name) +
+      '</span> <span class="badge ' + badgeClass + '">' + escHtml(currentUser.role) + '</span>' +
+      ' <button class="btn btn-ghost btn-sm" onclick="logout()">Logout</button>';
+  }
+  function getSelectedCashier() { return currentUser ? currentUser.name : ''; }
+  function isPaymentLocked() { return false; } // always authenticated
+  function logout() { location.reload(); }
+
 function setRefreshing(yes) {
     const dot = document.getElementById('refreshDot');
     const label = document.getElementById('refreshLabel');

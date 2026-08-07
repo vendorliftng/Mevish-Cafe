@@ -475,7 +475,7 @@ if (typeof firebase !== 'undefined') {
     firebase.initializeApp(firebaseConfig);
   }
   db = firebase.firestore();
-  db.enablePersistence().catch(err => {
+  db.enablePersistence({ synchronizeTabs: true }).catch(err => {
     console.warn("Firebase persistence error: ", err);
   });
   console.log("🔥 Firebase Firestore initialized with offline support.");
