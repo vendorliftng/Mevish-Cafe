@@ -377,6 +377,22 @@ const CONFIG = {
         if (type === 'reviews') {
           return { status: 'success', data: [] }; // reviews not yet migrated
         }
+        if (type === 'inventory') {
+          const snapshot = await db.collection('inventory').get();
+          return { status: 'success', data: snapshot.docs.map(doc => {
+            let item = doc.data();
+            item.id = doc.id;
+            return item;
+          }) };
+        }
+        if (type === 'expenses') {
+          const snapshot = await db.collection('expenses').orderBy('date', 'desc').get();
+          return { status: 'success', data: snapshot.docs.map(doc => {
+            let item = doc.data();
+            item.id = doc.id;
+            return item;
+          }) };
+        }
         if (type === 'loginCashier') {
           // Default offline fallback if no users in Firestore yet
           return { status: 'success', data: { name: 'Cashier ' + (params.pin || ''), role: 'Cashier' } };
@@ -402,6 +418,29 @@ const CONFIG = {
           payload.timestamp = Date.now();
           payload.status = 'Pending';
           await db.collection('orders').doc(payload.orderId).set(payload);
+          
+          // Auto-deduct inventory if linked
+          if (payload.items && Array.isArray(payload.items)) {
+            for (const item of payload.items) {
+              if (item.linkedInventoryId && item.deductionQty) {
+                const deduction = parseFloat(item.deductionQty) * (item.quantity || 1);
+                if (deduction > 0) {
+                  const invRef = db.collection('inventory').doc(item.linkedInventoryId);
+                  try {
+                    await db.runTransaction(async (transaction) => {
+                      const doc = await transaction.get(invRef);
+                      if (doc.exists) {
+                        const newStock = Math.max(0, (doc.data().currentStock || 0) - deduction);
+                        transaction.update(invRef, { currentStock: newStock });
+                      }
+                    });
+                  } catch (e) {
+                    console.error("Auto-deduct error for " + item.name, e);
+                  }
+                }
+              }
+            }
+          }
           return { status: 'success', data: payload };
         }
         if (action === 'updateOrder') {
@@ -424,6 +463,19 @@ const CONFIG = {
         if (action === 'deleteMenuItem') {
           await db.collection('menu_items').doc(String(payload.id)).delete();
           return { status: 'success' };
+        }
+        if (action === 'addExpense') {
+          payload.id = 'EXP-' + Date.now();
+          await db.collection('expenses').doc(payload.id).set(payload);
+          return { status: 'success', data: payload };
+        }
+        if (action === 'addInventoryItem') {
+          await db.collection('inventory').doc(String(payload.id)).set(payload);
+          return { status: 'success', data: payload };
+        }
+        if (action === 'updateInventoryItem') {
+          await db.collection('inventory').doc(String(payload.id)).update(payload);
+          return { status: 'success', data: payload };
         }
       } catch (err) {
         console.error("Firestore apiPost error:", err);

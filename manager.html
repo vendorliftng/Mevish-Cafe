@@ -97,6 +97,9 @@
       </a>
 
       <div class="nav-section-label">System</div>
+      <a class="nav-item" id="nav-admins" data-panel="admins" onclick="switchPanel('admins')" style="display:none;">
+        <span class="nav-icon">&#128101;</span> Admins
+      </a>
       <a class="nav-item" data-panel="settings" onclick="switchPanel('settings')">
         <span class="nav-icon">&#9881;</span> Settings
       </a>
@@ -358,6 +361,36 @@
         </div>
       </div>
 
+
+
+
+      <!-- ════════════════════════════════════════════════════ -->
+      <!--  PANEL: ADMINS                                       -->
+      <!-- ════════════════════════════════════════════════════ -->
+      <div id="panel-admins" class="panel">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+          <h2 style="margin:0; font-size:1.4rem;">Admin Management</h2>
+          <button class="btn btn-primary" onclick="openAdminModal()">
+            <i class="fas fa-plus"></i> Add Admin
+          </button>
+        </div>
+        <div class="data-table-wrapper">
+          <table class="data-table" id="adminsTable">
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Created At</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="adminsTableBody">
+              <tr><td colspan="4"><div class="loading-state"><div class="spinner"></div></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
     </div><!-- /.page-body -->
   </div><!-- /.main-area -->
 </div><!-- /#appLayout -->
@@ -383,13 +416,54 @@
    ═══════════════════════════════════════════════════════════ */
 
 const auth = firebase.auth();
+let currentUserRole = null;
 
-auth.onAuthStateChanged(user => {
+auth.onAuthStateChanged(async user => {
   if (user) {
-    document.getElementById('authGate').style.display = 'none';
-    document.getElementById('appLayout').style.display = 'flex';
-    CONFIG.loadSavedTheme();
-    initApp();
+    try {
+      const userDoc = await db.collection('users').doc(user.uid).get();
+      if (!userDoc.exists) {
+        const allUsers = await db.collection('users').limit(1).get();
+        if (allUsers.empty) {
+          await db.collection('users').doc(user.uid).set({
+            email: user.email,
+            role: 'SuperAdmin',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+          currentUserRole = 'SuperAdmin';
+        } else {
+          // Add them as Pending
+          await db.collection('users').doc(user.uid).set({
+            email: user.email,
+            role: 'Pending',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+          auth.signOut();
+          return showError('Account registered. Pending approval by SuperAdmin.');
+        }
+      } else {
+        currentUserRole = userDoc.data().role;
+        if (currentUserRole === 'Pending') {
+          auth.signOut();
+          return showError('Your account is still pending approval.');
+        }
+      }
+      
+      document.getElementById('authGate').style.display = 'none';
+      document.getElementById('appLayout').style.display = 'flex';
+      CONFIG.loadSavedTheme();
+      initApp();
+      
+      // Role-based UI adjustments
+      const adminNav = document.getElementById('nav-admins');
+      if (adminNav) {
+         adminNav.style.display = (currentUserRole === 'SuperAdmin') ? 'block' : 'none';
+      }
+      
+    } catch (e) {
+      console.error(e);
+      showError('Error checking permissions: ' + e.message);
+    }
   } else {
     document.getElementById('authGate').style.display = 'flex';
     document.getElementById('appLayout').style.display = 'none';
@@ -536,7 +610,9 @@ function renderPanel(panelId) {
     case 'cashiers': renderCashiersTable(); break;
     case 'tables': renderTablesTable(); generateAllQRCodes(); break;
     case 'expenses': renderExpensesTable(); break;
-    case 'settings': loadSettings(); break;
+    case 'settings': loadSettings();
+    loadAdmins();
+    loadInventory(); break;
     case 'theme': renderThemePicker(); break;
     case 'audit': loadAuditLog(); break;
     case 'customers': renderCustomersTable(); break;
@@ -1005,6 +1081,16 @@ function renderMenuTable() {
 function openMenuModal(editId) {
   const item = editId ? menuData.find(m => String(m.id) === String(editId)) : null;
   const title = item ? 'Edit Menu Item' : 'Add Menu Item';
+  
+  // Build inventory options
+  let invOptions = '<option value="">None (No auto-deduction)</option>';
+  if (typeof inventoryData !== 'undefined') {
+    inventoryData.forEach(inv => {
+      const selected = item && item.linkedInventoryId === inv.id ? 'selected' : '';
+      invOptions += `<option value="${inv.id}" ${selected}>${inv.name}</option>`;
+    });
+  }
+
   const body = `
     <div class="form-grid">
       <div class="form-group"><label>Name</label><input id="mf_name" value="${item?item.name:''}" /></div>
@@ -1013,6 +1099,10 @@ function openMenuModal(editId) {
       <div class="form-group"><label>Cost (${CONFIG.CURRENCY})</label><input type="number" id="mf_cost" value="${item?item.cost:''}" /></div>
       <div class="form-group"><label>Prep Time (min)</label><input type="number" id="mf_prepTime" value="${item?item.prepTime:10}" /></div>
       <div class="form-group"><label>Available</label><select id="mf_available"><option value="true" ${!item||item.available==='Yes'?'selected':''}>Yes</option><option value="false" ${item&&item.available==='No'?'selected':''}>No</option></select></div>
+      
+      <div class="form-group"><label>Linked Inventory (Recipe)</label><select id="mf_invId">${invOptions}</select></div>
+      <div class="form-group"><label>Deduction Qty (per order)</label><input type="number" id="mf_invQty" value="${item?item.deductionQty||0:0}" step="0.01" /></div>
+      
       <div class="form-group form-full"><label>Description</label><textarea id="mf_desc">${item?item.description:''}</textarea></div>
     </div>`;
   const actions = `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveMenuItem(${editId||'null'})">${item?'Update':'Add'}</button>`;
@@ -1051,6 +1141,8 @@ async function saveMenuItem(editId) {
     prepTime: document.getElementById('mf_prepTime').value,
     available: document.getElementById('mf_available').value === 'true',
     description: document.getElementById('mf_desc').value.trim(),
+    linkedInventoryId: document.getElementById('mf_invId') ? document.getElementById('mf_invId').value : '',
+    deductionQty: document.getElementById('mf_invQty') ? (parseFloat(document.getElementById('mf_invQty').value) || 0) : 0,
     performedBy: 'Manager'
   };
   if (!payload.name) return toast('Name is required', 'error');
@@ -1478,7 +1570,67 @@ async function selectTheme(id) {
 /* ═══════════════════════════════════════════════════════════
    AUDIT LOG
    ═══════════════════════════════════════════════════════════ */
-async function loadAuditLog() {
+async 
+
+/* ═══════════════════════════════════════════════════════════
+   ADMIN MANAGEMENT (PHASE 2)
+   ═══════════════════════════════════════════════════════════ */
+async function loadAdmins() {
+  const wrap = document.getElementById('adminsTableBody');
+  try {
+    const snap = await db.collection('users').get();
+    if (snap.empty) { wrap.innerHTML = '<tr><td colspan="4">No admins found</td></tr>'; return; }
+    let rows = '';
+    snap.forEach(doc => {
+      const d = doc.data();
+      const dateStr = d.createdAt && d.createdAt.toDate ? d.createdAt.toDate().toLocaleDateString() : '—';
+      rows += `<tr>
+        <td>${d.email}</td>
+        <td><span class="badge ${d.role === 'SuperAdmin' ? 'badge-success' : (d.role === 'Pending' ? 'badge-warning' : 'badge-info')}">${d.role}</span></td>
+        <td>${dateStr}</td>
+        <td>
+          <button class="btn btn-ghost btn-sm" onclick="editAdminRole('${doc.id}', '${d.role}')">Edit Role</button>
+        </td>
+      </tr>`;
+    });
+    wrap.innerHTML = rows;
+  } catch(e) {
+    console.error(e);
+    wrap.innerHTML = '<tr><td colspan="4">Error loading admins</td></tr>';
+  }
+}
+
+function openAdminModal() {
+  toast('To add an admin, have them register on the login screen. They will appear here as Pending.', 'info');
+}
+
+function editAdminRole(uid, currentRole) {
+  const body = `<div class="form-group">
+    <label>Select Role</label>
+    <select id="af_role" class="form-control">
+      <option value="Admin" ${currentRole === 'Admin' ? 'selected' : ''}>Admin (Standard Access)</option>
+      <option value="Manager" ${currentRole === 'Manager' ? 'selected' : ''}>Manager (Cannot delete)</option>
+      <option value="SuperAdmin" ${currentRole === 'SuperAdmin' ? 'selected' : ''}>SuperAdmin (Full Access)</option>
+      <option value="Revoked" ${currentRole === 'Revoked' ? 'selected' : ''}>Revoke Access</option>
+    </select>
+  </div>`;
+  const actions = `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveAdminRole('${uid}')">Save Role</button>`;
+  openModal('Update Admin Role', body, actions);
+}
+
+async function saveAdminRole(uid) {
+  const newRole = document.getElementById('af_role').value;
+  try {
+    await db.collection('users').doc(uid).update({ role: newRole });
+    toast('Role updated successfully', 'success');
+    closeModal();
+    loadAdmins();
+  } catch (e) {
+    toast('Error updating role: ' + e.message, 'error');
+  }
+}
+
+function loadAuditLog() {
   const wrap = document.getElementById('auditTableWrap');
   try {
     const res = await CONFIG.apiGet('auditLog');
