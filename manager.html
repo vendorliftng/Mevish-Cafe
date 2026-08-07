@@ -441,7 +441,6 @@ function logoutAdmin() {
    ═══════════════════════════════════════════════════════════ */
 const rName = CONFIG.RESTAURANT ? CONFIG.RESTAURANT.name : 'Restaurant';
 document.title = rName + ' Manager';
-document.getElementById('pinRestName').textContent = rName;
 document.getElementById('sidebarBrand').textContent = rName;
 
 let allOrders = [], inventoryData = [], menuData = [], cashiersData = [];
