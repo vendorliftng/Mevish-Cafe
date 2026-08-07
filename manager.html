@@ -36,16 +36,17 @@
         <label style="font-size: 0.8rem; font-weight: 600; color: var(--c-text-light); margin-bottom: 0.3rem; display: block;">Email Address</label>
         <input type="email" id="adminEmail" class="form-control" style="width: 100%; padding: 0.8rem; border-radius: 8px; border: 1px solid var(--c-border); background: var(--c-bg-card); color: var(--c-text);" />
       </div>
-      <div style="margin-bottom: 1.5rem;">
+      <div style="margin-bottom: 1.5rem; position: relative;">
         <label style="font-size: 0.8rem; font-weight: 600; color: var(--c-text-light); margin-bottom: 0.3rem; display: block;">Password</label>
-        <input type="password" id="adminPassword" class="form-control" style="width: 100%; padding: 0.8rem; border-radius: 8px; border: 1px solid var(--c-border); background: var(--c-bg-card); color: var(--c-text);" />
+        <input type="password" id="adminPassword" class="form-control" style="width: 100%; padding: 0.8rem; border-radius: 8px; border: 1px solid var(--c-border); background: var(--c-bg-card); color: var(--c-text); padding-right: 2.5rem;" />
+        <button onclick="togglePassword()" type="button" style="position: absolute; right: 0.5rem; top: 1.9rem; background: none; border: none; color: var(--c-text-light); cursor: pointer; font-size: 1.2rem;">&#128065;</button>
       </div>
       <button onclick="loginAdmin()" class="btn btn-primary" style="width: 100%; padding: 0.8rem; border-radius: 8px; font-weight: 700;">Secure Login</button>
       <div class="pin-error" id="authError" style="margin-top: 1rem; text-align: center;"></div>
       
       <div style="margin-top: 1.5rem; font-size: 0.75rem; color: var(--c-text-light); text-align: center;">
         Don't have an admin account? <br/>
-        <a href="#" onclick="registerAdmin()" style="color: var(--c-primary); text-decoration: underline;">Register First Admin</a>
+        <a href="#" onclick="registerAdmin()" style="color: var(--c-primary); text-decoration: underline;">(First Time Setup Only) Register Admin</a>
       </div>
     </div>
   </div>
@@ -400,6 +401,15 @@ function showError(msg) {
   el.textContent = msg;
   el.classList.add('visible');
   setTimeout(() => el.classList.remove('visible'), 4000);
+}
+
+function togglePassword() {
+  const pInput = document.getElementById('adminPassword');
+  if (pInput.type === 'password') {
+    pInput.type = 'text';
+  } else {
+    pInput.type = 'password';
+  }
 }
 
 function loginAdmin() {
