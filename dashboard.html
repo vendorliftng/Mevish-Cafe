@@ -237,6 +237,19 @@
             <div class="form-group" style="margin-bottom:0.75rem;">
                <input id="mo_name" class="form-control" placeholder="Customer Name (Walk-in)" style="background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--r-md);" />
             </div>
+            <div class="form-group" style="margin-bottom:0.75rem;">
+               <input id="mo_phone" class="form-control" placeholder="Customer Phone" style="background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--r-md);" />
+            </div>
+            
+            <div style="margin-bottom:1rem;">
+              <label style="display:flex; align-items:center; gap:0.5rem; font-size:0.9rem; color:var(--text-secondary); cursor:pointer;">
+                <input type="checkbox" id="mo_backdate_toggle" onchange="toggleBackdate()"> Backdate Order
+              </label>
+              <div id="mo_backdate_fields" style="display:none; gap:0.5rem; margin-top:0.5rem;">
+                <input type="date" id="mo_date" class="form-control" style="flex:1;" />
+                <input type="time" id="mo_time" class="form-control" style="flex:1;" />
+              </div>
+            </div>
             <div class="form-group" style="margin-bottom:1rem;">
                <select id="mo_location" class="form-control" style="background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--r-md);"></select>
             </div>
