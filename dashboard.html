@@ -363,6 +363,8 @@
   let searchQuery    = '';
   let refreshInterval = null;
   let voidPending    = null;
+  let firestoreUnsubscribe = null;
+  let allClearedOrders = [];
   const activeTimers = {};
   let currentReceiptOrder = null;
   var currentUser = null; // {name, role, isManager}
@@ -371,113 +373,84 @@
   let knownOrderIds = new Set();
   let isAppInitialized = false;
 
-  function initAudio() {
-    if (!audioCtx) {
-      try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
-    } else if (audioCtx.state === 'suspended') {
-      audioCtx.resume();
-    }
-  }
-
-  function playDing() {
-    if (!audioCtx) return;
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-    try {
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(880, audioCtx.currentTime); 
-      osc.frequency.exponentialRampToValueAtTime(1760, audioCtx.currentTime + 0.1); 
-      gain.gain.setValueAtTime(0, audioCtx.currentTime);
-      gain.gain.linearRampToValueAtTime(0.5, audioCtx.currentTime + 0.05);
-      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.start();
-      osc.stop(audioCtx.currentTime + 0.5);
-    } catch(e) {}
-  }
-
-  /* ═══════════════════════════════════════════════════
-     OFFLINE / ONLINE
-     ═══════════════════════════════════════════════════ */
-  window.addEventListener('offline', () => {
-    document.getElementById('offlineBanner').classList.add('show');
-    showToast('Connection lost -- payments locked', 'error');
-  });
-  window.addEventListener('online', () => {
-    document.getElementById('offlineBanner').classList.remove('show');
-    showToast('Back online', 'success');
-  });
-
-  /* ═══════════════════════════════════════════════════
-     CURRENT USER (replaces old cashier dropdown)
-     ═══════════════════════════════════════════════════ */
-  function renderUserDisplay() {
-    var el = document.getElementById('userDisplay');
-    if (!el || !currentUser) return;
-    var badgeClass = currentUser.isManager ? 'badge-served' : 'badge-active';
-    el.innerHTML = '<span class="user-name">👤 ' + escHtml(currentUser.name) +
-      '</span> <span class="badge ' + badgeClass + '">' + escHtml(currentUser.role) + '</span>' +
-      ' <button class="btn btn-ghost btn-sm" onclick="logout()">Logout</button>';
-  }
-  function getSelectedCashier() { return currentUser ? currentUser.name : ''; }
-  function isPaymentLocked() { return false; } // always authenticated
-  function logout() { location.reload(); }
-
-  /* ═══════════════════════════════════════════════════
-     FETCH ORDERS
-     ═══════════════════════════════════════════════════ */
+  
   async function fetchOrders() {
-    setRefreshing(true);
-    try {
-      const data = await CONFIG.apiGet('orders');
-      const raw = Array.isArray(data.data) ? data.data : [];
+    if (typeof db !== 'undefined' && db) {
+      setRefreshing(true);
+      if (firestoreUnsubscribe) firestoreUnsubscribe();
       
-      let newOrdersFound = false;
-      // Keep Active, Preparing, Ready, Served, Credit (only hide Paid + Void)
-      allOrders = raw.filter(o => {
-        const s = o.status || '';
-        if (s.includes('Paid') || s.includes('Void')) return false;
-        
-        // Audio notification check for new Active/Pending orders
-        const id = o.orderId || o.id;
-        if (isAppInitialized && (s === 'Active' || s === 'Pending') && !knownOrderIds.has(id)) {
-          newOrdersFound = true;
-        }
-        knownOrderIds.add(id);
-        
-        return true;
-      });
+      const startOfToday = new Date();
+      startOfToday.setHours(0,0,0,0);
       
-      if (newOrdersFound) playDing();
-      isAppInitialized = true;
-      
-      renderGrid();
-      setLastUpdated();
-      // Cache orders for instant next load
-      try { localStorage.setItem(CONFIG.STORAGE_PREFIX + 'cache_orders', JSON.stringify({ t: Date.now(), data: allOrders })); } catch(e) {}
-    } catch (err) {
-      console.error('fetchOrders error', err);
-      // Try cached orders as fallback
-      try {
-        const cached = JSON.parse(localStorage.getItem(CONFIG.STORAGE_PREFIX + 'cache_orders') || '{}');
-        if (cached.data && Array.isArray(cached.data)) {
-          allOrders = cached.data;
+      firestoreUnsubscribe = db.collection('orders')
+        .where('timestamp', '>=', startOfToday.getTime())
+        .onSnapshot(snapshot => {
+          let newOrdersFound = false;
+          allOrders = [];
+          allClearedOrders = [];
+          
+          snapshot.forEach(doc => {
+            const o = doc.data();
+            const s = o.status || '';
+            const id = o.orderId || o.id;
+            
+            if (s.includes('Paid') || s.includes('Void')) {
+              allClearedOrders.push(o);
+            } else {
+              allOrders.push(o);
+              if (isAppInitialized && (s === 'Active' || s === 'Pending') && !knownOrderIds.has(id)) {
+                newOrdersFound = true;
+              }
+            }
+            knownOrderIds.add(id);
+          });
+          
+          allOrders.sort((a, b) => b.timestamp - a.timestamp);
+          allClearedOrders.sort((a, b) => b.timestamp - a.timestamp);
+
+          let totalSales = 0;
+          let cashierSales = 0;
+          const myCashierName = getSelectedCashier();
+          
+          [...allOrders, ...allClearedOrders].forEach(o => {
+            if (o.status && o.status.includes('Paid')) {
+              const amount = parseFloat(o.totalPrice || o.total || 0);
+              totalSales += amount;
+              if (o.cashier === myCashierName || o.status.includes(myCashierName)) {
+                cashierSales += amount;
+              }
+            }
+          });
+          
+          const ts = document.getElementById('metricTotalSales');
+          const cs = document.getElementById('metricCashierSales');
+          if (ts) ts.textContent = CONFIG.formatCurrency(totalSales);
+          if (cs) cs.textContent = CONFIG.formatCurrency(cashierSales);
+          
+          if (newOrdersFound) playDing();
+          isAppInitialized = true;
+          
           renderGrid();
-          showToast('Showing cached orders (offline)', 'warning');
-        } else {
-          showEmptyState('Could not load orders', 'Check your connection or API URL.');
-        }
-      } catch(e2) {
-        showEmptyState('Could not load orders', 'Check your connection or API URL.');
-      }
-    } finally {
+          setLastUpdated();
+          setRefreshing(false);
+        }, err => {
+          console.error('Firestore listener error:', err);
+          setRefreshing(false);
+        });
+    } else {
+      setRefreshing(true);
+      try {
+        const data = await CONFIG.apiGet('orders');
+        const raw = Array.isArray(data.data) ? data.data : [];
+        allOrders = raw.filter(o => !o.status.includes('Paid') && !o.status.includes('Void'));
+        allClearedOrders = raw.filter(o => o.status.includes('Paid') || o.status.includes('Void'));
+        renderGrid();
+      } catch(e) { console.error(e); }
       setRefreshing(false);
     }
   }
 
-  function setRefreshing(yes) {
+function setRefreshing(yes) {
     const dot = document.getElementById('refreshDot');
     const label = document.getElementById('refreshLabel');
     dot.classList.toggle('spinning', yes);
@@ -983,6 +956,7 @@
      ═══════════════════════════════════════════════════ */
   function startAutoRefresh() {
     if (refreshInterval) clearInterval(refreshInterval);
+    if (typeof db !== 'undefined' && db) return;
     refreshInterval = setInterval(fetchOrders, CONFIG.REFRESH_INTERVAL || 30000);
   }
 
