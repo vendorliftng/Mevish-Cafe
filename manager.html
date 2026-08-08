@@ -797,7 +797,7 @@ function renderCashierAudit(orders) {
   orders.forEach(o => { if (!isPaid(o.status)) return; const c = getCashier(o.status); if (!c) return; if (!audit[c]) audit[c] = { cash: 0, pos: 0, orders: 0 }; const a = parseFloat(o.total)||0; if (getMethod(o.status)==='Cash') audit[c].cash+=a; else audit[c].pos+=a; audit[c].orders++; });
   const keys = Object.keys(audit).sort((a,b) => (audit[b].cash+audit[b].pos) - (audit[a].cash+audit[a].pos));
   const wrap = document.getElementById('cashierTableWrap');
-  if (keys.length === 0) { wrap.innerHTML = '<div class="empty-state"><div class="empty-title">No cashier data</div></div>'; return; }
+  if (keys.length === 0) { wrap.innerHTML = '<div class="empty-state"><div class="empty-title">No cashier data yet</div><div class="empty-text">Sales handled by cashiers will appear here.</div></div>'; return; }
   let gc=0, gp=0, go=0, rows='';
   keys.forEach(c => { const d = audit[c]; const t = d.cash+d.pos; gc+=d.cash; gp+=d.pos; go+=d.orders; const init = c.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2); rows += `<tr><td><span class="cashier-avatar">${init}</span>${c}</td><td class="text-success">${fmt(d.cash)}</td><td class="text-accent">${fmt(d.pos)}</td><td style="font-weight:700">${fmt(t)}</td><td><span class="chip">${d.orders}</span></td></tr>`; });
   wrap.innerHTML = `<table><thead><tr><th>Cashier</th><th>Cash</th><th>POS</th><th>Total</th><th>Orders</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td>Grand Total</td><td>${fmt(gc)}</td><td>${fmt(gp)}</td><td>${fmt(gc+gp)}</td><td>${go}</td></tr></tfoot></table>`;
@@ -808,7 +808,7 @@ function renderCreditLog(orders) {
   const fmt = (v) => CONFIG.formatCurrency(v);
   const wrap = document.getElementById('creditTableWrap');
   const flagged = orders.filter(o => isCredit(o.status));
-  if (flagged.length === 0) { wrap.innerHTML = '<div class="empty-state"><div class="empty-title">No flagged orders</div></div>'; return; }
+  if (flagged.length === 0) { wrap.innerHTML = '<div class="empty-state"><div class="empty-title">No flagged orders</div><div class="empty-text">Credit orders that need attention will appear here.</div></div>'; return; }
   flagged.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
   let rows = '';
   flagged.forEach(o => {
@@ -821,7 +821,7 @@ function renderCreditLog(orders) {
 function renderInventoryAlerts(inv) {
   const wrap = document.getElementById('inventoryAlertsWrap');
   const alerts = inv.filter(i => parseFloat(i.currentStock) <= parseFloat(i.alertThreshold));
-  if (alerts.length === 0) { wrap.innerHTML = '<div class="empty-state"><div class="empty-title">All stock levels healthy</div></div>'; return; }
+  if (alerts.length === 0) { wrap.innerHTML = '<div class="empty-state"><div class="empty-title">All stock levels healthy</div><div class="empty-text">Nothing needs restocking right now.</div></div>'; return; }
   alerts.sort((a,b) => (parseFloat(a.currentStock)/parseFloat(a.alertThreshold)) - (parseFloat(b.currentStock)/parseFloat(b.alertThreshold)));
   let html = '<div class="alerts-grid">';
   alerts.forEach(i => {
@@ -855,7 +855,7 @@ function renderPeakHours(result) {
   const wrap = document.getElementById('peakHoursWrap');
   if (!wrap) return;
   if (result.status !== 'fulfilled' || !result.value || result.value.status !== 'success' || !result.value.data) {
-    wrap.innerHTML = '<div class="empty-state"><div class="empty-title">No peak-hour data</div></div>';
+    wrap.innerHTML = '<div class="empty-state"><div class="empty-title">No peak-hour data yet</div><div class="empty-text">Order patterns will appear here once orders come in.</div></div>';
     return;
   }
   const data = result.value.data;
@@ -911,7 +911,7 @@ function renderCategoryChart(result) {
   if (!data.length) {
     // Render empty-state message inside the chart-box
     const box = canvas ? canvas.parentElement : null;
-    if (box) box.innerHTML = '<div class="empty-state"><div class="empty-title">No category data</div></div>';
+    if (box) box.innerHTML = '<div class="empty-state"><div class="empty-title">No category data yet</div><div class="empty-text">Sales by category will appear here.</div></div>';
     return;
   }
   const labels = data.map(d => d.category || 'Unknown');
@@ -937,7 +937,7 @@ function renderTopCustomers(result) {
   if (result.status === 'fulfilled' && result.value && result.value.status === 'success' && Array.isArray(result.value.data)) {
     data = result.value.data;
   }
-  if (!data.length) { wrap.innerHTML = '<div class="empty-state"><div class="empty-title">No customer data</div></div>'; return; }
+  if (!data.length) { wrap.innerHTML = '<div class="empty-state"><div class="empty-title">No customer data yet</div><div class="empty-text">Your top customers will appear here.</div></div>'; return; }
   const fmt = (v) => CONFIG.formatCurrency(v);
   const top = data.slice(0, 10);
   let rows = '';
@@ -968,7 +968,9 @@ function renderCustomersTable() {
     );
   }
   if (!rows.length) {
-    wrap.innerHTML = '<div class="empty-state"><div class="empty-title">' + (customersData.length ? 'No customers match your search' : 'No customers yet') + '</div></div>';
+    wrap.innerHTML = customersData.length
+      ? '<div class="empty-state"><div class="empty-title">No customers match your search</div><div class="empty-text">Try a different name or phone number.</div></div>'
+      : '<div class="empty-state"><div class="empty-title">No customers yet</div><div class="empty-text">Customers appear here after their first order.</div></div>';
     return;
   }
   // Sort by total spent, desc
@@ -1033,7 +1035,7 @@ function renderReviewsTable() {
   if (!wrap) return;
   const locale = (CONFIG.RESTAURANT && CONFIG.RESTAURANT.locale) || 'en-US';
   if (!reviewsData.length) {
-    wrap.innerHTML = '<div class="empty-state"><div class="empty-title">No pending reviews</div></div>';
+    wrap.innerHTML = '<div class="empty-state"><div class="empty-title">No pending reviews</div><div class="empty-text">New reviews will show up here for approval.</div></div>';
     return;
   }
   // Newest first
@@ -1082,7 +1084,7 @@ function renderOrdersList() {
   let orders = allOrders;
   if (search) orders = orders.filter(o => (o.id||'').toLowerCase().includes(search) || (o.customerName||'').toLowerCase().includes(search) || (o.location||'').toLowerCase().includes(search));
   orders.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
-  if (orders.length === 0) { wrap.innerHTML = '<div class="empty-state"><div class="empty-title">No orders found</div></div>'; return; }
+  if (orders.length === 0) { wrap.innerHTML = '<div class="empty-state"><div class="empty-title">No orders found</div><div class="empty-text">Orders will appear here as customers place them.</div></div>'; return; }
   const fmt = (v) => CONFIG.formatCurrency(v);
   let rows = '';
   orders.forEach(o => {
