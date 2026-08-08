@@ -1190,14 +1190,16 @@ function setRefreshing(yes) {
   }
 
   function isSoldOut(m) { return m.available === false || m.available === 'No'; }
-  function cartQtyOf(id) { const c = manualOrderCart.find(x => x.id === id); return c ? c.qty : 0; }
+  // Firestore menu IDs are strings; legacy GAS IDs are numbers.
+  // Always compare as strings and always quote IDs in onclick handlers.
+  function cartQtyOf(id) { const c = manualOrderCart.find(x => String(x.id) === String(id)); return c ? c.qty : 0; }
 
   function tileHtml(m, small) {
     const soldOut = isSoldOut(m);
     const qty = cartQtyOf(m.id);
     const hot = (itemFrequencies[m.name] || 0) >= 3;
     return `
-    <div class="pos-tile ${small ? 'pos-tile-sm' : ''} ${soldOut ? 'pos-tile-soldout' : ''}" onclick="addToManualCart(${m.id}, this)">
+    <div class="pos-tile ${small ? 'pos-tile-sm' : ''} ${soldOut ? 'pos-tile-soldout' : ''}" onclick="addToManualCart('${escAttr(String(m.id))}', this)">
       ${qty ? `<div class="pos-qty-badge">${qty}</div>` : ''}
       ${hot && !small ? `<div class="pos-hot-badge">🔥 Top</div>` : ''}
       <div class="pos-tile-emoji">${m.emoji || '🍽️'}</div>
@@ -1300,9 +1302,9 @@ function setRefreshing(yes) {
   }
 
   function addToManualCart(id, el) {
-    const item = manualOrderMenu.find(m => m.id === id);
+    const item = manualOrderMenu.find(m => String(m.id) === String(id));
     if (!item || isSoldOut(item)) return;
-    const existing = manualOrderCart.find(c => c.id === id);
+    const existing = manualOrderCart.find(c => String(c.id) === String(id));
     if (existing) existing.qty++;
     else manualOrderCart.push({ ...item, qty: 1 });
     if (el) { el.classList.remove('pos-tile-pop'); void el.offsetWidth; el.classList.add('pos-tile-pop'); }
@@ -1311,10 +1313,10 @@ function setRefreshing(yes) {
   }
 
   function changeQty(id, delta) {
-    const line = manualOrderCart.find(c => c.id === id);
+    const line = manualOrderCart.find(c => String(c.id) === String(id));
     if (!line) return;
     line.qty += delta;
-    if (line.qty <= 0) manualOrderCart = manualOrderCart.filter(c => c.id !== id);
+    if (line.qty <= 0) manualOrderCart = manualOrderCart.filter(c => String(c.id) !== String(id));
     updateManualCartUI();
     renderPOS();
   }
@@ -1338,9 +1340,9 @@ function setRefreshing(yes) {
         <div style="font-size:1.3rem;">${c.emoji || '🍽️'}</div>
         <div class="pos-cart-name">${escHtml(c.name)}<div class="pos-cart-price">${CONFIG.formatCurrency(c.price)} each</div></div>
         <div class="pos-stepper">
-          <button class="pos-step-btn minus" onclick="changeQty(${c.id}, -1)">−</button>
+          <button class="pos-step-btn minus" onclick="changeQty('${escAttr(String(c.id))}', -1)">−</button>
           <span class="pos-step-qty">${c.qty}</span>
-          <button class="pos-step-btn plus" onclick="changeQty(${c.id}, 1)">+</button>
+          <button class="pos-step-btn plus" onclick="changeQty('${escAttr(String(c.id))}', 1)">+</button>
         </div>
         <div style="min-width:70px;text-align:right;font-weight:800;color:var(--gold);">${CONFIG.formatCurrency(c.price * c.qty)}</div>
       </div>
