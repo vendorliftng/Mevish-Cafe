@@ -1925,3 +1925,20 @@ body.menu-board-page { overflow: hidden; background: var(--bg-deep); }
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
 
+
+
+/* ============================================================
+   GLOBAL MODAL SCROLL FIX
+   .modal is a flex column with overflow:hidden and max-height:90vh;
+   .modal-body is its flex:1 child with overflow-y:auto. But flex
+   children default to min-height:auto, which refuses to shrink
+   below content height — so the body never scrolled and tall modal
+   content was simply clipped. min-height:0 lets the body shrink,
+   which finally engages its own scrollbar on every page.
+   ============================================================ */
+.modal-body {
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
