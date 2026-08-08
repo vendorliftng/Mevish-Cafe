@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Manager Panel</title>
   <meta name="description" content="Admin control panel for the restaurant management system." />
-  <link rel="stylesheet" href="style.css?v=105" />
+  <link rel="stylesheet" href="style.css?v=106" />
   <style>
     /* Child-friendly form styling: big touch targets, plain hints */
     #modalBody .form-grid input,
@@ -22,6 +22,10 @@
     }
     .emoji-cell.selected { border-color: var(--c-primary); background: var(--c-bg); box-shadow: 0 0 0 2px var(--c-primary); }
     .modal-actions .btn { min-height: 48px; }
+    /* Manager's own layout class — style.css's .app-layout rule belongs to
+       index.html (fixed 100vh grid with overflow:hidden) and was clipping
+       every manager panel. This restores normal page scrolling here. */
+    .mgr-layout { display: flex; min-height: 100vh; height: auto; overflow: visible; }
   </style>
     <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -70,7 +74,7 @@
 </div>
 
 <!-- ══════════════════════════════════════════════════════════ -->
-<div id="appLayout" class="app-layout" style="display:none;">
+<div id="appLayout" class="app-layout mgr-layout" style="display:none;">
 
   <!-- ─── SIDEBAR OVERLAY (mobile backdrop) ────────────────── -->
   <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>

@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Command Center</title>
   <meta name="description" content="Restaurant Command Center — Kitchen Display System and Cashier Checkout Terminal with Receipt Printing.">
-  <link rel="stylesheet" href="style.css?v=105">
+  <link rel="stylesheet" href="style.css?v=106">
   <style>
     /* ═══ Walk-in POS redesign (theme-safe: CSS variables only) ═══ */
-    .pos-body { display:flex; flex-direction:row; gap:1.5rem; flex:1; min-height:0; overflow:hidden; padding:1.5rem; flex-wrap:wrap; }
+    .pos-body { display:flex; flex-direction:row; gap:1.5rem; flex:1; min-height:0; overflow:hidden; padding:1.5rem; flex-wrap:nowrap; }
     .pos-hero-title { font-size:1rem; font-weight:800; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.06em; margin:0.25rem 0 0.75rem; }
     .pos-hero-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:1rem; margin-bottom:1.25rem; }
     .pos-cat-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(130px, 1fr)); gap:0.75rem; margin-bottom:0.5rem; }
@@ -43,7 +43,7 @@
     .pos-disclosure[open] > summary::before { content:'▾ '; }
     .pos-tile-pop { animation:posPop .25s; }
     @keyframes posPop { 0%{transform:scale(.9)} 60%{transform:scale(1.05)} 100%{transform:scale(1)} }
-    @media (max-width: 720px) {
+    @media (max-width: 860px) {
       .pos-body { flex-direction:column; overflow-y:auto; }
       .pos-menu-pane, .pos-cart-pane { min-width:0 !important; max-width:none !important; flex:none !important; }
       .pos-menu-pane { min-height:50vh; }
