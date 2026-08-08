@@ -132,14 +132,15 @@ The cashier's whole world is **one screen**: the order dashboard. No menus to le
 
 A customer walks up: *"One meat pie and a Coke, please."*
 
-1. **Tap the big "+ Manual Order" button** (top of the screen, always visible).
-2. **Tap the food pictures.** A grid of large tiles appears — every dish with its emoji/picture and price. The cashier taps **Meat Pie** once, **Coke** once. Each tap adds the item to the order list at the side, with a satisfying press animation. Best sellers sit at the top with a 🔥 badge, so the most-tapped tiles are always nearest.
-   - Want two pies? Tap it twice — the counter shows "× 2".
-   - Wrong tap? Tap the little ✕ next to the item in the list. Gone.
-3. **Pick where the customer sits.** A simple dropdown: "Counter" (takeaway) or a table number.
-4. **Type the customer's name or phone** *(optional — only if they want loyalty points)*.
-5. **Check the total** — the screen adds everything up automatically. No math, ever.
-6. **Tap the big "Confirm Order" button.** Done.
+1. **Tap the big "+ Manual Order" button** (top of the screen, always visible). A full-screen POS opens.
+2. **The food they probably want is already at the top.** The first section, **"🔥 Most Ordered"**, shows big picture tiles of the restaurant's best sellers — computed from real order history. The cashier taps **Meat Pie** once, **Coke** once. Each tap adds the item to the order panel on the right, with a satisfying pop animation.
+   - Everything else lives **compiled below**, grouped under tappable category headers (🍽️ Foods, 🥘 Swallows, 🥐 Pastries, 🥤 Drinks) — tap a header to open or close it. Or just type in the search box.
+   - Want two pies? Tap the tile twice — a gold badge on the tile shows "2". Or use the big **− / +** buttons next to the item in the order panel.
+   - Sold-out dishes are greyed out and can't be tapped at all.
+3. **Pick where the customer sits.** A simple dropdown: "Counter" (takeaway) or a table number. That's the only question always asked.
+4. **Customer name or phone? Optional.** It hides behind a "👤 Customer details & options" line — tap it open only when the customer wants loyalty points. The cashier never has to type on a busy day.
+5. **Check the big total** — the screen adds everything up automatically. No math, ever.
+6. **Tap the giant "✅ Confirm Order · ₦X,XXX" button.** Done. (It stays greyed out until at least one item is in the order — impossible to send an empty order.)
    - *What happens:* the order flies into the system, appears instantly on every screen as a new **yellow card**, plays a **ding** for the kitchen, and quietly reserves the ingredients from inventory.
 
 ### 4C. When a Phone Order Arrives

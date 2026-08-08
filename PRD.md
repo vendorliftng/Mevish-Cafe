@@ -206,8 +206,8 @@ Each card shows: items, customer, table/location, elapsed time, status color, an
 - AC: status transitions write `preparedAt`/`readyAt`/`servedAt` timestamps automatically; a card's button label always matches §6 of USER-JOURNEY.md.
 
 **FR-2.4 Walk-in POS (manual order).**
-Full-screen modal: tap-to-add menu tiles (frequency-sorted, 🔥 top-sellers), qty counters, remove, table/location dropdown, optional customer name/phone, live total, confirm.
-- AC: complete order in ≤ 6 taps + optional name; total computed automatically; order type `Counter` or `Dine-In`.
+Full-screen POS: a **"🔥 Most Ordered" hero section** (top 8 items by real order history, large emoji tiles), everything else **compiled into collapsible category sections**; search flattens results. Cart with big **− / +** qty steppers (min 44px), qty badges on tiles, optional customer-details disclosure (name/phone/backdate), table/location dropdown, live total, and a single giant **Confirm Order · ₦total** button that stays disabled until the cart is non-empty. Sold-out tiles are greyed and untappable.
+- AC: complete order in ≤ 6 taps + optional name; total computed automatically; order type `Counter` or `Dine-In`; popularity computed from Firestore order history (`parsedItems` preferred, legacy string fallback).
 
 **FR-2.5 Prep timers.**
 Per-card quick timers (5/10/15/30 min from `CONFIG.PREP_TIMERS`), red under 60s, green "Time is up!" at 0.

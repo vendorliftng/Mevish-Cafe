@@ -6,6 +6,49 @@
   <title>Command Center</title>
   <meta name="description" content="Restaurant Command Center — Kitchen Display System and Cashier Checkout Terminal with Receipt Printing.">
   <link rel="stylesheet" href="style.css">
+  <style>
+    /* ═══ Walk-in POS redesign (theme-safe: CSS variables only) ═══ */
+    .pos-body { display:flex; flex-direction:row; gap:1.5rem; flex:1; overflow:hidden; padding:1.5rem; flex-wrap:wrap; }
+    .pos-hero-title { font-size:1rem; font-weight:800; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.06em; margin:0.25rem 0 0.75rem; }
+    .pos-hero-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:1rem; margin-bottom:1.25rem; }
+    .pos-cat-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(130px, 1fr)); gap:0.75rem; margin-bottom:0.5rem; }
+    .pos-tile { background:var(--bg-surface); border:1px solid var(--border-light); border-radius:var(--r-lg); padding:1.1rem 0.75rem; text-align:center; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.35rem; min-height:140px; position:relative; box-shadow:var(--shadow-sm); transition:transform .15s, box-shadow .15s, border-color .15s; user-select:none; -webkit-user-select:none; }
+    .pos-tile:hover { transform:translateY(-3px); box-shadow:var(--shadow-md); border-color:var(--border-accent); }
+    .pos-tile:active { transform:scale(.95); }
+    .pos-tile-sm { min-height:112px; padding:0.85rem 0.6rem; }
+    .pos-tile-emoji { font-size:2.2rem; line-height:1; }
+    .pos-tile-sm .pos-tile-emoji { font-size:1.6rem; }
+    .pos-tile-name { font-size:0.95rem; font-weight:700; color:var(--text-primary); line-height:1.2; }
+    .pos-tile-price { font-size:0.95rem; font-weight:800; color:var(--gold); }
+    .pos-tile-soldout { opacity:.45; pointer-events:none; filter:grayscale(.6); }
+    .pos-qty-badge { position:absolute; top:-8px; left:-8px; background:var(--gold); color:var(--bg-card); font-weight:900; font-size:0.85rem; min-width:26px; height:26px; border-radius:999px; display:flex; align-items:center; justify-content:center; padding:0 6px; box-shadow:var(--shadow-md); }
+    .pos-hot-badge { position:absolute; top:0; right:0; background:var(--danger); color:#fff; font-size:0.62rem; font-weight:800; padding:0.2rem 0.55rem; border-bottom-left-radius:var(--r-sm); text-transform:uppercase; letter-spacing:0.05em; }
+    .pos-cat-header { width:100%; display:flex; align-items:center; justify-content:space-between; background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--r-md); padding:0.8rem 1rem; margin:0.5rem 0; cursor:pointer; font-weight:800; color:var(--text-primary); font-size:1rem; }
+    .pos-cat-header:active { transform:scale(.99); }
+    .pos-cart-line { display:flex; align-items:center; gap:0.6rem; background:var(--bg-card); border:1px solid var(--border); border-radius:var(--r-md); padding:0.5rem 0.6rem; margin-bottom:0.5rem; }
+    .pos-cart-name { flex:1; font-size:0.9rem; font-weight:600; color:var(--text-primary); line-height:1.2; }
+    .pos-cart-price { font-size:0.8rem; color:var(--text-muted); font-weight:500; }
+    .pos-stepper { display:flex; align-items:center; gap:0.35rem; }
+    .pos-step-btn { width:44px; height:44px; border-radius:var(--r-md); border:1px solid var(--border-light); background:var(--bg-surface); color:var(--text-primary); font-size:1.35rem; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1; transition:transform .1s; }
+    .pos-step-btn:active { transform:scale(.9); }
+    .pos-step-btn.minus { color:var(--danger); }
+    .pos-step-btn.plus { color:var(--success); }
+    .pos-step-qty { min-width:28px; text-align:center; font-weight:900; font-size:1.05rem; color:var(--text-primary); }
+    .pos-confirm { width:100%; background:linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%); color:#fff; font-size:1.3rem; padding:1.15rem; font-weight:900; border:none; border-radius:var(--r-lg); box-shadow:var(--shadow-gold); cursor:pointer; transition:transform .15s, opacity .15s; }
+    .pos-confirm:active { transform:scale(.97); }
+    .pos-confirm:disabled { opacity:.45; cursor:not-allowed; box-shadow:none; }
+    .pos-disclosure { margin-bottom:0.9rem; }
+    .pos-disclosure > summary { cursor:pointer; font-weight:700; color:var(--text-secondary); font-size:0.9rem; padding:0.4rem 0; list-style:none; }
+    .pos-disclosure > summary::before { content:'▸ '; }
+    .pos-disclosure[open] > summary::before { content:'▾ '; }
+    .pos-tile-pop { animation:posPop .25s; }
+    @keyframes posPop { 0%{transform:scale(.9)} 60%{transform:scale(1.05)} 100%{transform:scale(1)} }
+    @media (max-width: 720px) {
+      .pos-body { flex-direction:column; overflow-y:auto; }
+      .pos-menu-pane, .pos-cart-pane { min-width:0 !important; max-width:none !important; flex:none !important; }
+      .pos-menu-pane { min-height:50vh; }
+    }
+  </style>
     <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -195,11 +238,11 @@
         <h3 class="modal-title" style="font-size:1.5rem; margin:0;">📋 Walk-in POS</h3>
         <button class="modal-close" onclick="closeManualOrderModal()" aria-label="Close" style="font-size:2rem;">&times;</button>
       </div>
-      <div class="modal-body" style="display:flex; flex-direction:row; gap:1.5rem; flex:1; overflow:hidden; padding:1.5rem; flex-wrap:wrap;">
-        
+      <div class="modal-body pos-body">
+
         <!-- Left Side: Menu Grid -->
-        <div style="flex:2; display:flex; flex-direction:column; background:var(--bg-card); border-radius:var(--r-xl); padding:var(--sp-md); overflow:hidden; min-width:320px; box-shadow:var(--shadow-md); border:1px solid var(--border);">
-          
+        <div class="pos-menu-pane" style="flex:2; display:flex; flex-direction:column; background:var(--bg-card); border-radius:var(--r-xl); padding:var(--sp-md); overflow:hidden; min-width:320px; box-shadow:var(--shadow-md); border:1px solid var(--border);">
+
           <!-- Search & Filters -->
           <div style="margin-bottom:var(--sp-md);">
             <div style="position:relative; margin-bottom:var(--sp-sm);">
@@ -211,14 +254,15 @@
             </div>
           </div>
 
-          <!-- Menu Grid -->
-          <div id="mo_menuList" style="flex:1; overflow-y:auto; display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:1rem; padding-right:0.5rem; align-content:start;">
-            <!-- Menu items rendered here by JS -->
+          <!-- Menu: Most Ordered hero + compiled category sections -->
+          <div id="mo_menuScroll" style="flex:1; overflow-y:auto; padding-right:0.5rem;">
+            <div id="mo_hero"></div>
+            <div id="mo_sections"></div>
           </div>
         </div>
 
         <!-- Right Side: Cart & Checkout -->
-        <div style="flex:1; display:flex; flex-direction:column; background:var(--bg-surface); border-radius:var(--r-xl); padding:var(--sp-lg); border:1px solid var(--border); min-width:340px; max-width:440px; box-shadow:var(--shadow-md); position:relative; overflow-y:auto;">
+        <div class="pos-cart-pane" style="flex:1; display:flex; flex-direction:column; background:var(--bg-surface); border-radius:var(--r-xl); padding:var(--sp-lg); border:1px solid var(--border); min-width:340px; max-width:440px; box-shadow:var(--shadow-md); position:relative; overflow-y:auto;">
           
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; border-bottom:1px solid var(--border); padding-bottom:0.75rem;">
             <h4 style="font-size:1.1rem; font-weight:800; color:var(--text-primary); margin:0;">Current Order</h4>
@@ -233,39 +277,41 @@
           <!-- Checkout Section -->
           <div style="background:var(--bg-card); padding:1.25rem; border-radius:var(--r-lg); border:1px solid var(--border-light); box-shadow:var(--shadow-sm); position:relative; overflow:hidden;">
             <div style="position:absolute; top:-50%; left:-50%; width:200%; height:200%; background:radial-gradient(circle, var(--glass-bg) 0%, transparent 70%); pointer-events:none;"></div>
-            
-            <div class="form-group" style="margin-bottom:0.75rem;">
-               <input id="mo_name" class="form-control" placeholder="Customer Name (Walk-in)" style="background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--r-md);" />
-            </div>
-            <div class="form-group" style="margin-bottom:0.75rem;">
-               <input id="mo_phone" class="form-control" placeholder="Customer Phone" style="background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--r-md);" />
-            </div>
-            
 
-            <div class="form-group" style="margin-bottom:1rem;">
-               <select id="mo_location" class="form-control" style="background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--r-md);"></select>
-            </div>
-            
-            <div style="display:flex; align-items:center; justify-content:space-between; margin:1.25rem 0; padding-top:1rem; border-top:1px dashed var(--border-light);">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; position:relative;">
               <span style="font-size:1.1rem; font-weight:600; color:var(--text-secondary);">Total</span>
-              <input id="mo_total" class="form-control" type="text" readonly style="width:160px; text-align:right; font-weight:900; font-size:1.6rem; background:transparent; border:none; color:var(--gold); padding:0; line-height:1;" />
+              <span id="mo_total_display" style="font-weight:900; font-size:1.7rem; color:var(--gold); line-height:1;">—</span>
             </div>
-            
+
+            <div class="form-group" style="margin-bottom:0.9rem; position:relative;">
+               <select id="mo_location" class="form-control" style="min-height:48px; background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--r-md);"></select>
+            </div>
+
+            <details class="pos-disclosure" id="mo_details" style="position:relative;">
+              <summary>👤 Customer details &amp; options (optional)</summary>
+              <div class="form-group" style="margin-top:0.6rem; margin-bottom:0.6rem;">
+                 <input id="mo_name" class="form-control" placeholder="Customer name (default: Walk-in)" style="min-height:48px; background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--r-md);" />
+              </div>
+              <div class="form-group" style="margin-bottom:0.6rem;">
+                 <input id="mo_phone" class="form-control" placeholder="Customer phone (for loyalty points)" style="min-height:48px; background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--r-md);" />
+              </div>
+              <div style="display:flex; align-items:center; gap:0.5rem; font-size:0.9rem; flex-wrap:wrap;">
+                <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; font-weight:600; color:var(--text-secondary);">
+                  <input type="checkbox" id="mo_backdate_toggle" onchange="toggleBackdate()" style="width:18px; height:18px; accent-color:var(--gold);" />
+                  Backdate this order
+                </label>
+                <span id="mo_backdate_fields" style="display:none; gap:0.5rem; flex:1;">
+                  <input id="mo_date" class="form-control" type="date" style="padding:0.4rem; font-size:0.85rem; border-radius:var(--r-sm); background:var(--bg-surface); border:1px solid var(--border);" />
+                  <input id="mo_time" class="form-control" type="time" style="padding:0.4rem; font-size:0.85rem; border-radius:var(--r-sm); background:var(--bg-surface); border:1px solid var(--border);" />
+                </span>
+              </div>
+            </details>
+
             <input type="hidden" id="mo_items" />
-            
-            <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:1.25rem; font-size:0.9rem;">
-              <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; font-weight:600; color:var(--text-secondary); transition:color var(--ease);" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-secondary)'">
-                <input type="checkbox" id="mo_backdate_toggle" onchange="toggleBackdate()" style="width:16px; height:16px; accent-color:var(--gold);" />
-                Backdate Order
-              </label>
-              <span id="mo_backdate_fields" style="display:none; gap:0.5rem; flex:1;">
-                <input id="mo_date" class="form-control" type="date" style="padding:0.4rem; font-size:0.85rem; border-radius:var(--r-sm); background:var(--bg-surface); border:1px solid var(--border);" />
-                <input id="mo_time" class="form-control" type="time" style="padding:0.4rem; font-size:0.85rem; border-radius:var(--r-sm); background:var(--bg-surface); border:1px solid var(--border);" />
-              </span>
-            </div>
-            
-            <button class="btn btn-full" onclick="submitManualOrder()" style="background:linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%); color:#fff; font-size:1.25rem; padding:1.1rem; font-weight:800; border-radius:var(--r-lg); box-shadow:var(--shadow-gold); text-shadow:0 1px 2px rgba(0,0,0,0.2); position:relative; overflow:hidden; transition:transform 0.2s, box-shadow 0.2s;" onmousedown="this.style.transform='scale(0.97)'" onmouseup="this.style.transform='scale(1)'">
-              Place Order
+            <input type="hidden" id="mo_total" />
+
+            <button class="pos-confirm" id="mo_confirm_btn" onclick="submitManualOrder()" disabled style="position:relative;">
+              Confirm Order
             </button>
           </div>
         </div>
@@ -1090,7 +1136,11 @@ function setRefreshing(yes) {
     
     document.getElementById('mo_backdate_toggle').checked = false;
     document.getElementById('mo_backdate_fields').style.display = 'none';
-    
+    var moDetails = document.getElementById('mo_details');
+    if (moDetails) moDetails.open = false;
+    var moTotalDisplay = document.getElementById('mo_total_display');
+    if (moTotalDisplay) moTotalDisplay.textContent = CONFIG.formatCurrency(0);
+
     document.getElementById('manualOrderModal').classList.add('open');
     loadManualMenu();
   }
@@ -1104,17 +1154,57 @@ function setRefreshing(yes) {
   let manualOrderCart = [];
   let itemFrequencies = {};
   let manualOrderCategory = 'All';
+  let popularityLoaded = false;
+  let collapsedCats = {};
 
-  function calculateFrequencies() {
+  // Count how often each menu item was ordered, using real order history
+  // (parsedItems when available, legacy cartItems string as fallback).
+  function calculateFrequencies(orders) {
     itemFrequencies = {};
-    allOrders.forEach(o => {
-      if (!o.items) return;
-      manualOrderMenu.forEach(m => {
-        if (o.items.includes(m.name)) {
-          itemFrequencies[m.name] = (itemFrequencies[m.name] || 0) + 1;
-        }
-      });
+    (orders || allOrders || []).forEach(o => {
+      if (o.parsedItems && Array.isArray(o.parsedItems)) {
+        o.parsedItems.forEach(p => {
+          if (p && p.name) itemFrequencies[p.name] = (itemFrequencies[p.name] || 0) + (p.qty || 1);
+        });
+      } else {
+        const str = o.cartItems || o.items || '';
+        if (!str) return;
+        manualOrderMenu.forEach(m => {
+          if (str.includes(m.name)) itemFrequencies[m.name] = (itemFrequencies[m.name] || 0) + 1;
+        });
+      }
     });
+  }
+
+  // Fetch recent orders once per session so the "Most Ordered" tiles are real.
+  async function ensurePopularity() {
+    if (popularityLoaded) return;
+    popularityLoaded = true;
+    try {
+      const res = await CONFIG.apiGet('orders');
+      const orders = (res && res.status === 'success' && Array.isArray(res.data)) ? res.data : [];
+      calculateFrequencies(orders.length ? orders : allOrders);
+    } catch (e) {
+      calculateFrequencies(allOrders);
+    }
+  }
+
+  function isSoldOut(m) { return m.available === false || m.available === 'No'; }
+  function cartQtyOf(id) { const c = manualOrderCart.find(x => x.id === id); return c ? c.qty : 0; }
+
+  function tileHtml(m, small) {
+    const soldOut = isSoldOut(m);
+    const qty = cartQtyOf(m.id);
+    const hot = (itemFrequencies[m.name] || 0) >= 3;
+    return `
+    <div class="pos-tile ${small ? 'pos-tile-sm' : ''} ${soldOut ? 'pos-tile-soldout' : ''}" onclick="addToManualCart(${m.id}, this)">
+      ${qty ? `<div class="pos-qty-badge">${qty}</div>` : ''}
+      ${hot && !small ? `<div class="pos-hot-badge">🔥 Top</div>` : ''}
+      <div class="pos-tile-emoji">${m.emoji || '🍽️'}</div>
+      <div class="pos-tile-name">${escHtml(m.name)}</div>
+      <div class="pos-tile-price">${CONFIG.formatCurrency(m.price)}</div>
+      ${soldOut ? `<div style="font-size:0.7rem;font-weight:800;color:var(--danger);">SOLD OUT</div>` : ''}
+    </div>`;
   }
 
   function renderCategoryPills() {
@@ -1129,120 +1219,144 @@ function setRefreshing(yes) {
   function setManualCategory(cat) {
     manualOrderCategory = cat;
     renderCategoryPills();
-    filterManualMenu();
+    renderPOS();
+  }
+
+  function togglePosCat(cat) {
+    collapsedCats[cat] = !collapsedCats[cat];
+    renderPOS();
   }
 
   async function loadManualMenu() {
-    if (manualOrderMenu.length > 0) { 
-      calculateFrequencies();
+    if (manualOrderMenu.length > 0) {
+      await ensurePopularity();
       renderCategoryPills();
-      filterManualMenu(); 
-      return; 
+      renderPOS();
+      return;
     }
     try {
       const res = await CONFIG.apiGet('menu');
       if (res && res.status === 'success' && res.data) {
         manualOrderMenu = res.data;
-        calculateFrequencies();
+        await ensurePopularity();
         renderCategoryPills();
-        filterManualMenu();
+        renderPOS();
       }
     } catch (e) {
       console.error('Failed to load manual menu', e);
     }
   }
 
-  function filterManualMenu() {
-    const q = document.getElementById('mo_search').value.toLowerCase();
-    const filtered = manualOrderMenu.filter(m => {
-      const matchCat = manualOrderCategory === 'All' || m.category === manualOrderCategory;
-      const matchSearch = m.name.toLowerCase().includes(q) || (m.category||'').toLowerCase().includes(q);
-      return matchCat && matchSearch;
-    });
-    sortAndRenderManualMenu(filtered);
-  }
+  function filterManualMenu() { renderPOS(); }
 
-  function sortAndRenderManualMenu(list) {
-    const sorted = list.slice().sort((a, b) => {
-      const freqA = itemFrequencies[a.name] || 0;
-      const freqB = itemFrequencies[b.name] || 0;
-      if (freqB !== freqA) return freqB - freqA;
-      return a.name.localeCompare(b.name);
-    });
-    renderManualMenu(sorted);
-  }
+  function renderPOS() {
+    const hero = document.getElementById('mo_hero');
+    const sections = document.getElementById('mo_sections');
+    if (!hero || !sections) return;
+    const q = (document.getElementById('mo_search').value || '').toLowerCase().trim();
 
-  function renderManualMenu(list) {
-    const container = document.getElementById('mo_menuList');
-    if (!list.length) { 
-      container.style.display = 'block';
-      container.innerHTML = '<div style="padding:3rem;text-align:center;color:var(--text-muted);font-size:1.1rem;font-weight:500;">No items found matching your criteria.</div>'; 
-      return; 
+    // Searching → flat, frequency-sorted results
+    if (q) {
+      hero.innerHTML = '';
+      const results = manualOrderMenu
+        .filter(m => m.name.toLowerCase().includes(q) || (m.category || '').toLowerCase().includes(q))
+        .sort((a, b) => (itemFrequencies[b.name] || 0) - (itemFrequencies[a.name] || 0));
+      sections.innerHTML = results.length
+        ? `<div class="pos-cat-grid">${results.map(m => tileHtml(m, true)).join('')}</div>`
+        : '<div style="padding:3rem;text-align:center;color:var(--text-muted);font-size:1.1rem;font-weight:500;">No items found. Try another search.</div>';
+      return;
     }
-    
-    container.style.display = 'grid';
-    container.innerHTML = list.map(m => {
-      const isTopSeller = itemFrequencies[m.name] >= 3;
-      return `
-      <div style="background:var(--bg-surface); border:1px solid var(--glass-border); border-radius:var(--r-lg); padding:1.25rem 0.75rem; text-align:center; cursor:pointer; display:flex; flex-direction:column; justify-content:center; min-height:120px; box-shadow:var(--shadow-sm); transition:all var(--ease); position:relative; overflow:hidden;" 
-           onclick="addToManualCart(${m.id})" 
-           onmousedown="this.style.transform='scale(0.94)'" 
-           onmouseup="this.style.transform='scale(1)'" 
-           onmouseleave="this.style.transform='scale(1)'" 
-           onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='var(--shadow-md)';this.style.borderColor='var(--border-light)'" 
-           onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='var(--shadow-sm)';this.style.borderColor='var(--glass-border)'">
-        
-        ${isTopSeller ? `<div style="position:absolute; top:0; right:0; background:var(--danger); color:#fff; font-size:0.65rem; font-weight:800; padding:0.25rem 0.6rem; border-bottom-left-radius:var(--r-sm); text-transform:uppercase; letter-spacing:0.05em; box-shadow:var(--shadow-danger);">🔥 Top</div>` : ''}
-        
-        <div style="font-size:1.05rem; font-weight:700; margin-bottom:0.5rem; line-height:1.2; color:var(--text-primary);">${escHtml(m.name)}</div>
-        <div style="font-size:1rem; color:var(--gold); font-weight:800;">${CONFIG.formatCurrency(m.price)}</div>
-      </div>
-      `;
-    }).join('');
+
+    // Hero: top 8 most-ordered items
+    const top = manualOrderMenu
+      .filter(m => (itemFrequencies[m.name] || 0) > 0)
+      .sort((a, b) => (itemFrequencies[b.name] || 0) - (itemFrequencies[a.name] || 0))
+      .slice(0, 8);
+    hero.innerHTML = (manualOrderCategory === 'All' && top.length) ? `
+      <div class="pos-hero-title">🔥 Most Ordered — tap to add</div>
+      <div class="pos-hero-grid">${top.map(m => tileHtml(m, false)).join('')}</div>` : '';
+
+    // Compiled sections: everything grouped under collapsible category headers
+    const cats = CONFIG.CATEGORIES.filter(c => c !== 'All');
+    const catsToShow = manualOrderCategory === 'All' ? cats : [manualOrderCategory];
+    const byFreqThenName = (a, b) => (itemFrequencies[b.name] || 0) - (itemFrequencies[a.name] || 0) || a.name.localeCompare(b.name);
+    let html = '';
+    catsToShow.forEach(cat => {
+      const items = manualOrderMenu.filter(m => m.category === cat).sort(byFreqThenName);
+      if (!items.length) return;
+      const collapsed = !!collapsedCats[cat];
+      const icon = (CONFIG.CATEGORY_ICONS && CONFIG.CATEGORY_ICONS[cat]) || '🍴';
+      html += `<button class="pos-cat-header" onclick="togglePosCat('${escAttr(cat)}')"><span>${icon} ${escHtml(cat)} <span style="color:var(--text-muted);font-weight:600;">(${items.length})</span></span><span>${collapsed ? '▸' : '▾'}</span></button>`;
+      if (!collapsed) html += `<div class="pos-cat-grid">${items.map(m => tileHtml(m, true)).join('')}</div>`;
+    });
+    // Items whose category is not in CONFIG.CATEGORIES
+    const others = manualOrderMenu.filter(m => !cats.includes(m.category)).sort(byFreqThenName);
+    if (manualOrderCategory === 'All' && others.length) {
+      const collapsed = !!collapsedCats.__other;
+      html += `<button class="pos-cat-header" onclick="togglePosCat('__other')"><span>🍴 Other <span style="color:var(--text-muted);font-weight:600;">(${others.length})</span></span><span>${collapsed ? '▸' : '▾'}</span></button>`;
+      if (!collapsed) html += `<div class="pos-cat-grid">${others.map(m => tileHtml(m, true)).join('')}</div>`;
+    }
+    sections.innerHTML = html || '<div style="padding:3rem;text-align:center;color:var(--text-muted);font-size:1.1rem;font-weight:500;">No items in this category yet.</div>';
   }
 
-  function addToManualCart(id) {
+  function addToManualCart(id, el) {
     const item = manualOrderMenu.find(m => m.id === id);
-    if (!item) return;
+    if (!item || isSoldOut(item)) return;
     const existing = manualOrderCart.find(c => c.id === id);
     if (existing) existing.qty++;
     else manualOrderCart.push({ ...item, qty: 1 });
+    if (el) { el.classList.remove('pos-tile-pop'); void el.offsetWidth; el.classList.add('pos-tile-pop'); }
     updateManualCartUI();
+    renderPOS();
   }
 
-  function removeFromManualCart(id) {
-    manualOrderCart = manualOrderCart.filter(c => c.id !== id);
+  function changeQty(id, delta) {
+    const line = manualOrderCart.find(c => c.id === id);
+    if (!line) return;
+    line.qty += delta;
+    if (line.qty <= 0) manualOrderCart = manualOrderCart.filter(c => c.id !== id);
     updateManualCartUI();
+    renderPOS();
   }
 
   function updateManualCartUI() {
     const container = document.getElementById('mo_cart');
     const itemsInput = document.getElementById('mo_items');
     const totalInput = document.getElementById('mo_total');
-    
-    if (manualOrderCart.length === 0) {
-      container.innerHTML = '<div style="color:var(--c-text-light);font-size:0.82rem;text-align:center;padding:0.5rem;">Click items above to add them</div>';
-      if(itemsInput) itemsInput.value = '';
-      if(totalInput) totalInput.value = '';
-      return;
-    }
-    
-    let total = 0;
-    container.innerHTML = manualOrderCart.map(c => {
-      total += c.price * c.qty;
-      return `
-      <div style="display:flex;justify-content:space-between;font-size:0.85rem;margin-bottom:0.25rem;">
-        <div>${c.qty}x ${escHtml(c.name)}</div>
-        <div>
-          ${CONFIG.formatCurrency(c.price * c.qty)}
-          <span style="color:var(--c-danger);cursor:pointer;margin-left:0.5rem;" onclick="removeFromManualCart(${c.id})">&times;</span>
+    const totalDisplay = document.getElementById('mo_total_display');
+    const confirmBtn = document.getElementById('mo_confirm_btn');
+    const countBadge = document.getElementById('mo_cart_count');
+
+    let total = 0, count = 0;
+    manualOrderCart.forEach(c => { total += c.price * c.qty; count += c.qty; });
+
+    if (!manualOrderCart.length) {
+      container.innerHTML = '<div style="color:var(--text-muted);font-size:0.95rem;text-align:center;padding:1.5rem 0.5rem;">🛒 Tap food tiles to build the order</div>';
+    } else {
+      container.innerHTML = manualOrderCart.map(c => `
+      <div class="pos-cart-line">
+        <div style="font-size:1.3rem;">${c.emoji || '🍽️'}</div>
+        <div class="pos-cart-name">${escHtml(c.name)}<div class="pos-cart-price">${CONFIG.formatCurrency(c.price)} each</div></div>
+        <div class="pos-stepper">
+          <button class="pos-step-btn minus" onclick="changeQty(${c.id}, -1)">−</button>
+          <span class="pos-step-qty">${c.qty}</span>
+          <button class="pos-step-btn plus" onclick="changeQty(${c.id}, 1)">+</button>
         </div>
+        <div style="min-width:70px;text-align:right;font-weight:800;color:var(--gold);">${CONFIG.formatCurrency(c.price * c.qty)}</div>
       </div>
-      `;
-    }).join('');
-    
-    if (totalInput) totalInput.value = total;
+      `).join('');
+    }
+
+    if (countBadge) countBadge.textContent = count + (count === 1 ? ' item' : ' items');
     if (itemsInput) itemsInput.value = manualOrderCart.map(c => `${c.qty}x ${c.name}`).join(' | ');
+    if (totalInput) totalInput.value = total;
+    if (totalDisplay) totalDisplay.textContent = CONFIG.formatCurrency(total);
+    if (confirmBtn) {
+      confirmBtn.disabled = manualOrderCart.length === 0;
+      confirmBtn.textContent = manualOrderCart.length
+        ? `✅ Confirm Order · ${CONFIG.formatCurrency(total)}`
+        : 'Confirm Order';
+    }
   }
 
   function closeManualOrderModal() {

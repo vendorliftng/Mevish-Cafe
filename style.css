@@ -235,7 +235,7 @@ h6 { font-size: var(--fs-base); }
    ============================================================ */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: var(--sp-xs);
-  padding: 10px 20px; border-radius: var(--r-sm);
+  padding: 12px 22px; border-radius: var(--r-sm); min-height: 44px;
   font-size: var(--fs-sm); font-weight: 600; border: none; cursor: pointer;
   transition: all var(--ease); text-decoration: none; white-space: nowrap;
   position: relative; overflow: hidden; font-family: var(--font);
@@ -435,7 +435,7 @@ h6 { font-size: var(--fs-base); }
 
 .form-control {
   background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-sm);
-  color: var(--text-primary); font-size: var(--fs-sm); padding: 10px 14px; outline: none; width: 100%;
+  color: var(--text-primary); font-size: var(--fs-base); padding: 12px 16px; outline: none; width: 100%;
   transition: border-color var(--ease), box-shadow var(--ease);
 }
 .form-control:focus { border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-dim); }
@@ -512,7 +512,7 @@ select.form-control { cursor: pointer; }
 table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
 thead { background: var(--bg-surface); }
 th { padding: var(--sp-sm) var(--sp-md); text-align: left; font-size: var(--fs-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; border-bottom: 1px solid var(--border); }
-td { padding: var(--sp-sm) var(--sp-md); color: var(--text-secondary); border-bottom: 1px solid var(--border); vertical-align: middle; }
+td { padding: 12px var(--sp-md); color: var(--text-secondary); border-bottom: 1px solid var(--border); vertical-align: middle; }
 tr:last-child td { border-bottom: none; }
 tbody tr { transition: background var(--ease); }
 tbody tr:hover { background: var(--glass-bg); }

@@ -541,6 +541,16 @@ const CONFIG = {
           CONFIG.writeAudit('EXPENSE_ADDED', '', (payload.category || '') + ': ' + (payload.amount || 0), payload.recordedBy || payload.cashier || 'Manager');
           return { status: 'success', data: payload };
         }
+        if (action === 'updateExpense') {
+          await db.collection('expenses').doc(String(payload.id)).update(payload);
+          CONFIG.writeAudit('EXPENSE_UPDATED', '', (payload.category || '') + ': ' + (payload.amount || 0), payload.recordedBy || payload.cashier || 'Manager');
+          return { status: 'success', data: payload };
+        }
+        if (action === 'deleteExpense') {
+          await db.collection('expenses').doc(String(payload.id)).delete();
+          CONFIG.writeAudit('EXPENSE_DELETED', '', 'ID ' + payload.id, payload.cashier || 'Manager');
+          return { status: 'success' };
+        }
         if (action === 'addInventoryItem') {
           await db.collection('inventory').doc(String(payload.id)).set(payload);
           CONFIG.writeAudit('INVENTORY_ITEM_ADDED', '', payload.name || '', payload.cashier || 'Manager');

@@ -6,6 +6,23 @@
   <title>Manager Panel</title>
   <meta name="description" content="Admin control panel for the restaurant management system." />
   <link rel="stylesheet" href="style.css" />
+  <style>
+    /* Child-friendly form styling: big touch targets, plain hints */
+    #modalBody .form-grid input,
+    #modalBody .form-grid select,
+    #modalBody .form-grid textarea { min-height: 48px; font-size: 1rem; }
+    #modalBody .form-grid label { font-weight: 600; }
+    .mgr-req { color: var(--c-danger); font-weight: 700; }
+    .mgr-hint { color: var(--c-danger); font-size: 0.85rem; margin-top: 0.6rem; min-height: 1.2em; }
+    .emoji-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
+    .emoji-cell {
+      min-height: 48px; font-size: 1.4rem; line-height: 1;
+      background: var(--c-bg-card); border: 2px solid var(--c-border);
+      border-radius: 10px; cursor: pointer;
+    }
+    .emoji-cell.selected { border-color: var(--c-primary); background: var(--c-bg); box-shadow: 0 0 0 2px var(--c-primary); }
+    .modal-actions .btn { min-height: 48px; }
+  </style>
     <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -657,6 +674,27 @@ document.getElementById('modalOverlay').addEventListener('click', (e) => {
   if (e.target === e.currentTarget) closeModal();
 });
 
+// Escape user text before inserting into HTML
+function escHtml(s) {
+  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// Styled confirm dialog (replaces native confirm): big Cancel + red Confirm
+function confirmAction(message, onConfirm) {
+  const body = `<p style="font-size:1.05rem;line-height:1.6;color:var(--c-text);margin:0;">${message}</p>`;
+  const actions = `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-danger" id="confirmActionBtn">Confirm</button>`;
+  openModal('Are you sure?', body, actions);
+  document.getElementById('confirmActionBtn').onclick = function() { closeModal(); onConfirm(); };
+}
+
+// Toggle a form's Save button + inline hint based on validity
+function setFormState(btnId, hintId, valid, hintText) {
+  const btn = document.getElementById(btnId);
+  const hint = document.getElementById(hintId);
+  if (btn) btn.disabled = !valid;
+  if (hint) hint.textContent = valid ? '' : hintText;
+}
+
 /* ═══════════════════════════════════════════════════════════
    ANALYTICS
    ═══════════════════════════════════════════════════════════ */
@@ -1070,7 +1108,7 @@ function getBadgeClass(s) {
    ═══════════════════════════════════════════════════════════ */
 function renderMenuTable() {
   const wrap = document.getElementById('menuTableWrap');
-  if (menuData.length === 0) { wrap.innerHTML = '<div class="empty-state"><div class="empty-title">No menu items</div></div>'; return; }
+  if (menuData.length === 0) { wrap.innerHTML = '<div class="empty-state"><div class="empty-title">No menu items yet</div><div class="empty-text">Tap + Add Item to add your first dish.</div></div>'; return; }
   const fmt = (v) => CONFIG.formatCurrency(v);
   let rows = '';
   menuData.forEach(item => {
@@ -1085,7 +1123,7 @@ function renderMenuTable() {
 function openMenuModal(editId) {
   const item = editId ? menuData.find(m => String(m.id) === String(editId)) : null;
   const title = item ? 'Edit Menu Item' : 'Add Menu Item';
-  
+
   // Build inventory options
   let invOptions = '<option value="">None (No auto-deduction)</option>';
   if (typeof inventoryData !== 'undefined') {
@@ -1095,22 +1133,54 @@ function openMenuModal(editId) {
     });
   }
 
+  // Tap-to-select emoji picker (saved into the item's emoji field)
+  const MENU_EMOJIS = ['🍚','🍛','🍲','🍗','🍖','🥘','🍝','🍕','🍔','🌯','🥪','🥐','🍞','🧁','🍰','🍦','🥤','🧃','☕','🍵','🍺','🐟','🥗','🍟'];
+  const curEmoji = item ? (item.emoji || '') : '';
+  let emojiCells = '';
+  MENU_EMOJIS.forEach(e => {
+    emojiCells += `<button type="button" class="emoji-cell${curEmoji === e ? ' selected' : ''}" data-emoji="${e}" onclick="pickMenuEmoji('${e}')">${e}</button>`;
+  });
+
   const body = `
     <div class="form-grid">
-      <div class="form-group"><label>Name</label><input id="mf_name" value="${item?item.name:''}" /></div>
+      <div class="form-group"><label>Dish Name <span class="mgr-req">*</span></label><input id="mf_name" placeholder="e.g. Meat Pie" value="${item?item.name:''}" oninput="validateMenuForm()" /></div>
       <div class="form-group"><label>Category</label><select id="mf_category">${CONFIG.CATEGORIES.filter(c=>c!=='All').map(c=>`<option ${item&&item.category===c?'selected':''}>${c}</option>`).join('')}</select></div>
-      <div class="form-group"><label>Price (${CONFIG.CURRENCY})</label><input type="number" id="mf_price" value="${item?item.price:''}" /></div>
-      <div class="form-group"><label>Cost (${CONFIG.CURRENCY})</label><input type="number" id="mf_cost" value="${item?item.cost:''}" /></div>
-      <div class="form-group"><label>Prep Time (min)</label><input type="number" id="mf_prepTime" value="${item?item.prepTime:10}" /></div>
-      <div class="form-group"><label>Available</label><select id="mf_available"><option value="true" ${!item||item.available==='Yes'?'selected':''}>Yes</option><option value="false" ${item&&item.available==='No'?'selected':''}>No</option></select></div>
-      
-      <div class="form-group"><label>Linked Inventory (Recipe)</label><select id="mf_invId">${invOptions}</select></div>
-      <div class="form-group"><label>Deduction Qty (per order)</label><input type="number" id="mf_invQty" value="${item?item.deductionQty||0:0}" step="0.01" /></div>
-      
-      <div class="form-group form-full"><label>Description</label><textarea id="mf_desc">${item?item.description:''}</textarea></div>
-    </div>`;
-  const actions = `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveMenuItem(${editId||'null'})">${item?'Update':'Add'}</button>`;
+      <div class="form-group"><label>Price (${CONFIG.CURRENCY}) <span class="mgr-req">*</span></label><input type="number" id="mf_price" placeholder="e.g. 1500" value="${item?item.price:''}" oninput="validateMenuForm()" /></div>
+      <div class="form-group"><label>Cost (${CONFIG.CURRENCY})</label><input type="number" id="mf_cost" placeholder="e.g. 800" value="${item?item.cost:''}" /></div>
+      <div class="form-group"><label>Prep Time (minutes)</label><input type="number" id="mf_prepTime" placeholder="e.g. 10" value="${item?item.prepTime:10}" /></div>
+      <div class="form-group"><label>Available for ordering?</label><select id="mf_available"><option value="true" ${!item||item.available==='Yes'?'selected':''}>Yes</option><option value="false" ${item&&item.available==='No'?'selected':''}>No</option></select></div>
+
+      <div class="form-group"><label>Linked Inventory (auto stock deduction)</label><select id="mf_invId">${invOptions}</select></div>
+      <div class="form-group"><label>Stock to deduct per order</label><input type="number" id="mf_invQty" value="${item?item.deductionQty||0:0}" step="0.01" /></div>
+
+      <div class="form-group form-full"><label>Picture (tap to choose)</label>
+        <input type="hidden" id="mf_emoji" value="${curEmoji}" />
+        <div class="emoji-grid" id="mf_emojiGrid">${emojiCells}</div>
+      </div>
+
+      <div class="form-group form-full"><label>Description (shown to customers)</label><textarea id="mf_desc" placeholder="e.g. Flaky pastry filled with spicy minced meat">${item?item.description:''}</textarea></div>
+    </div>
+    <div class="mgr-hint" id="mf_hint"></div>`;
+  const actions = `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" id="mf_save" onclick="saveMenuItem(${editId||'null'})">${item?'Update':'Add'}</button>`;
   openModal(title, body, actions);
+  validateMenuForm();
+}
+
+function pickMenuEmoji(emoji) {
+  const inp = document.getElementById('mf_emoji');
+  if (inp) inp.value = emoji;
+  document.querySelectorAll('#mf_emojiGrid .emoji-cell').forEach(c => {
+    c.classList.toggle('selected', c.dataset.emoji === emoji);
+  });
+}
+
+function validateMenuForm() {
+  const nameEl = document.getElementById('mf_name');
+  const priceEl = document.getElementById('mf_price');
+  if (!nameEl || !priceEl) return;
+  const price = parseFloat(priceEl.value);
+  const ok = nameEl.value.trim().length > 0 && !isNaN(price) && price > 0;
+  setFormState('mf_save', 'mf_hint', ok, 'Name and price are required');
 }
 
 async function toggleMenuStatus(id) {
@@ -1145,6 +1215,7 @@ async function saveMenuItem(editId) {
     prepTime: document.getElementById('mf_prepTime').value,
     available: document.getElementById('mf_available').value === 'true',
     description: document.getElementById('mf_desc').value.trim(),
+    emoji: document.getElementById('mf_emoji') ? document.getElementById('mf_emoji').value : '',
     linkedInventoryId: document.getElementById('mf_invId') ? document.getElementById('mf_invId').value : '',
     deductionQty: document.getElementById('mf_invQty') ? (parseFloat(document.getElementById('mf_invQty').value) || 0) : 0,
     performedBy: 'Manager'
@@ -1164,10 +1235,11 @@ async function saveMenuItem(editId) {
 }
 
 async function deleteMenuItem(id, name) {
-  if (!confirm('Delete "' + name + '"? This cannot be undone.')) return;
-  const res = await CONFIG.apiPost('deleteMenuItem', { id: id, performedBy: 'Manager' });
-  if (res.status === 'success') { toast('Menu item deleted', 'success'); CONFIG.clearCache('menu'); await loadAllData(); renderMenuTable(); }
-  else toast(res.message || 'Failed to delete', 'error');
+  confirmAction('Delete "' + escHtml(name) + '"? This cannot be undone.', async function() {
+    const res = await CONFIG.apiPost('deleteMenuItem', { id: id, performedBy: 'Manager' });
+    if (res.status === 'success') { toast('Menu item deleted', 'success'); CONFIG.clearCache('menu'); await loadAllData(); renderMenuTable(); }
+    else toast(res.message || 'Failed to delete', 'error');
+  });
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -1175,7 +1247,7 @@ async function deleteMenuItem(id, name) {
    ═══════════════════════════════════════════════════════════ */
 function renderInventoryTable() {
   const wrap = document.getElementById('inventoryTableWrap');
-  if (inventoryData.length === 0) { wrap.innerHTML = '<div class="empty-state"><div class="empty-title">No inventory items</div></div>'; return; }
+  if (inventoryData.length === 0) { wrap.innerHTML = '<div class="empty-state"><div class="empty-title">No inventory items yet</div><div class="empty-text">Tap + Add Item to start tracking stock.</div></div>'; return; }
   let rows = '';
   inventoryData.forEach(item => {
     const s = parseFloat(item.currentStock) || 0;
@@ -1188,17 +1260,25 @@ function renderInventoryTable() {
 
 function openInventoryModal() {
   const body = `<div class="form-grid">
-    <div class="form-group"><label>Name</label><input id="invf_name" /></div>
+    <div class="form-group"><label>Item Name <span class="mgr-req">*</span></label><input id="invf_name" placeholder="e.g. Chicken Breast" oninput="validateInvAddForm()" /></div>
     <div class="form-group"><label>Category</label><input id="invf_category" placeholder="e.g. Proteins, Grains" /></div>
-    <div class="form-group"><label>Stock</label><input type="number" id="invf_stock" value="0" /></div>
-    <div class="form-group"><label>Threshold</label><input type="number" id="invf_threshold" value="5" /></div>
-    <div class="form-group"><label>Unit</label><input id="invf_unit" placeholder="kg, L, pcs" /></div>
+    <div class="form-group"><label>Current Stock</label><input type="number" id="invf_stock" value="0" /></div>
+    <div class="form-group"><label>Low-Stock Warning At</label><input type="number" id="invf_threshold" value="5" /></div>
+    <div class="form-group"><label>Unit</label><input id="invf_unit" placeholder="e.g. kg, L, pcs" /></div>
     <div class="form-group"><label>Cost per Unit (${CONFIG.CURRENCY})</label><input type="number" id="invf_cost" value="0" /></div>
-    <div class="form-group"><label>Supplier</label><input id="invf_supplier" /></div>
+    <div class="form-group"><label>Supplier</label><input id="invf_supplier" placeholder="e.g. Mile 12 Market" /></div>
     <div class="form-group"><label>Min Order Qty</label><input type="number" id="invf_minOrder" value="0" /></div>
-  </div>`;
-  const actions = `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveNewInventory()">Add Item</button>`;
+  </div>
+  <div class="mgr-hint" id="invf_hint"></div>`;
+  const actions = `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" id="invf_save" onclick="saveNewInventory()">Add Item</button>`;
   openModal('Add Inventory Item', body, actions);
+  validateInvAddForm();
+}
+
+function validateInvAddForm() {
+  const nameEl = document.getElementById('invf_name');
+  if (!nameEl) return;
+  setFormState('invf_save', 'invf_hint', nameEl.value.trim().length > 0, 'Item name is required');
 }
 
 async function saveNewInventory() {
@@ -1215,7 +1295,7 @@ async function saveNewInventory() {
   };
   if (!payload.name) return toast('Name is required', 'error');
   const res = await CONFIG.apiPost('addInventoryItem', payload);
-  if (res.status === 'success') { toast('Inventory item added', 'success'); closeModal(); await loadAllData(); renderInventoryTable(); }
+  if (res.status === 'success') { toast('Inventory item added', 'success'); closeModal(); CONFIG.clearCache('inventory'); await loadAllData(); renderInventoryTable(); }
   else toast(res.message || 'Failed', 'error');
 }
 
@@ -1223,17 +1303,25 @@ function openInventoryEditModal(name) {
   const item = inventoryData.find(i => i.name === name);
   if (!item) return;
   const body = `<div class="form-grid">
-    <div class="form-group"><label>Name</label><input id="inve_name" value="${item.name}" /></div>
-    <div class="form-group"><label>Category</label><input id="inve_category" value="${item.category||''}" /></div>
-    <div class="form-group"><label>Stock</label><input type="number" id="inve_stock" value="${item.currentStock}" /></div>
-    <div class="form-group"><label>Threshold</label><input type="number" id="inve_threshold" value="${item.alertThreshold}" /></div>
-    <div class="form-group"><label>Unit</label><input id="inve_unit" value="${item.unit||''}" /></div>
+    <div class="form-group"><label>Item Name <span class="mgr-req">*</span></label><input id="inve_name" value="${item.name}" placeholder="e.g. Chicken Breast" oninput="validateInvEditForm()" /></div>
+    <div class="form-group"><label>Category</label><input id="inve_category" value="${item.category||''}" placeholder="e.g. Proteins, Grains" /></div>
+    <div class="form-group"><label>Current Stock</label><input type="number" id="inve_stock" value="${item.currentStock}" /></div>
+    <div class="form-group"><label>Low-Stock Warning At</label><input type="number" id="inve_threshold" value="${item.alertThreshold}" /></div>
+    <div class="form-group"><label>Unit</label><input id="inve_unit" value="${item.unit||''}" placeholder="e.g. kg, L, pcs" /></div>
     <div class="form-group"><label>Cost per Unit (${CONFIG.CURRENCY})</label><input type="number" id="inve_cost" value="${item.costPerUnit||0}" /></div>
-    <div class="form-group"><label>Supplier</label><input id="inve_supplier" value="${item.supplier||''}" /></div>
+    <div class="form-group"><label>Supplier</label><input id="inve_supplier" value="${item.supplier||''}" placeholder="e.g. Mile 12 Market" /></div>
     <div class="form-group"><label>Min Order Qty</label><input type="number" id="inve_minOrder" value="${item.minOrderQty||0}" /></div>
-  </div>`;
-  const actions = `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveInventoryEdit('${name.replace(/'/g,"\\'")}')">Update</button>`;
+  </div>
+  <div class="mgr-hint" id="inve_hint"></div>`;
+  const actions = `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" id="inve_save" onclick="saveInventoryEdit('${name.replace(/'/g,"\\'")}')">Update</button>`;
   openModal('Edit: ' + name, body, actions);
+  validateInvEditForm();
+}
+
+function validateInvEditForm() {
+  const nameEl = document.getElementById('inve_name');
+  if (!nameEl) return;
+  setFormState('inve_save', 'inve_hint', nameEl.value.trim().length > 0, 'Item name is required');
 }
 
 async function saveInventoryEdit(oldName) {
@@ -1250,7 +1338,7 @@ async function saveInventoryEdit(oldName) {
     performedBy: 'Manager'
   };
   const res = await CONFIG.apiPost('updateInventoryItem', payload);
-  if (res.status === 'success') { toast('Inventory updated', 'success'); closeModal(); await loadAllData(); renderInventoryTable(); }
+  if (res.status === 'success') { toast('Inventory updated', 'success'); closeModal(); CONFIG.clearCache('inventory'); await loadAllData(); renderInventoryTable(); }
   else toast(res.message || 'Failed', 'error');
 }
 
@@ -1272,10 +1360,11 @@ async function doRestock(name) {
 }
 
 async function deleteInventoryItem(name) {
-  if (!confirm('Delete "' + name + '" from inventory?')) return;
-  const res = await CONFIG.apiPost('deleteInventoryItem', { name: name, performedBy: 'Manager' });
-  if (res.status === 'success') { toast('Inventory item deleted', 'success'); await loadAllData(); renderInventoryTable(); }
-  else toast(res.message || 'Failed', 'error');
+  confirmAction('Delete "' + escHtml(name) + '" from inventory? This cannot be undone.', async function() {
+    const res = await CONFIG.apiPost('deleteInventoryItem', { name: name, performedBy: 'Manager' });
+    if (res.status === 'success') { toast('Inventory item deleted', 'success'); CONFIG.clearCache('inventory'); await loadAllData(); renderInventoryTable(); }
+    else toast(res.message || 'Failed', 'error');
+  });
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -1283,7 +1372,7 @@ async function deleteInventoryItem(name) {
    ═══════════════════════════════════════════════════════════ */
 function renderCashiersTable() {
   const wrap = document.getElementById('cashiersTableWrap');
-  if (cashiersData.length === 0) { wrap.innerHTML = '<div class="empty-state"><div class="empty-title">No cashiers</div></div>'; return; }
+  if (cashiersData.length === 0) { wrap.innerHTML = '<div class="empty-state"><div class="empty-title">No cashiers yet</div><div class="empty-text">Tap + Add Cashier to create a login for your staff.</div></div>'; return; }
   let rows = '';
   cashiersData.forEach(c => {
     // Normalize: handle both plain-string (legacy API) and object (updated API) formats
@@ -1306,14 +1395,24 @@ function openCashierModal(editName) {
   const saveLabel = cashier ? 'Update' : 'Add';
 
   const body = `<div class="form-grid">
-    <div class="form-group"><label>Full Name</label><input id="cf_name" value="${cashier ? (cashier.name||'').replace(/"/g,'&quot;') : ''}" /></div>
-    <div class="form-group"><label>Phone</label><input id="cf_phone" value="${cashier ? (cashier.phone||'').replace(/"/g,'&quot;') : ''}" /></div>
+    <div class="form-group"><label>Full Name <span class="mgr-req">*</span></label><input id="cf_name" placeholder="e.g. Adaeze Obi" value="${cashier ? (cashier.name||'').replace(/"/g,'&quot;') : ''}" oninput="validateCashierForm()" /></div>
+    <div class="form-group"><label>Phone</label><input id="cf_phone" placeholder="e.g. 08012345678" value="${cashier ? (cashier.phone||'').replace(/"/g,'&quot;') : ''}" /></div>
     <div class="form-group"><label>Role</label><select id="cf_role"><option ${cashier&&cashier.role==='Cashier'?'selected':''}>Cashier</option><option ${cashier&&cashier.role==='Senior Cashier'?'selected':''}>Senior Cashier</option><option ${cashier&&cashier.role==='Manager'?'selected':''}>Manager</option></select></div>
-    <div class="form-group"><label>PIN (4 digits)</label><input id="cf_pin" maxlength="4" pattern="[0-9]*" inputmode="numeric" placeholder="4-digit PIN" value="${cashier ? (cashier.pin||'') : ''}" /></div>
+    <div class="form-group"><label>PIN (4 digits) <span class="mgr-req">*</span></label><input id="cf_pin" maxlength="4" pattern="[0-9]*" inputmode="numeric" placeholder="e.g. 1234" value="${cashier ? (cashier.pin||'') : ''}" oninput="validateCashierForm()" /></div>
     ${cashier ? `<div class="form-group"><label>Active</label><select id="cf_active"><option value="Yes" ${cashier.active!=='No'?'selected':''}>Yes</option><option value="No" ${cashier.active==='No'?'selected':''}>No</option></select></div>` : ''}
-  </div>`;
-  const actions = `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveCashier(${editName ? "'"+editName+"'" : 'null'})">${saveLabel}</button>`;
+  </div>
+  <div class="mgr-hint" id="cf_hint"></div>`;
+  const actions = `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" id="cf_save" onclick="saveCashier(${editName ? "'"+editName+"'" : 'null'})">${saveLabel}</button>`;
   openModal(title, body, actions);
+  validateCashierForm();
+}
+
+function validateCashierForm() {
+  const nameEl = document.getElementById('cf_name');
+  const pinEl = document.getElementById('cf_pin');
+  if (!nameEl || !pinEl) return;
+  const ok = nameEl.value.trim().length > 0 && /^\d{4}$/.test(pinEl.value.trim());
+  setFormState('cf_save', 'cf_hint', ok, 'Name and a 4-digit PIN are required');
 }
 
 async function saveCashier(editName) {
@@ -1338,10 +1437,11 @@ async function saveCashier(editName) {
 }
 
 async function removeCashier(name) {
-  if (!confirm('Remove cashier "' + name + '"?')) return;
-  const res = await CONFIG.apiPost('removeCashier', { name: name, performedBy: 'Manager' });
-  if (res.status === 'success') { toast('Cashier removed', 'success'); CONFIG.clearCache('cashiers'); await loadAllData(); renderCashiersTable(); }
-  else toast(res.message || 'Failed', 'error');
+  confirmAction('Remove cashier "' + escHtml(name) + '"? They will no longer be able to log in.', async function() {
+    const res = await CONFIG.apiPost('removeCashier', { name: name, performedBy: 'Manager' });
+    if (res.status === 'success') { toast('Cashier removed', 'success'); CONFIG.clearCache('cashiers'); await loadAllData(); renderCashiersTable(); }
+    else toast(res.message || 'Failed', 'error');
+  });
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -1349,37 +1449,59 @@ async function removeCashier(name) {
    ═══════════════════════════════════════════════════════════ */
 function renderTablesTable() {
   const wrap = document.getElementById('tablesTableWrap');
-  if (tablesData.length === 0) { wrap.innerHTML = '<div class="empty-state"><div class="empty-title">No tables</div></div>'; return; }
+  if (tablesData.length === 0) { wrap.innerHTML = '<div class="empty-state"><div class="empty-title">No tables yet</div><div class="empty-text">Tap + Add Table to create your first table.</div></div>'; return; }
   let rows = '';
   tablesData.forEach(t => {
-    rows += `<tr><td><strong>${t.id}</strong></td><td>${t.seats||'—'} seats</td><td><span class="badge ${t.status==='Available'?'badge-success':'badge-warning'}">${t.status||'Available'}</span></td><td>${t.notes||'—'}</td><td><button class="btn btn-danger btn-sm" onclick="removeTable('${t.id}')">Remove</button></td></tr>`;
+    rows += `<tr><td><strong>${t.id}</strong></td><td>${t.seats||'—'} seats</td><td><span class="badge ${t.status==='Available'?'badge-success':'badge-warning'}">${t.status||'Available'}</span></td><td>${t.notes||'—'}</td><td><button class="btn btn-ghost btn-sm" onclick="openTableModal('${t.id}')">Edit</button> <button class="btn btn-danger btn-sm" onclick="removeTable('${t.id}')">Remove</button></td></tr>`;
   });
   wrap.innerHTML = `<table><thead><tr><th>Table ID</th><th>Seats</th><th>Status</th><th>Notes</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 
-function openTableModal() {
+function openTableModal(editId) {
+  const table = editId ? tablesData.find(t => String(t.id) === String(editId)) : null;
+  const statuses = ['Available', 'Occupied', 'Reserved'];
+  const curStatus = table ? (table.status || 'Available') : 'Available';
   const body = `<div class="form-grid">
-    <div class="form-group"><label>Table ID</label><input id="tf_id" placeholder="e.g. T16" /></div>
-    <div class="form-group"><label>Seats</label><input type="number" id="tf_seats" value="4" /></div>
-    <div class="form-group"><label>Notes</label><input id="tf_notes" /></div>
-  </div>`;
-  const actions = `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveTable()">Add Table</button>`;
-  openModal('Add Table', body, actions);
+    <div class="form-group"><label>Table ID <span class="mgr-req">*</span></label><input id="tf_id" placeholder="e.g. T16" value="${table ? table.id : ''}" ${table ? 'disabled' : ''} oninput="validateTableForm()" /></div>
+    <div class="form-group"><label>Seats</label><input type="number" id="tf_seats" placeholder="e.g. 4" value="${table ? (table.seats || 4) : 4}" /></div>
+    ${table ? `<div class="form-group"><label>Status</label><select id="tf_status">${statuses.map(s => `<option ${curStatus === s ? 'selected' : ''}>${s}</option>`).join('')}</select></div>` : ''}
+    <div class="form-group"><label>Notes</label><input id="tf_notes" placeholder="e.g. Near the window" value="${table ? (table.notes || '').replace(/"/g, '&quot;') : ''}" /></div>
+  </div>
+  <div class="mgr-hint" id="tf_hint"></div>`;
+  const actions = `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" id="tf_save" onclick="saveTable(${table ? "'" + String(table.id).replace(/'/g, "\\'") + "'" : 'null'})">${table ? 'Update Table' : 'Add Table'}</button>`;
+  openModal(table ? 'Edit Table ' + table.id : 'Add Table', body, actions);
+  validateTableForm();
 }
 
-async function saveTable() {
-  const id = document.getElementById('tf_id').value.trim().toUpperCase();
+function validateTableForm() {
+  const idEl = document.getElementById('tf_id');
+  if (!idEl) return;
+  setFormState('tf_save', 'tf_hint', idEl.value.trim().length > 0, 'Table ID is required');
+}
+
+async function saveTable(editId) {
+  const id = editId ? String(editId) : document.getElementById('tf_id').value.trim().toUpperCase();
   if (!id) return toast('Table ID is required', 'error');
-  const res = await CONFIG.apiPost('addTable', { tableId: id, seats: document.getElementById('tf_seats').value, notes: document.getElementById('tf_notes').value.trim(), performedBy: 'Manager' });
-  if (res.status === 'success') { toast('Table added', 'success'); closeModal(); await loadAllData(); renderTablesTable(); generateAllQRCodes(); }
+  const seats = document.getElementById('tf_seats').value;
+  const notes = document.getElementById('tf_notes').value.trim();
+  if (editId) {
+    const statusEl = document.getElementById('tf_status');
+    const res = await CONFIG.apiPost('updateTable', { tableId: id, seats: seats, status: statusEl ? statusEl.value : 'Available', notes: notes, performedBy: 'Manager' });
+    if (res.status === 'success') { toast('Table updated', 'success'); closeModal(); CONFIG.clearCache('tables'); await loadAllData(); renderTablesTable(); generateAllQRCodes(); }
+    else toast(res.message || 'Failed', 'error');
+    return;
+  }
+  const res = await CONFIG.apiPost('addTable', { tableId: id, seats: seats, notes: notes, performedBy: 'Manager' });
+  if (res.status === 'success') { toast('Table added', 'success'); closeModal(); CONFIG.clearCache('tables'); await loadAllData(); renderTablesTable(); generateAllQRCodes(); }
   else toast(res.message || 'Failed', 'error');
 }
 
 async function removeTable(id) {
-  if (!confirm('Remove table "' + id + '"?')) return;
-  const res = await CONFIG.apiPost('removeTable', { tableId: id, performedBy: 'Manager' });
-  if (res.status === 'success') { toast('Table removed', 'success'); await loadAllData(); renderTablesTable(); generateAllQRCodes(); }
-  else toast(res.message || 'Failed', 'error');
+  confirmAction('Remove table "' + escHtml(id) + '"? Its QR code will stop working.', async function() {
+    const res = await CONFIG.apiPost('removeTable', { tableId: id, performedBy: 'Manager' });
+    if (res.status === 'success') { toast('Table removed', 'success'); CONFIG.clearCache('tables'); await loadAllData(); renderTablesTable(); generateAllQRCodes(); }
+    else toast(res.message || 'Failed', 'error');
+  });
 }
 
 function generateAllQRCodes() {
@@ -1419,28 +1541,46 @@ function downloadQR(tableId) {
    ═══════════════════════════════════════════════════════════ */
 function renderExpensesTable() {
   const wrap = document.getElementById('expensesTableWrap');
-  if (expensesData.length === 0) { wrap.innerHTML = '<div class="empty-state"><div class="empty-title">No expenses recorded</div></div>'; return; }
+  if (expensesData.length === 0) { wrap.innerHTML = '<div class="empty-state"><div class="empty-title">No expenses yet</div><div class="empty-text">Tap + Add Expense to record one.</div></div>'; return; }
   const fmt = (v) => CONFIG.formatCurrency(v);
   let rows = '';
   expensesData.forEach(e => {
-    rows += `<tr><td>${e.date ? new Date(e.date).toLocaleDateString(CONFIG.RESTAURANT.locale,{day:'2-digit',month:'short',year:'numeric'}) : '—'}</td><td>${e.category||'—'}</td><td>${e.description||'—'}</td><td style="font-weight:700">${fmt(parseFloat(e.amount)||0)}</td><td>${e.paymentMethod||'—'}</td></tr>`;
+    const actions = e.id
+      ? `<td><button class="btn btn-ghost btn-sm" onclick="openExpenseModal('${e.id}')">Edit</button> <button class="btn btn-danger btn-sm" onclick="deleteExpense('${e.id}')">Delete</button></td>`
+      : '<td>—</td>';
+    rows += `<tr><td>${e.date ? new Date(e.date).toLocaleDateString(CONFIG.RESTAURANT.locale,{day:'2-digit',month:'short',year:'numeric'}) : '—'}</td><td>${e.category||'—'}</td><td>${e.description||'—'}</td><td style="font-weight:700">${fmt(parseFloat(e.amount)||0)}</td><td>${e.paymentMethod||'—'}</td>${actions}</tr>`;
   });
-  wrap.innerHTML = `<table><thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Amount</th><th>Method</th></tr></thead><tbody>${rows}</tbody></table>`;
+  wrap.innerHTML = `<table><thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Amount</th><th>Method</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 
-function openExpenseModal() {
+function openExpenseModal(editId) {
+  const exp = editId ? expensesData.find(e => String(e.id) === String(editId)) : null;
+  const dateVal = exp ? (String(exp.date || '').slice(0, 10) || new Date().toISOString().split('T')[0]) : new Date().toISOString().split('T')[0];
+  const methods = ['Cash', 'Transfer', 'POS'];
+  const curMethod = exp ? (exp.paymentMethod || 'Cash') : 'Cash';
   const body = `<div class="form-grid">
-    <div class="form-group"><label>Date</label><input type="date" id="ef_date" value="${new Date().toISOString().split('T')[0]}" /></div>
-    <div class="form-group"><label>Category</label><input id="ef_category" placeholder="e.g. Utilities, Supplies" /></div>
-    <div class="form-group form-full"><label>Description</label><input id="ef_desc" /></div>
-    <div class="form-group"><label>Amount (${CONFIG.CURRENCY})</label><input type="number" id="ef_amount" /></div>
-    <div class="form-group"><label>Payment Method</label><select id="ef_method"><option>Cash</option><option>Transfer</option><option>POS</option></select></div>
-  </div>`;
-  const actions = `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveExpense()">Record Expense</button>`;
-  openModal('Add Expense', body, actions);
+    <div class="form-group"><label>Date</label><input type="date" id="ef_date" value="${dateVal}" /></div>
+    <div class="form-group"><label>What was it for? (Category) <span class="mgr-req">*</span></label><input id="ef_category" placeholder="e.g. Utilities, Supplies" value="${exp ? (exp.category || '').replace(/"/g, '&quot;') : ''}" oninput="validateExpenseForm()" /></div>
+    <div class="form-group form-full"><label>Description</label><input id="ef_desc" placeholder="e.g. Bought cooking gas" value="${exp ? (exp.description || '').replace(/"/g, '&quot;') : ''}" /></div>
+    <div class="form-group"><label>Amount (${CONFIG.CURRENCY}) <span class="mgr-req">*</span></label><input type="number" id="ef_amount" placeholder="e.g. 1500" value="${exp ? exp.amount : ''}" oninput="validateExpenseForm()" /></div>
+    <div class="form-group"><label>Payment Method</label><select id="ef_method">${methods.map(m => `<option ${curMethod === m ? 'selected' : ''}>${m}</option>`).join('')}</select></div>
+  </div>
+  <div class="mgr-hint" id="ef_hint"></div>`;
+  const actions = `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" id="ef_save" onclick="saveExpense(${exp ? "'" + String(exp.id).replace(/'/g, "\\'") + "'" : 'null'})">${exp ? 'Update Expense' : 'Record Expense'}</button>`;
+  openModal(exp ? 'Edit Expense' : 'Add Expense', body, actions);
+  validateExpenseForm();
 }
 
-async function saveExpense() {
+function validateExpenseForm() {
+  const catEl = document.getElementById('ef_category');
+  const amtEl = document.getElementById('ef_amount');
+  if (!catEl || !amtEl) return;
+  const amt = parseFloat(amtEl.value);
+  const ok = catEl.value.trim().length > 0 && !isNaN(amt) && amt > 0;
+  setFormState('ef_save', 'ef_hint', ok, 'Category and an amount greater than 0 are required');
+}
+
+async function saveExpense(editId) {
   const payload = {
     date: document.getElementById('ef_date').value,
     category: document.getElementById('ef_category').value.trim(),
@@ -1450,9 +1590,26 @@ async function saveExpense() {
     recordedBy: 'Manager'
   };
   if (!payload.amount || parseFloat(payload.amount) <= 0) return toast('Enter a valid amount', 'error');
+  if (editId) {
+    payload.id = editId;
+    const res = await CONFIG.apiPost('updateExpense', payload);
+    if (res.status === 'success') { toast('Expense updated', 'success'); closeModal(); CONFIG.clearCache('expenses'); await loadAllData(); renderExpensesTable(); }
+    else toast(res.message || 'Failed', 'error');
+    return;
+  }
   const res = await CONFIG.apiPost('addExpense', payload);
-  if (res.status === 'success') { toast('Expense recorded', 'success'); closeModal(); await loadAllData(); renderExpensesTable(); }
+  if (res.status === 'success') { toast('Expense recorded', 'success'); closeModal(); CONFIG.clearCache('expenses'); await loadAllData(); renderExpensesTable(); }
   else toast(res.message || 'Failed', 'error');
+}
+
+async function deleteExpense(id) {
+  const exp = expensesData.find(e => String(e.id) === String(id));
+  const label = exp ? (exp.category || 'expense') + ' — ' + CONFIG.formatCurrency(parseFloat(exp.amount) || 0) : id;
+  confirmAction('Delete expense "' + escHtml(label) + '"? This cannot be undone.', async function() {
+    const res = await CONFIG.apiPost('deleteExpense', { id: id, cashier: 'Manager' });
+    if (res.status === 'success') { toast('Expense deleted', 'success'); CONFIG.clearCache('expenses'); await loadAllData(); renderExpensesTable(); }
+    else toast(res.message || 'Failed', 'error');
+  });
 }
 
 /* ═══════════════════════════════════════════════════════════
