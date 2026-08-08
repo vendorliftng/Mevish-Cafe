@@ -224,6 +224,32 @@ const CONFIG = {
     root.style.setProperty("--c-info",          theme.info);
     root.style.setProperty("--c-shadow",        theme.shadow);
     root.style.setProperty("--c-radius",        theme.radius);
+
+    // ─── Drive the style.css variable family too ─────────────
+    // style.css (dashboard, manager, POS, modals) is built on the
+    // --gold / --bg-* / --text-* family. Without this mapping,
+    // switching themes only recolored --c-* components and looked
+    // like "the theme is not working".
+    root.style.setProperty("--gold",            theme.primary);
+    root.style.setProperty("--gold-dark",       theme.primaryDark);
+    root.style.setProperty("--gold-light",      theme.primaryLight);
+    root.style.setProperty("--orange",          theme.accent);
+    root.style.setProperty("--bg-deep",         theme.bg);
+    root.style.setProperty("--bg-primary",      theme.bg);
+    root.style.setProperty("--bg-secondary",    theme.bgCard);
+    root.style.setProperty("--bg-card",         theme.bgCard);
+    root.style.setProperty("--bg-surface",      theme.bgCard);
+    root.style.setProperty("--bg-hover",        theme.bgCard);
+    root.style.setProperty("--text-primary",    theme.text);
+    root.style.setProperty("--text-secondary",  theme.textLight);
+    root.style.setProperty("--text-muted",      theme.textLight);
+    root.style.setProperty("--border",          theme.border);
+    root.style.setProperty("--border-light",    theme.border);
+    root.style.setProperty("--success",         theme.success);
+    root.style.setProperty("--danger",          theme.danger);
+    root.style.setProperty("--warning",         theme.warning);
+    root.style.setProperty("--info",            theme.info);
+    root.style.setProperty("--r-md",            theme.radius);
     localStorage.setItem(CONFIG.STORAGE_PREFIX + "theme", themeId);
   },
 
@@ -698,8 +724,15 @@ const CONFIG = {
           // Document exists, update CONFIG locally
           const data = doc.data();
           if (data.restaurantName) CONFIG.RESTAURANT.name = data.restaurantName;
+          if (data.tagline) CONFIG.RESTAURANT.tagline = data.tagline;
+          if (data.phone) CONFIG.RESTAURANT.phone = data.phone;
+          if (data.whatsapp) { CONFIG.RESTAURANT.whatsapp = data.whatsapp; CONFIG.RESTAURANT.kitchenWhatsapp = data.whatsapp; }
+          if (data.email) CONFIG.RESTAURANT.email = data.email;
+          if (data.address) { CONFIG.RESTAURANT.fullAddress = data.address; CONFIG.RESTAURANT.address = data.address; }
+          if (data.hours) CONFIG.RESTAURANT.hours = data.hours;
+          if (data.currency) CONFIG.CURRENCY = data.currency;
           if (data.tables && Array.isArray(data.tables)) CONFIG.TABLES = data.tables;
-          if (data.taxRate) CONFIG.TAX_RATE = data.taxRate;
+          if (data.taxRate !== undefined && data.taxRate !== null) CONFIG.TAX_RATE = data.taxRate;
           if (data.categories && Array.isArray(data.categories)) CONFIG.CATEGORIES = data.categories;
         }
 

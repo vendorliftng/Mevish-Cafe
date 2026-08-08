@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="style.css">
   <style>
     /* ═══ Walk-in POS redesign (theme-safe: CSS variables only) ═══ */
-    .pos-body { display:flex; flex-direction:row; gap:1.5rem; flex:1; overflow:hidden; padding:1.5rem; flex-wrap:wrap; }
+    .pos-body { display:flex; flex-direction:row; gap:1.5rem; flex:1; min-height:0; overflow:hidden; padding:1.5rem; flex-wrap:wrap; }
     .pos-hero-title { font-size:1rem; font-weight:800; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.06em; margin:0.25rem 0 0.75rem; }
     .pos-hero-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:1rem; margin-bottom:1.25rem; }
     .pos-cat-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(130px, 1fr)); gap:0.75rem; margin-bottom:0.5rem; }
@@ -255,7 +255,7 @@
           </div>
 
           <!-- Menu: Most Ordered hero + compiled category sections -->
-          <div id="mo_menuScroll" style="flex:1; overflow-y:auto; padding-right:0.5rem;">
+          <div id="mo_menuScroll" style="flex:1; min-height:0; overflow-y:auto; padding-right:0.5rem;">
             <div id="mo_hero"></div>
             <div id="mo_sections"></div>
           </div>
