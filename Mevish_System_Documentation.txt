@@ -1,0 +1,73 @@
+# Mevish Restaurant Management System - Simple Guide & Documentation
+
+This document explains what the Mevish Restaurant system does, how it works, and how to use it. It is written in plain English, avoiding complicated technical terms.
+
+---
+
+## 1. Product Requirements Document (PRD)
+
+**What is the goal of this software?**
+The goal is to give restaurant owners a "Command Center" where they can manage everything happening in their restaurant from one screen. It tracks what customers order, how much money is made, how much raw food (inventory) is left, and what the staff (cashiers/chefs) are doing.
+
+**Key Features (What the software must do):**
+1. **Take Orders (Point of Sale):** Allow staff to punch in orders for walk-in customers or see orders coming from the customer's phone.
+2. **Track the Kitchen:** Tell the chefs what to cook and track when the food is ready.
+3. **Manage the Menu:** Allow the owner to change the food menu (prices, names, availability) easily.
+4. **Track Inventory & Expenses:** Keep a record of raw materials (like flour, rice, meat). When an order is sold, automatically reduce the raw materials in the system. Also, track when money is spent to buy more supplies.
+5. **Manage Staff:** Allow the owner to add managers or cashiers and see how much money each cashier collected.
+6. **Show Analytics (Reports):** Show the owner beautiful charts of daily sales, most popular food, and total profit.
+
+---
+
+## 2. User Journey (A Day in the Life)
+
+Here is a step-by-step story of how the system is used on a typical day:
+
+**Morning (The Owner):**
+1. The Owner wakes up and opens the system on their laptop or tablet.
+2. They log in with their secret email and password.
+3. They go to the **Settings** to make sure the tax rate is correct, or they go to the **Menu** to mark "Fish" as sold out because the delivery didn't arrive.
+4. They log an **Expense** because they paid $50 for tomatoes at the market. They add the tomatoes to the **Inventory**.
+
+**Afternoon (The Cashier & The Kitchen):**
+1. A customer walks in and wants a Meat Pie.
+2. The Cashier taps the "Manual Order" button on the screen, selects "Meat Pie", and clicks "Confirm Order".
+3. The system instantly plays a little notification sound. The order appears on the screen in a yellow box (meaning "Cooking").
+4. Because a Meat Pie was sold, the system secretly goes into the **Inventory** and reduces the flour and meat stock slightly.
+5. Once the chef finishes making the pie, the Cashier clicks "Mark as Ready". The box turns green.
+6. The customer receives the pie and pays cash. The Cashier clicks "Mark as Paid". The order is finished and disappears into the daily records.
+
+**Evening (The Owner):**
+1. The Owner looks at the **Dashboard (Analytics)**.
+2. They see a chart showing that Meat Pies were the most popular item today.
+3. They see exactly how much money the Cashier should have in the cash register.
+4. They see an alert saying "Flour is low!" because they sold too many pies. They know they need to buy more tomorrow.
+
+---
+
+## 3. How to Use the System (Simple UX Guide)
+
+If you have never used a computer before, think of this system as a digital notebook that does the math for you. 
+
+When you open the system, you will see a screen divided into two main parts:
+
+### The Left Side (The Menu Bar)
+On the left side of your screen, there is a list of buttons. Think of these as the tabs in a filing cabinet. You just click on the word for what you want to see.
+- **Analytics:** Click this to see your money and charts.
+- **Orders:** Click this to see all the food people are buying today.
+- **Menu:** Click this to change your food prices or add new food.
+- **Inventory:** Click this to check how many bags of rice or bottles of drinks you have left.
+- **Expenses:** Click this to write down when you spend money on the business.
+- **Settings:** Click this to change the name of your restaurant or the table numbers.
+
+### The Middle (Your Workspace)
+When you click a tab on the left, the middle of the screen changes. 
+- If you click **Orders**, the middle shows cards (like sticky notes). Each card is a customer's food.
+- To do something with a card, just click the big buttons on it. For example, if the food is ready, click the button that says "Mark as Ready".
+- If you want to change a price in the **Menu**, you will see a list of your food. Next to the food, there is a button called "Edit". Click it, type the new price, and click "Save".
+
+**What if I make a mistake?**
+Don't worry! The system is designed to be safe. If you try to delete something important, a small box will pop up asking, "Are you sure?" You can always click "Cancel" to stop.
+
+**How do I take an order?**
+In the top right corner of the screen, there is a button with a plus sign (`+`) or "Manual Order". Click it. A menu will appear. Just tap the pictures of the food the customer wants, then tap "Confirm". It’s just like pointing at pictures on a real menu!
