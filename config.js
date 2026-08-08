@@ -393,6 +393,10 @@ const CONFIG = {
             return item;
           }) };
         }
+        if (type === 'auditLog') {
+          const snapshot = await db.collection('audit_log').orderBy('timestamp', 'desc').limit(200).get();
+          return { status: 'success', data: snapshot.docs.map(doc => doc.data()) };
+        }
         if (type === 'loginCashier') {
           // Default offline fallback if no users in Firestore yet
           return { status: 'success', data: { name: 'Cashier ' + (params.pin || ''), role: 'Cashier' } };
@@ -416,9 +420,20 @@ const CONFIG = {
       try {
         if (action === 'newOrder') {
           payload.timestamp = Date.now();
-          payload.status = 'Pending';
+          // Normalize legacy 'Pending' to the canonical 'Active' status
+          payload.status = (payload.status && payload.status !== 'Pending') ? payload.status : 'Active';
+          // Parse the cartItems string ("2x Rice | 1x Coke (Notes: ...)") into a structured array
+          if (payload.cartItems && typeof payload.cartItems === 'string') {
+            const clean = payload.cartItems.split(' (Notes:')[0];
+            payload.parsedItems = clean.split(' | ').map(part => {
+              const m = part.trim().match(/^(\d+)x\s+(.+)$/);
+              return m ? { qty: parseInt(m[1], 10), name: m[2].trim() } : null;
+            }).filter(Boolean);
+          }
           await db.collection('orders').doc(payload.orderId).set(payload);
-          
+          CONFIG.writeAudit('ORDER_CREATED', payload.orderId,
+            'Total: ' + (payload.totalPrice || payload.total || 0), payload.cashier || payload.customerName || 'System');
+
           // Auto-deduct inventory if linked
           if (payload.items && Array.isArray(payload.items)) {
             for (const item of payload.items) {
@@ -445,36 +460,95 @@ const CONFIG = {
         }
         if (action === 'updateOrder') {
           if (payload.status === 'Void') {
-            await db.collection('orders').doc(payload.orderId).delete();
+            // Never delete orders — preserve voids for history and audit
+            await db.collection('orders').doc(payload.orderId).update({ status: 'Void', voidedAt: Date.now() });
+            CONFIG.writeAudit('ORDER_VOIDED', payload.orderId, '', payload.cashier || 'Manager');
           } else {
             await db.collection('orders').doc(payload.orderId).update({ status: payload.status });
+            CONFIG.writeAudit('STATUS_UPDATED', payload.orderId, 'Status -> ' + payload.status, payload.cashier || 'System');
           }
           return { status: 'success', data: payload };
+        }
+        if (action === 'updateStatus') {
+          const orderId = payload.orderId;
+          const newStatus = payload.newStatus || payload.status || '';
+          const cashier = payload.cashier || '';
+          const updates = { status: newStatus };
+          let auditAction = 'STATUS_UPDATED';
+          let auditDetails = 'Status -> ' + newStatus;
+          if (newStatus.indexOf('Preparing') === 0) {
+            updates.prepStartedAt = Date.now();
+            auditAction = 'PREP_STARTED';
+          } else if (newStatus === 'Ready') {
+            updates.readyAt = Date.now();
+            auditAction = 'ORDER_READY';
+          } else if (newStatus === 'Served') {
+            updates.servedAt = Date.now();
+            auditAction = 'ORDER_SERVED';
+          } else if (newStatus.indexOf('Paid') === 0) {
+            updates.paidAt = Date.now();
+            updates.paymentMethod = (newStatus.indexOf('POS') >= 0) ? 'POS' : 'Cash';
+            updates.cashierName = cashier;
+            auditAction = 'PAYMENT_RECEIVED';
+            auditDetails = updates.paymentMethod + ' payment received' + (cashier ? ' by ' + cashier : '');
+          } else if (newStatus.indexOf('Void') === 0) {
+            updates.voidedAt = Date.now();
+            updates.voidedBy = cashier || 'Manager';
+            auditAction = 'ORDER_VOIDED';
+            auditDetails = 'Order voided' + (cashier ? ' by ' + cashier : '');
+          } else if (newStatus.indexOf('Credit') >= 0) {
+            updates.cashierName = cashier;
+            auditAction = 'CREDIT_ISSUED';
+            auditDetails = 'Credit issued' + (cashier ? ' by ' + cashier : '');
+          }
+          await db.collection('orders').doc(orderId).update(updates);
+          CONFIG.writeAudit(auditAction, orderId, auditDetails, cashier || 'System');
+          return { status: 'success', data: { orderId: orderId, status: newStatus } };
+        }
+        if (action === 'settleCredit') {
+          const cashier = payload.cashier || '';
+          const method = payload.method || payload.paymentMethod || 'Cash';
+          const newStatus = 'Paid - ' + method + ' (' + cashier + ')';
+          await db.collection('orders').doc(payload.orderId).update({
+            status: newStatus,
+            paymentMethod: method,
+            cashierName: cashier,
+            paidAt: Date.now(),
+            creditSettledAt: Date.now()
+          });
+          CONFIG.writeAudit('CREDIT_SETTLED', payload.orderId, 'Credit settled via ' + method + (cashier ? ' by ' + cashier : ''), cashier || 'System');
+          return { status: 'success', data: { orderId: payload.orderId, status: newStatus } };
         }
         if (action === 'addMenuItem') {
           // payload.id is already generated via Date.now() in manager.html
           await db.collection('menu_items').doc(String(payload.id)).set(payload);
+          CONFIG.writeAudit('MENU_ITEM_ADDED', '', payload.name || '', payload.cashier || 'Manager');
           return { status: 'success', data: payload };
         }
         if (action === 'updateMenuItem') {
           await db.collection('menu_items').doc(String(payload.id)).update(payload);
+          CONFIG.writeAudit('MENU_ITEM_UPDATED', '', payload.name || ('ID ' + payload.id), payload.cashier || 'Manager');
           return { status: 'success', data: payload };
         }
         if (action === 'deleteMenuItem') {
           await db.collection('menu_items').doc(String(payload.id)).delete();
+          CONFIG.writeAudit('MENU_ITEM_DELETED', '', 'ID ' + payload.id, payload.cashier || 'Manager');
           return { status: 'success' };
         }
         if (action === 'addExpense') {
           payload.id = 'EXP-' + Date.now();
           await db.collection('expenses').doc(payload.id).set(payload);
+          CONFIG.writeAudit('EXPENSE_ADDED', '', (payload.category || '') + ': ' + (payload.amount || 0), payload.recordedBy || payload.cashier || 'Manager');
           return { status: 'success', data: payload };
         }
         if (action === 'addInventoryItem') {
           await db.collection('inventory').doc(String(payload.id)).set(payload);
+          CONFIG.writeAudit('INVENTORY_ITEM_ADDED', '', payload.name || '', payload.cashier || 'Manager');
           return { status: 'success', data: payload };
         }
         if (action === 'updateInventoryItem') {
           await db.collection('inventory').doc(String(payload.id)).update(payload);
+          CONFIG.writeAudit('INVENTORY_ITEM_UPDATED', '', payload.name || ('ID ' + payload.id), payload.cashier || 'Manager');
           return { status: 'success', data: payload };
         }
       } catch (err) {
@@ -488,6 +562,22 @@ const CONFIG = {
       redirect: "follow",
     });
     return await res.json();
+  },
+
+  // ─── Audit Log (Firestore-native) ──────────────────────
+  // Append-only audit entry. Fire-and-forget: never blocks the main action.
+  writeAudit(action, orderId, details, performedBy) {
+    try {
+      if (typeof db !== 'undefined' && db) {
+        db.collection('audit_log').add({
+          timestamp: Date.now(),
+          action: action || 'UNKNOWN',
+          orderId: orderId || '',
+          details: details || '',
+          performedBy: performedBy || 'System'
+        }).catch(e => console.warn('Audit write failed:', e));
+      }
+    } catch (e) { /* audit must never break the app */ }
   },
 
   // ─── Client-Side Caching (localStorage) ──────────────────

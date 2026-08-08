@@ -447,6 +447,10 @@ auth.onAuthStateChanged(async user => {
           auth.signOut();
           return showError('Your account is still pending approval.');
         }
+        if (currentUserRole === 'Revoked') {
+          auth.signOut();
+          return showError('Your access has been revoked. Contact the Super Admin.');
+        }
       }
       
       document.getElementById('authGate').style.display = 'none';
@@ -1570,7 +1574,6 @@ async function selectTheme(id) {
 /* ═══════════════════════════════════════════════════════════
    AUDIT LOG
    ═══════════════════════════════════════════════════════════ */
-async 
 
 /* ═══════════════════════════════════════════════════════════
    ADMIN MANAGEMENT (PHASE 2)
@@ -1630,7 +1633,7 @@ async function saveAdminRole(uid) {
   }
 }
 
-function loadAuditLog() {
+async function loadAuditLog() {
   const wrap = document.getElementById('auditTableWrap');
   try {
     const res = await CONFIG.apiGet('auditLog');
