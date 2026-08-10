@@ -34,6 +34,8 @@
     .pos-cart-row2 { display:flex; align-items:center; justify-content:space-between; gap:0.5rem; padding-left:1.9rem; }
     .pos-cart-name { flex:1; font-size:0.9rem; font-weight:600; color:var(--text-primary); line-height:1.25; min-width:0; }
     .pos-cart-linetotal { font-weight:800; color:var(--gold); white-space:nowrap; }
+    .pos-cart-remove { background:none; border:none; color:var(--text-muted); font-size:1.15rem; line-height:1; cursor:pointer; flex-shrink:0; padding:0.2rem 0 0.2rem 0.4rem; min-width:32px; min-height:32px; }
+    .pos-cart-remove:hover, .pos-cart-remove:active { color:var(--danger); }
     .pos-cart-price { font-size:0.8rem; color:var(--text-muted); font-weight:500; }
     .pos-stepper { display:flex; align-items:center; gap:0.35rem; }
     .pos-step-btn { width:44px; height:44px; border-radius:var(--r-md); border:1px solid var(--border-light); background:var(--bg-surface); color:var(--text-primary); font-size:1.35rem; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1; transition:transform .1s; }
@@ -1379,6 +1381,14 @@ function setRefreshing(yes) {
     renderPOS();
   }
 
+  // Direct single-tap remove — decrementing "−" to zero worked but wasn't
+  // obvious as a way to remove an item outright, especially at higher qty.
+  function removeCartLine(id) {
+    manualOrderCart = manualOrderCart.filter(c => String(c.id) !== String(id));
+    updateManualCartUI();
+    renderPOS();
+  }
+
   function changeQty(id, delta) {
     const line = manualOrderCart.find(c => String(c.id) === String(id));
     if (!line) return;
@@ -1408,6 +1418,7 @@ function setRefreshing(yes) {
           <div style="font-size:1.3rem;flex-shrink:0;">${c.emoji || '🍽️'}</div>
           <div class="pos-cart-name">${escHtml(c.name)}</div>
           <div class="pos-cart-linetotal">${CONFIG.formatCurrency(c.price * c.qty)}</div>
+          <button class="pos-cart-remove" onclick="removeCartLine('${escAttr(String(c.id))}')" aria-label="Remove ${escAttr(c.name)}" title="Remove">✕</button>
         </div>
         <div class="pos-cart-row2">
           <div class="pos-cart-price">${CONFIG.formatCurrency(c.price)} each</div>

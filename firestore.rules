@@ -53,7 +53,10 @@ service cloud.firestore {
     match /orders/{orderId} {
       allow read: if true;                    // dashboards + (Phase 2) tracking
       allow create, update: if true;          // OPEN until cashier auth (Cloud Functions) — see header
-      allow delete: if false;                 // voids are preserved, never deleted
+      // Voids are preserved for everyone day-to-day — the one narrow
+      // exception is the Super Admin's one-time "start fresh" data reset
+      // (reset-data.html) before real customers begin using the system.
+      allow delete: if isSuperAdmin();
     }
 
     // ─── audit_log — immutable, append-only ───────────────────
@@ -114,7 +117,7 @@ service cloud.firestore {
       allow read: if true;             // customer tracking page + public approved reviews
       allow create: if true;           // guest submits their own review, unauthenticated
       allow update: if isManager();    // approve/reject only
-      allow delete: if false;
+      allow delete: if isSuperAdmin(); // same one-time reset exception as orders, above
     }
 
     // ─── customers — loyalty (Phase 2, write-path not built yet) ──

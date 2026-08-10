@@ -429,17 +429,29 @@ const CONFIG = {
         }
         if (type === 'cashiers') {
           const snapshot = await db.collection('staff').get();
-          return { status: 'success', data: snapshot.docs.map(doc => { const d = doc.data(); d.id = doc.id; return d; }) };
+          if (!snapshot.empty) {
+            return { status: 'success', data: snapshot.docs.map(doc => { const d = doc.data(); d.id = doc.id; return d; }) };
+          }
+          // Nothing migrated to Firestore yet — bridge from the old Sheet so
+          // the panel isn't just empty. updateCashier/removeCashier (below)
+          // know how to reach a cashier that still only exists there.
+          try { return await CONFIG.fetchFromGAS('cashiers', params); } catch (e) { return { status: 'success', data: [] }; }
         }
         if (type === 'tables') {
           const snapshot = await db.collection('tables').get();
-          return { status: 'success', data: snapshot.docs.map(doc => { const d = doc.data(); d.id = d.id || doc.id; return d; }) };
+          if (!snapshot.empty) {
+            return { status: 'success', data: snapshot.docs.map(doc => { const d = doc.data(); d.id = d.id || doc.id; return d; }) };
+          }
+          try { return await CONFIG.fetchFromGAS('tables', params); } catch (e) { return { status: 'success', data: [] }; }
         }
         if (type === 'customers') {
           const snapshot = await db.collection('customers').get();
-          const data = snapshot.docs.map(doc => { const d = doc.data(); d.phone = d.phone || doc.id; return d; });
-          data.sort((a, b) => (Number(b.totalSpent) || 0) - (Number(a.totalSpent) || 0));
-          return { status: 'success', data };
+          if (!snapshot.empty) {
+            const data = snapshot.docs.map(doc => { const d = doc.data(); d.phone = d.phone || doc.id; return d; });
+            data.sort((a, b) => (Number(b.totalSpent) || 0) - (Number(a.totalSpent) || 0));
+            return { status: 'success', data };
+          }
+          try { return await CONFIG.fetchFromGAS('customers', params); } catch (e) { return { status: 'success', data: [] }; }
         }
         if (type === 'loginCashier') {
           // Firestore is now the source of truth for staff going forward (see
@@ -467,11 +479,17 @@ const CONFIG = {
         }
         if (type === 'inventory') {
           const snapshot = await db.collection('inventory').get();
-          return { status: 'success', data: snapshot.docs.map(doc => {
-            let item = doc.data();
-            item.id = doc.id;
-            return item;
-          }) };
+          if (!snapshot.empty) {
+            return { status: 'success', data: snapshot.docs.map(doc => {
+              let item = doc.data();
+              item.id = doc.id;
+              return item;
+            }) };
+          }
+          // Nothing in Firestore yet — bridge from the old Sheet (same field
+          // names: name/category/currentStock/alertThreshold/unit/
+          // costPerUnit/supplier/minOrderQty) so the panel isn't empty.
+          try { return await CONFIG.fetchFromGAS('inventory', params); } catch (e) { return { status: 'success', data: [] }; }
         }
         if (type === 'expenses') {
           const snapshot = await db.collection('expenses').orderBy('date', 'desc').get();
@@ -490,6 +508,16 @@ const CONFIG = {
       }
     }
     // Fallback to GAS API
+    return await CONFIG.fetchFromGAS(type, params);
+  },
+
+  // Raw GET straight to the old Apps Script backend, bypassing Firestore
+  // entirely. Used both as apiGet's final fallback (above) and, deliberately,
+  // as a *bridge* inside a few Firestore handlers below (cashiers/tables/
+  // inventory/customers) for data that was never migrated out of the old
+  // Sheets — so a panel that's empty in Firestore still shows the real data
+  // instead of looking broken, until it's actually re-saved into Firestore.
+  async fetchFromGAS(type, params) {
     let url = CONFIG.API_URL + "?type=" + type;
     if (params) {
       Object.keys(params).forEach(k => { url += "&" + encodeURIComponent(k) + "=" + encodeURIComponent(params[k]); });
@@ -666,30 +694,55 @@ const CONFIG = {
           // name) — the old handler required `payload.id`, which this form
           // never sends, so every edit silently failed.
           const snap = await db.collection('inventory').where('name', '==', payload.name).limit(1).get();
-          if (snap.empty) return { status: 'error', message: 'Inventory item not found: ' + payload.name };
-          const updates = {};
-          if (payload.newName) updates.name = payload.newName;
-          if (payload.category !== undefined) updates.category = payload.category;
-          if (payload.stock !== undefined) updates.currentStock = parseFloat(payload.stock) || 0;
-          if (payload.alertThreshold !== undefined) updates.alertThreshold = parseFloat(payload.alertThreshold) || 0;
-          if (payload.unit !== undefined) updates.unit = payload.unit;
-          if (payload.costPerUnit !== undefined) updates.costPerUnit = parseFloat(payload.costPerUnit) || 0;
-          if (payload.supplier !== undefined) updates.supplier = payload.supplier;
-          if (payload.minOrderQty !== undefined) updates.minOrderQty = parseFloat(payload.minOrderQty) || 0;
-          await snap.docs[0].ref.update(updates);
-          CONFIG.writeAudit('INVENTORY_ITEM_UPDATED', '', payload.newName || payload.name || '', payload.performedBy || payload.cashier || 'Manager');
+          if (!snap.empty) {
+            const updates = {};
+            if (payload.newName) updates.name = payload.newName;
+            if (payload.category !== undefined) updates.category = payload.category;
+            if (payload.stock !== undefined) updates.currentStock = parseFloat(payload.stock) || 0;
+            if (payload.alertThreshold !== undefined) updates.alertThreshold = parseFloat(payload.alertThreshold) || 0;
+            if (payload.unit !== undefined) updates.unit = payload.unit;
+            if (payload.costPerUnit !== undefined) updates.costPerUnit = parseFloat(payload.costPerUnit) || 0;
+            if (payload.supplier !== undefined) updates.supplier = payload.supplier;
+            if (payload.minOrderQty !== undefined) updates.minOrderQty = parseFloat(payload.minOrderQty) || 0;
+            await snap.docs[0].ref.update(updates);
+            CONFIG.writeAudit('INVENTORY_ITEM_UPDATED', '', payload.newName || payload.name || '', payload.performedBy || payload.cashier || 'Manager');
+            return { status: 'success' };
+          }
+          // Not in Firestore yet — this item still only lives in the old
+          // Sheet. Every field needed to recreate it fully is already in the
+          // edit form's payload, so create it now instead of erroring
+          // (first edit = migration, same as Cashiers).
+          const doc = {
+            name: payload.newName || payload.name, category: payload.category || '',
+            currentStock: parseFloat(payload.stock) || 0, alertThreshold: parseFloat(payload.alertThreshold) || 0,
+            unit: payload.unit || '', costPerUnit: parseFloat(payload.costPerUnit) || 0,
+            supplier: payload.supplier || '', minOrderQty: parseFloat(payload.minOrderQty) || 0,
+            lastRestocked: Date.now()
+          };
+          await db.collection('inventory').add(doc);
+          CONFIG.writeAudit('INVENTORY_ITEM_UPDATED', '', (payload.newName || payload.name || '') + ' (migrated to Firestore)', payload.performedBy || payload.cashier || 'Manager');
           return { status: 'success' };
         }
         if (action === 'deleteInventoryItem') {
           const snap = await db.collection('inventory').where('name', '==', payload.name).limit(1).get();
-          if (snap.empty) return { status: 'error', message: 'Inventory item not found: ' + payload.name };
-          await snap.docs[0].ref.delete();
-          CONFIG.writeAudit('INVENTORY_ITEM_DELETED', '', payload.name || '', payload.performedBy || payload.cashier || 'Manager');
-          return { status: 'success' };
+          if (!snap.empty) {
+            await snap.docs[0].ref.delete();
+            CONFIG.writeAudit('INVENTORY_ITEM_DELETED', '', payload.name || '', payload.performedBy || payload.cashier || 'Manager');
+            return { status: 'success' };
+          }
+          // Not in Firestore — it still only exists in the old Sheet, so
+          // deleting it there is what actually removes it.
+          try { return await CONFIG.postToGAS('deleteInventoryItem', payload); }
+          catch (e) { return { status: 'error', message: 'Could not delete inventory item' }; }
         }
         if (action === 'restockInventory') {
           const snap = await db.collection('inventory').where('name', '==', payload.itemName).limit(1).get();
-          if (snap.empty) return { status: 'error', message: 'Inventory item not found: ' + payload.itemName };
+          if (snap.empty) {
+            // Not in Firestore yet — restock the real (Sheet) record directly
+            // rather than silently failing.
+            try { return await CONFIG.postToGAS('restockInventory', payload); }
+            catch (e) { return { status: 'error', message: 'Could not restock: item not found' }; }
+          }
           const ref = snap.docs[0].ref;
           const qty = parseFloat(payload.quantity) || 0;
           await db.runTransaction(async (tx) => {
@@ -712,23 +765,51 @@ const CONFIG = {
         }
         if (action === 'updateCashier') {
           const snap = await db.collection('staff').where('name', '==', payload.oldName).limit(1).get();
-          if (snap.empty) return { status: 'error', message: 'Cashier not found: ' + payload.oldName };
-          const updates = {};
-          if (payload.name !== undefined) updates.name = payload.name;
-          if (payload.phone !== undefined) updates.phone = payload.phone;
-          if (payload.role !== undefined) updates.role = payload.role;
-          if (payload.active !== undefined) updates.active = payload.active;
-          if (payload.pin) updates.pin = payload.pin; // only touch the PIN when a new one was actually entered
-          await snap.docs[0].ref.update(updates);
-          CONFIG.writeAudit('CASHIER_UPDATED', '', payload.oldName + ' -> ' + (payload.name || payload.oldName), payload.performedBy || 'Manager');
+          if (!snap.empty) {
+            const updates = {};
+            if (payload.name !== undefined) updates.name = payload.name;
+            if (payload.phone !== undefined) updates.phone = payload.phone;
+            if (payload.role !== undefined) updates.role = payload.role;
+            if (payload.active !== undefined) updates.active = payload.active;
+            if (payload.pin) updates.pin = payload.pin; // only touch the PIN when a new one was actually entered
+            await snap.docs[0].ref.update(updates);
+            CONFIG.writeAudit('CASHIER_UPDATED', '', payload.oldName + ' -> ' + (payload.name || payload.oldName), payload.performedBy || 'Manager');
+            return { status: 'success' };
+          }
+          // Not in Firestore yet — this cashier still only lives in the old
+          // Sheet (first edit = migration, same idea as Inventory above).
+          // The edit form leaves PIN blank to mean "keep current" — but
+          // there IS no current Firestore PIN to keep, so bridge it from
+          // the Sheet when the manager didn't type a new one.
+          let pin = payload.pin || '';
+          if (!pin) {
+            try {
+              const gasRes = await CONFIG.fetchFromGAS('cashiers');
+              const match = (gasRes && gasRes.data || []).find(c => c.name === payload.oldName);
+              if (match) pin = String(match.pin || '');
+            } catch (e) { /* best effort — proceed without it if GAS is unreachable */ }
+          }
+          const doc = {
+            name: payload.name || payload.oldName, phone: payload.phone || '',
+            role: payload.role || 'Cashier', active: payload.active || 'Yes',
+            pin: pin, createdAt: Date.now()
+          };
+          await db.collection('staff').add(doc);
+          CONFIG.writeAudit('CASHIER_UPDATED', '', payload.oldName + ' -> ' + (payload.name || payload.oldName) + ' (migrated to Firestore)', payload.performedBy || 'Manager');
           return { status: 'success' };
         }
         if (action === 'removeCashier') {
           const snap = await db.collection('staff').where('name', '==', payload.name).limit(1).get();
-          if (snap.empty) return { status: 'error', message: 'Cashier not found: ' + payload.name };
-          await snap.docs[0].ref.delete();
-          CONFIG.writeAudit('CASHIER_REMOVED', '', payload.name || '', payload.performedBy || 'Manager');
-          return { status: 'success' };
+          if (!snap.empty) {
+            await snap.docs[0].ref.delete();
+            CONFIG.writeAudit('CASHIER_REMOVED', '', payload.name || '', payload.performedBy || 'Manager');
+            return { status: 'success' };
+          }
+          // Not in Firestore — they still only exist in the old Sheet, so
+          // removing them there is what actually revokes their login
+          // (loginCashier falls back to GAS whenever Firestore has no match).
+          try { return await CONFIG.postToGAS('removeCashier', payload); }
+          catch (e) { return { status: 'error', message: 'Could not remove cashier' }; }
         }
         if (action === 'addTable') {
           const doc = { seats: parseFloat(payload.seats) || 4, status: 'Available', notes: payload.notes || '' };
@@ -737,16 +818,33 @@ const CONFIG = {
           return { status: 'success', data: doc };
         }
         if (action === 'updateTable') {
+          const ref = db.collection('tables').doc(String(payload.tableId));
+          const doc = await ref.get();
           const updates = {};
           if (payload.seats !== undefined) updates.seats = parseFloat(payload.seats) || 0;
           if (payload.status !== undefined) updates.status = payload.status;
           if (payload.notes !== undefined) updates.notes = payload.notes;
-          await db.collection('tables').doc(String(payload.tableId)).update(updates);
+          if (doc.exists) {
+            await ref.update(updates);
+          } else {
+            // Not in Firestore yet — this table still only lives in the old
+            // Sheet (first edit = migration, same idea as Cashiers/Inventory).
+            await ref.set({ seats: updates.seats || 4, status: updates.status || 'Available', notes: updates.notes || '' });
+          }
           CONFIG.writeAudit('TABLE_UPDATED', '', payload.tableId || '', payload.performedBy || 'Manager');
           return { status: 'success' };
         }
         if (action === 'removeTable') {
-          await db.collection('tables').doc(String(payload.tableId)).delete();
+          const ref = db.collection('tables').doc(String(payload.tableId));
+          const doc = await ref.get();
+          if (doc.exists) {
+            await ref.delete();
+          } else {
+            // Not in Firestore — it still only exists in the old Sheet, so
+            // removing it there is what actually removes it.
+            try { return await CONFIG.postToGAS('removeTable', payload); }
+            catch (e) { return { status: 'error', message: 'Could not remove table' }; }
+          }
           CONFIG.writeAudit('TABLE_REMOVED', '', payload.tableId || '', payload.performedBy || 'Manager');
           return { status: 'success' };
         }
@@ -776,6 +874,15 @@ const CONFIG = {
         console.error("Firestore apiPost error:", err);
       }
     }
+    return await CONFIG.postToGAS(action, payload);
+  },
+
+  // Raw POST straight to the old Apps Script backend, bypassing Firestore
+  // entirely. Same role as fetchFromGAS above, but for writes: apiPost's
+  // final fallback, and also used deliberately inside a few Firestore
+  // handlers (inventory delete/restock) to act on a record that still only
+  // exists in the old Sheet.
+  async postToGAS(action, payload) {
     const res = await fetch(CONFIG.API_URL, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },

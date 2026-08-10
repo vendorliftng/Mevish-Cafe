@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reset Data — Super Admin Only</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="stylesheet" href="style.css?v=106" />
+  <style>
+    body { background: var(--bg-deep); min-height: 100vh; }
+    .reset-wrap { max-width: 720px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+    .reset-header { text-align: center; margin-bottom: 1.5rem; }
+    .reset-header h1 { font-size: 1.5rem; font-weight: 900; color: var(--text-primary); margin-bottom: 0.35rem; }
+    .reset-header p { color: var(--text-secondary); font-size: 0.9rem; }
+    .danger-banner {
+      background: rgba(220,38,38,0.12); border: 1px solid var(--danger-border, rgba(220,38,38,0.4));
+      color: var(--danger); border-radius: var(--r-md); padding: 0.9rem 1.1rem;
+      font-size: 0.88rem; font-weight: 600; margin-bottom: 1.5rem; line-height: 1.5;
+    }
+    .reset-card {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r-lg);
+      padding: 1rem 1.25rem; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.9rem;
+    }
+    .reset-card.protected { opacity: 0.6; }
+    .reset-card input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--danger); flex-shrink: 0; cursor: pointer; }
+    .reset-card-body { flex: 1; min-width: 0; }
+    .reset-card-name { font-weight: 700; color: var(--text-primary); font-size: 0.98rem; }
+    .reset-card-desc { font-size: 0.8rem; color: var(--text-muted); margin-top: 2px; }
+    .reset-card-count { font-weight: 800; color: var(--gold); font-size: 1.1rem; min-width: 64px; text-align: right; }
+    .reset-card-count.zero { color: var(--text-muted); font-weight: 600; font-size: 0.9rem; }
+    .reset-confirm-block {
+      margin-top: 1.75rem; padding-top: 1.5rem; border-top: 1px dashed var(--border-light);
+    }
+    .reset-confirm-block label { display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.5rem; }
+    #confirmText { width: 100%; min-height: 48px; font-size: 1rem; padding: 0.7rem 1rem; }
+    .reset-btn {
+      width: 100%; min-height: 56px; margin-top: 1.25rem; font-size: 1.1rem; font-weight: 800;
+      background: var(--danger); color: #fff; border: none; border-radius: var(--r-md); cursor: pointer;
+      transition: opacity var(--ease), transform var(--ease);
+    }
+    .reset-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .reset-btn:not(:disabled):active { transform: scale(0.98); }
+    .reset-log {
+      margin-top: 1.5rem; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-md);
+      padding: 1rem 1.1rem; font-family: 'Courier New', monospace; font-size: 0.82rem; color: var(--text-secondary);
+      max-height: 280px; overflow-y: auto; display: none; white-space: pre-wrap; line-height: 1.6;
+    }
+    .reset-log.visible { display: block; }
+    .reset-log .ok { color: var(--success); }
+    .reset-log .err { color: var(--danger); }
+    .back-link { display: inline-block; margin-bottom: 1rem; color: var(--text-secondary); font-size: 0.85rem; text-decoration: none; }
+    .back-link:hover { color: var(--gold); }
+  </style>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="config.js?v=104"></script>
+</head>
+<body>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!--  AUTH GATE — Super Admin only, same pattern as manager.html  -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div id="authGate" class="pin-gate">
+  <div style="display:flex;flex-direction:column;align-items:center;">
+    <div class="pin-gate-brand">
+      <div class="logo-text">Reset Data</div>
+      <div class="logo-sub">Super Admin Only</div>
+    </div>
+    <div class="pin-card" style="padding: 2rem; width: 340px; text-align: left;">
+      <h3 style="margin-bottom: 1.5rem; text-align: center; color: var(--text-primary); font-weight: 700;">Admin Login</h3>
+      <div style="margin-bottom: 1rem;">
+        <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.3rem; display: block;">Email Address</label>
+        <input type="email" id="adminEmail" class="form-control" style="width: 100%; padding: 0.8rem; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-surface); color: var(--text-primary);" />
+      </div>
+      <div style="margin-bottom: 1.5rem;">
+        <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.3rem; display: block;">Password</label>
+        <input type="password" id="adminPassword" class="form-control" style="width: 100%; padding: 0.8rem; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-surface); color: var(--text-primary);" />
+      </div>
+      <button onclick="loginAdmin()" class="btn btn-primary" style="width: 100%; padding: 0.8rem; border-radius: 8px; font-weight: 700;">Log In</button>
+      <div class="pin-error" id="authError" style="margin-top: 1rem; text-align: center;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!--  MAIN PANEL                                                  -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div id="mainPanel" style="display:none;">
+  <div class="reset-wrap">
+    <a href="manager.html" class="back-link">← Back to Manager Panel</a>
+    <div class="reset-header">
+      <h1>🧹 Reset Data</h1>
+      <p>Pick what to permanently clear before your real customers start using the system.</p>
+    </div>
+
+    <div class="danger-banner">
+      ⚠️ This deletes data permanently — there is no undo. Only check what you're
+      genuinely sure is test data. Nothing here touches your restaurant settings,
+      your own login, or the audit log (that one can't be bulk-deleted by design —
+      it's meant to be a permanent record).
+    </div>
+
+    <div id="cardsWrap"><div class="loading-state"><div class="spinner"></div><span>Counting existing data…</span></div></div>
+
+    <div class="reset-confirm-block">
+      <label>Type <strong>RESET</strong> to enable the button below</label>
+      <input type="text" id="confirmText" class="form-control" placeholder="Type RESET" oninput="validateReset()" autocomplete="off" />
+      <button class="reset-btn" id="resetBtn" disabled onclick="runReset()">Delete Selected Data</button>
+    </div>
+
+    <div class="reset-log" id="resetLog"></div>
+  </div>
+</div>
+
+<script>
+'use strict';
+const auth = firebase.auth();
+
+// Collections offered here are exactly the ones a fresh go-live would want
+// cleared of test data. `users` (admin logins), `system_config` (your real
+// settings) and `audit_log` (immutable by design — Firestore rules block
+// delete on it entirely) are deliberately NOT listed.
+const RESETTABLE = [
+  { id: 'orders',      label: 'Orders',              desc: 'Every order ever placed — almost certainly all test data right now.' },
+  { id: 'audit_log_note', skip: true },
+  { id: 'expenses',    label: 'Expenses',            desc: 'Recorded expense entries.' },
+  { id: 'customers',   label: 'Customers',           desc: 'Loyalty/customer records (phone, points, spend).' },
+  { id: 'reviews',     label: 'Reviews',             desc: 'Customer star ratings & comments.' },
+  { id: 'menu_items',  label: 'Menu Items',          desc: '⚠️ Only clear this if your real menu isn\'t entered yet.' },
+  { id: 'inventory',   label: 'Inventory',           desc: '⚠️ Only clear this if your real stock isn\'t entered yet.' },
+  { id: 'staff',       label: 'Cashiers (staff)',    desc: '⚠️ Removes cashier logins — you\'ll need to re-add them.' },
+  { id: 'tables',      label: 'Tables',              desc: '⚠️ Only clear this if your real table list isn\'t entered yet.' },
+].filter(c => !c.skip);
+
+let currentUserRole = null;
+
+auth.onAuthStateChanged(async user => {
+  if (!user) {
+    document.getElementById('authGate').style.display = 'flex';
+    document.getElementById('mainPanel').style.display = 'none';
+    return;
+  }
+  try {
+    const userDoc = await db.collection('users').doc(user.uid).get();
+    currentUserRole = userDoc.exists ? userDoc.data().role : null;
+    if (currentUserRole !== 'SuperAdmin') {
+      showError('This page is restricted to the Super Admin account.');
+      await auth.signOut();
+      return;
+    }
+    document.getElementById('authGate').style.display = 'none';
+    document.getElementById('mainPanel').style.display = 'block';
+    await renderCards();
+  } catch (e) {
+    console.error(e);
+    showError('Error checking permissions: ' + e.message);
+  }
+});
+
+function showError(msg) {
+  const el = document.getElementById('authError');
+  el.textContent = msg;
+  el.classList.add('visible');
+  setTimeout(() => el.classList.remove('visible'), 4500);
+}
+
+function loginAdmin() {
+  const email = document.getElementById('adminEmail').value.trim();
+  const pass = document.getElementById('adminPassword').value;
+  if (!email || !pass) return showError('Enter email and password');
+  auth.signInWithEmailAndPassword(email, pass).catch(err => showError(err.message));
+}
+
+async function renderCards() {
+  const wrap = document.getElementById('cardsWrap');
+  const counts = await Promise.all(RESETTABLE.map(c =>
+    db.collection(c.id).get().then(snap => snap.size).catch(() => null)
+  ));
+  wrap.innerHTML = RESETTABLE.map((c, i) => {
+    const n = counts[i];
+    const countHtml = n === null ? '<span class="reset-card-count zero">—</span>'
+      : n === 0 ? '<span class="reset-card-count zero">empty</span>'
+      : `<span class="reset-card-count">${n.toLocaleString()}</span>`;
+    const disabled = (n === 0 || n === null) ? 'disabled' : '';
+    return `
+    <label class="reset-card">
+      <input type="checkbox" class="reset-check" value="${c.id}" ${disabled} onchange="validateReset()" />
+      <div class="reset-card-body">
+        <div class="reset-card-name">${c.label}</div>
+        <div class="reset-card-desc">${c.desc}</div>
+      </div>
+      ${countHtml}
+    </label>`;
+  }).join('');
+}
+
+function getSelected() {
+  return Array.from(document.querySelectorAll('.reset-check:checked')).map(el => el.value);
+}
+
+function validateReset() {
+  const btn = document.getElementById('resetBtn');
+  const typed = document.getElementById('confirmText').value.trim();
+  btn.disabled = !(typed === 'RESET' && getSelected().length > 0);
+}
+
+// Firestore has no "delete collection" call from the client SDK — every
+// document has to be deleted individually, batched (max 500 writes/batch).
+async function deleteCollection(name, log) {
+  let total = 0;
+  while (true) {
+    const snap = await db.collection(name).limit(400).get();
+    if (snap.empty) break;
+    const batch = db.batch();
+    snap.docs.forEach(doc => batch.delete(doc.ref));
+    await batch.commit();
+    total += snap.size;
+    log(`  … ${name}: ${total} deleted so far`);
+  }
+  return total;
+}
+
+async function runReset() {
+  const selected = getSelected();
+  if (!selected.length) return;
+  const btn = document.getElementById('resetBtn');
+  btn.disabled = true;
+  const logEl = document.getElementById('resetLog');
+  logEl.classList.add('visible');
+  logEl.innerHTML = '';
+  const log = (line, cls) => {
+    const span = document.createElement('div');
+    if (cls) span.className = cls;
+    span.textContent = line;
+    logEl.appendChild(span);
+    logEl.scrollTop = logEl.scrollHeight;
+  };
+
+  log(`Starting reset of: ${selected.join(', ')}`);
+  const results = {};
+  for (const name of selected) {
+    try {
+      log(`Deleting "${name}"…`);
+      const count = await deleteCollection(name, log);
+      results[name] = count;
+      log(`✓ ${name}: ${count} document(s) deleted.`, 'ok');
+    } catch (e) {
+      log(`✗ ${name}: failed — ${e.message}`, 'err');
+    }
+  }
+
+  try {
+    const who = (auth.currentUser && auth.currentUser.email) || 'SuperAdmin';
+    await db.collection('audit_log').add({
+      timestamp: Date.now(),
+      action: 'DATA_RESET',
+      orderId: '',
+      details: 'Reset via reset-data.html: ' + JSON.stringify(results),
+      performedBy: who
+    });
+  } catch (e) { /* audit must never block the outcome */ }
+
+  log('Done.', 'ok');
+  document.getElementById('confirmText').value = '';
+  await renderCards();
+  validateReset();
+}
+</script>
+</body>
+</html>
