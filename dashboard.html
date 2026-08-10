@@ -48,6 +48,8 @@
       .pos-menu-pane, .pos-cart-pane { min-width:0 !important; max-width:none !important; flex:none !important; }
       .pos-menu-pane { min-height:50vh; }
     }
+    /* ═══ Offline payment lock (NFR-1): visibly, not just functionally, disabled ═══ */
+    body.is-offline [data-payment-btn] { opacity:.4; filter:grayscale(.5); pointer-events:none; }
   </style>
     <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -361,13 +363,9 @@
   }
   function verifyPin() {
     var enteredPin = pin;
-    // 1. Offline manager check first (works without network)
-    if (enteredPin === (CONFIG.MANAGER_PIN || '1234')) {
-      currentUser = { name: 'Manager', role: 'Manager', isManager: true };
-      completeLogin();
-      return;
-    }
-    // 2. Check API for cashier PIN
+    // Real check first, always: every staff PIN (Cashier or Manager) is
+    // verified against the actual staff list, so Void/analytics access is
+    // tied to a named, real person — never a universal magic number.
     CONFIG.apiGet('loginCashier', { pin: enteredPin }).then(function(res) {
       if (res && res.status === 'success' && res.data) {
         currentUser = {
@@ -376,11 +374,25 @@
           isManager: (res.data.role === 'Manager')
         };
         completeLogin();
+      } else if (!navigator.onLine && enteredPin === (CONFIG.MANAGER_PIN || '1234')) {
+        // Offline break-glass fallback ONLY: the staff list is unreachable
+        // without a connection, so a Manager still needs a way in to void a
+        // mistake or close the shift. This path is unavailable whenever the
+        // device is online — change CONFIG.MANAGER_PIN from its default
+        // before go-live, and treat every offline-fallback login as
+        // reviewable (it is not attributable to a named person).
+        currentUser = { name: 'Manager (offline)', role: 'Manager', isManager: true };
+        completeLogin();
       } else {
         showPinError();
       }
     }).catch(function() {
-      showPinError();
+      if (!navigator.onLine && enteredPin === (CONFIG.MANAGER_PIN || '1234')) {
+        currentUser = { name: 'Manager (offline)', role: 'Manager', isManager: true };
+        completeLogin();
+      } else {
+        showPinError();
+      }
     });
   }
   function completeLogin() {
@@ -532,13 +544,16 @@
   /* ═══════════════════════════════════════════════════
      OFFLINE / ONLINE
      ═══════════════════════════════════════════════════ */
+  document.body.classList.toggle('is-offline', !navigator.onLine);
   window.addEventListener('offline', () => {
     document.getElementById('offlineBanner').classList.add('show');
-    showToast('Connection lost -- payments locked', 'error');
+    document.body.classList.add('is-offline');
+    showToast('Connection lost — payments are locked until it returns', 'error');
   });
   window.addEventListener('online', () => {
     document.getElementById('offlineBanner').classList.remove('show');
-    showToast('Back online', 'success');
+    document.body.classList.remove('is-offline');
+    showToast('Back online — payments unlocked', 'success');
   });
 
   /* ═══════════════════════════════════════════════════
@@ -553,7 +568,10 @@
       ' <button class="btn btn-ghost btn-sm" onclick="logout()">Logout</button>';
   }
   function getSelectedCashier() { return currentUser ? currentUser.name : ''; }
-  function isPaymentLocked() { return false; } // always authenticated
+  // Real enforcement (NFR-1): a "payment" collected offline can silently fail
+  // to sync, or sync twice — that's the one thing that must never be fuzzy
+  // with real money. Cash/POS/Settle are blocked until the connection is back.
+  function isPaymentLocked() { return !navigator.onLine; }
   function logout() { location.reload(); }
 
 function setRefreshing(yes) {
@@ -665,14 +683,14 @@ function setRefreshing(yes) {
     const timeLabel = formatTime(order.timestamp);
     const badgeClass = getBadgeClass(order.status);
     const badgeLabel = getLabel(order.status);
-    const itemLines = buildItemLines(order.items);
+    const itemLines = buildItemLines(order);
 
     // Build action buttons based on status
     let actions = '';
     if (cat === 'active') {
       actions = `<button class="btn btn-info" onclick="event.stopPropagation();handleStartPreparing('${escAttr(order.orderId || order.id)}')">Start Preparing</button>`;
-      actions += `<button class="btn btn-primary" onclick="event.stopPropagation();handlePayPOS('${escAttr(order.orderId || order.id)}')">POS</button>`;
-      actions += `<button class="btn btn-cash" onclick="event.stopPropagation();handlePayCash('${escAttr(order.orderId || order.id)}')">Cash</button>`;
+      actions += `<button class="btn btn-primary" data-payment-btn="1" onclick="event.stopPropagation();handlePayPOS('${escAttr(order.orderId || order.id)}')">POS</button>`;
+      actions += `<button class="btn btn-cash" data-payment-btn="1" onclick="event.stopPropagation();handlePayCash('${escAttr(order.orderId || order.id)}')">Cash</button>`;
       if (currentUser && currentUser.isManager) {
         actions += `<button class="btn btn-danger-outline" id="voidBtn-${escAttr(order.orderId || order.id)}" onclick="event.stopPropagation();handleVoid('${escAttr(order.orderId || order.id)}')">Void</button>`;
       }
@@ -681,8 +699,8 @@ function setRefreshing(yes) {
     } else if (cat === 'ready') {
       actions = `<button class="btn btn-warning" onclick="event.stopPropagation();handleMarkServed('${escAttr(order.orderId || order.id)}')">Mark Served</button>`;
     } else if (cat === 'served') {
-      actions = `<button class="btn btn-primary" onclick="event.stopPropagation();handlePayPOS('${escAttr(order.orderId || order.id)}')">POS</button>`;
-      actions += `<button class="btn btn-cash" onclick="event.stopPropagation();handlePayCash('${escAttr(order.orderId || order.id)}')">Cash</button>`;
+      actions = `<button class="btn btn-primary" data-payment-btn="1" onclick="event.stopPropagation();handlePayPOS('${escAttr(order.orderId || order.id)}')">POS</button>`;
+      actions += `<button class="btn btn-cash" data-payment-btn="1" onclick="event.stopPropagation();handlePayCash('${escAttr(order.orderId || order.id)}')">Cash</button>`;
     }
     // WhatsApp forward/share button — available for ALL statuses
     actions += `<button class="btn btn-whatsapp" title="Forward order via WhatsApp" onclick="event.stopPropagation();openWhatsAppForward('${escAttr(order.orderId || order.id)}')"><span aria-hidden="true">💬</span> Share</button>`;
@@ -721,7 +739,7 @@ function setRefreshing(yes) {
         <div class="order-customer">${escHtml(order.name || order.customerName || '--')}</div>
         <div class="order-location">${escHtml(order.location || order.tableNo || '--')}</div>
         <div class="order-items">${itemLines}</div>
-        <div class="order-total">${CONFIG.formatCurrency(order.total || order.totalRevenue)}</div>
+        <div class="order-total">${CONFIG.formatCurrency(order.total || order.totalRevenue || order.totalPrice || 0)}</div>
       </div>
       <div class="order-card-footer">
         <div class="prep-timers">
@@ -733,9 +751,9 @@ function setRefreshing(yes) {
     return cardEl;
   }
 
-  function buildItemLines(itemsStr) {
-    if (!itemsStr) return '<em style="color:var(--c-text-light)">No items</em>';
-    const items = parseOrderItems(itemsStr);
+  function buildItemLines(order) {
+    const items = getOrderItemLines(order);
+    if (!items.length) return '<em style="color:var(--c-text-light)">No items</em>';
     return items.map(i => `<div>${i.qty}x <strong>${escHtml(i.name)}</strong></div>`).join('');
   }
 
@@ -805,6 +823,7 @@ function setRefreshing(yes) {
   }
 
   async function handlePayPOS(orderId) {
+    if (isPaymentLocked()) return showToast('You are offline — payments are locked until the connection returns', 'error');
     const cashier = getSelectedCashier();
     const newStatus = 'Paid - POS (' + cashier + ')';
     const ok = await updateStatus(orderId, newStatus, cashier);
@@ -817,6 +836,7 @@ function setRefreshing(yes) {
   }
 
   async function handlePayCash(orderId) {
+    if (isPaymentLocked()) return showToast('You are offline — payments are locked until the connection returns', 'error');
     const cashier = getSelectedCashier();
     const newStatus = 'Paid - Cash (' + cashier + ')';
     const ok = await updateStatus(orderId, newStatus, cashier);
@@ -906,7 +926,7 @@ function setRefreshing(yes) {
   function openDetailModal(orderId) {
     const order = getOrderById(orderId);
     if (!order) return;
-    const items = parseOrderItems(order.items);
+    const items = getOrderItemLines(order);
     const badgeClass = getBadgeClass(order.status);
     const badgeLabel = getLabel(order.status);
     const cat = getStatusCategory(order.status);
@@ -923,7 +943,7 @@ function setRefreshing(yes) {
       <hr class="divider">
       <div style="font-size:0.78rem;font-weight:700;color:var(--c-text-light);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.4rem;">Items Ordered</div>
       <div class="detail-items-list">${itemRows || '<em style="color:var(--c-text-light)">No items</em>'}</div>
-      <div class="detail-total"><span>Total</span><span>${CONFIG.formatCurrency(order.total || order.totalRevenue)}</span></div>`;
+      <div class="detail-total"><span>Total</span><span>${CONFIG.formatCurrency(order.total || order.totalRevenue || order.totalPrice || 0)}</span></div>`;
 
     const footer = document.getElementById('detailModalFooter');
     footer.innerHTML = '<button class="btn btn-ghost" onclick="closeDetailModal()">Close</button>';
@@ -970,6 +990,26 @@ function setRefreshing(yes) {
     }).filter(i => i.name);
   }
 
+  // Normalizes an order's items to a plain {qty, name}[] regardless of which
+  // schema it was written under:
+  //  1. New structured schema — order.items is a real array (AD-5).
+  //  2. Legacy GAS schema — order.items is itself the pipe-delimited string.
+  //  3. Firestore-native orders created before the structured-items fix —
+  //     fall back to parsedItems, then the raw cartItems string.
+  function getOrderItemLines(order) {
+    if (!order) return [];
+    if (Array.isArray(order.items)) {
+      return order.items.map(i => ({ qty: i.qty || i.quantity || 1, name: i.name || '' })).filter(i => i.name);
+    }
+    if (typeof order.items === 'string' && order.items) {
+      return parseOrderItems(order.items);
+    }
+    if (Array.isArray(order.parsedItems) && order.parsedItems.length) {
+      return order.parsedItems.map(i => ({ qty: i.qty || 1, name: i.name || '' })).filter(i => i.name);
+    }
+    return parseOrderItems(order.cartItems || '');
+  }
+
   function formatReceiptDate(ts) {
     const d = new Date(ts);
     if (isNaN(d)) return ts || '--';
@@ -984,7 +1024,7 @@ function setRefreshing(yes) {
   }
 
   function generateReceiptHTML(order) {
-    const items = parseOrderItems(order.items);
+    const items = getOrderItemLines(order);
     const statusStr = order.status || '';
     let cashier = 'Staff', method = 'N/A';
     if (statusStr.includes('Paid')) {
@@ -1015,7 +1055,7 @@ function setRefreshing(yes) {
       <div class="receipt-items-hdr">ITEMS ORDERED</div>
       ${itemLines}
       <hr class="receipt-dash">
-      <div class="receipt-total-row"><span>TOTAL</span><span>${CONFIG.formatCurrency(order.total || order.totalRevenue)}</span></div>
+      <div class="receipt-total-row"><span>TOTAL</span><span>${CONFIG.formatCurrency(order.total || order.totalRevenue || order.totalPrice || 0)}</span></div>
       <div class="receipt-method">Payment Method: ${escHtml(method)}</div>
       <hr class="receipt-dash">
       <div class="receipt-footer">${footer}</div>
@@ -1079,11 +1119,12 @@ function setRefreshing(yes) {
      WHATSAPP FORWARD
      ═══════════════════════════════════════════════════ */
   function buildOrderSummary(order) {
+    const itemsText = getOrderItemLines(order).map(i => i.qty + 'x ' + i.name).join(', ') || '--';
     return '🧾 Order ' + (order.orderId || order.id || '--') +
       '\nCustomer: ' + (order.name || order.customerName || '--') +
       '\nTable: ' + (order.location || order.tableNo || '--') +
-      '\nItems: ' + (order.items || '--') +
-      '\nTotal: ' + CONFIG.formatCurrency(order.total || order.totalRevenue || 0) +
+      '\nItems: ' + itemsText +
+      '\nTotal: ' + CONFIG.formatCurrency(order.total || order.totalRevenue || order.totalPrice || 0) +
       '\nStatus: ' + getLabel(order.status);
   }
   function buildWhatsAppForwardUrl(order) {
@@ -1368,19 +1409,37 @@ function setRefreshing(yes) {
     var name = (document.getElementById('mo_name').value || '').trim() || 'Walk-in';
     var phone = (document.getElementById('mo_phone').value || '').trim();
     var location = document.getElementById('mo_location').value || 'Counter';
-    var totalRaw = document.getElementById('mo_total').value;
-    var total = parseFloat(totalRaw);
-    var items = (document.getElementById('mo_items').value || '').trim();
     var backdateChecked = document.getElementById('mo_backdate_toggle').checked;
     var dateVal = document.getElementById('mo_date').value;
     var timeVal = document.getElementById('mo_time').value;
 
-    if (!items) { showToast('Please enter at least one item', 'warning'); return; }
-    if (!totalRaw || isNaN(total) || total < 0) { showToast('Please enter a valid total amount', 'warning'); return; }
+    if (!manualOrderCart.length) { showToast('Please add at least one item', 'warning'); return; }
 
-    // Append backdate note if both date+time provided and checkbox is ticked
+    // Structured items (AD-5) — this is now the source of truth for what was
+    // ordered, at what price/cost, and — critically — its inventory link.
+    // Without unitCost + linkedInventoryId per line, neither profit
+    // reporting nor stock deduction can ever work; a flat "2x Rice | 1x
+    // Coke" string throws that data away before it reaches the database.
+    var items = manualOrderCart.map(function (c) {
+      return {
+        name: c.name,
+        qty: c.qty,
+        unitPrice: c.price || 0,
+        unitCost: c.cost || 0,
+        emoji: c.emoji || '',
+        linkedInventoryId: c.linkedInventoryId || null,
+        deductionQty: c.deductionQty || null
+      };
+    });
+    var totalRevenue = items.reduce(function (s, i) { return s + i.unitPrice * i.qty; }, 0);
+    var totalCost    = items.reduce(function (s, i) { return s + i.unitCost * i.qty; }, 0);
+    var profit       = totalRevenue - totalCost;
+
+    // Legacy human-readable summary, kept alongside items[] — a few display/
+    // search paths still read it, and it's a harmless backup.
+    var cartItemsStr = manualOrderCart.map(function (c) { return c.qty + 'x ' + c.name; }).join(' | ');
     if (backdateChecked && dateVal && timeVal) {
-      items += ' ⚠️ BACKDATED TO: ' + dateVal + ' ' + timeVal;
+      cartItemsStr += ' ⚠️ BACKDATED TO: ' + dateVal + ' ' + timeVal;
     }
 
     try {
@@ -1389,8 +1448,12 @@ function setRefreshing(yes) {
         customerName: name,
         customerPhone: phone,
         location: location,
-        cartItems: items,
-        totalPrice: total,
+        items: items,
+        cartItems: cartItemsStr,
+        totalPrice: totalRevenue,
+        totalRevenue: totalRevenue,
+        totalCost: totalCost,
+        profit: profit,
         orderType: 'Counter',
         status: 'Active'
       });

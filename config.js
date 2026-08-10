@@ -423,10 +423,14 @@ const CONFIG = {
           const snapshot = await db.collection('audit_log').orderBy('timestamp', 'desc').limit(200).get();
           return { status: 'success', data: snapshot.docs.map(doc => doc.data()) };
         }
-        if (type === 'loginCashier') {
-          // Default offline fallback if no users in Firestore yet
-          return { status: 'success', data: { name: 'Cashier ' + (params.pin || ''), role: 'Cashier' } };
-        }
+        // NOTE: 'loginCashier' is deliberately NOT handled here. Cashiers still
+        // live in the Sheets-backed `Cashiers` list (Code.gs), which already does
+        // a real PIN + active-status check server-side. Do not add a Firestore
+        // stub here that accepts every PIN — that was a real security hole
+        // (any 4-digit PIN logged a "cashier" in with a fabricated name). Let
+        // this fall through to the real GAS call below. Proper fix (FR-1.4,
+        // PRD): move `staff` into Firestore with a hashed PIN verified by a
+        // Cloud Function.
       } catch (err) {
         console.error("Firestore apiGet error:", err);
       }
@@ -448,40 +452,39 @@ const CONFIG = {
           payload.timestamp = Date.now();
           // Normalize legacy 'Pending' to the canonical 'Active' status
           payload.status = (payload.status && payload.status !== 'Pending') ? payload.status : 'Active';
-          // Parse the cartItems string ("2x Rice | 1x Coke (Notes: ...)") into a structured array
-          if (payload.cartItems && typeof payload.cartItems === 'string') {
+
+          if (payload.items && Array.isArray(payload.items) && payload.items.length) {
+            // Structured items (AD-5) are the source of truth when supplied.
+            // Derive parsedItems (used for "Most Ordered" popularity counts)
+            // and revenue/cost/profit from it as a safety net, in case a
+            // caller sent items[] without also computing these (UX-7: the
+            // system does the math, callers shouldn't have to duplicate it).
+            payload.parsedItems = payload.items.map(i => ({ qty: i.qty || i.quantity || 1, name: i.name || '' }));
+            if (payload.totalRevenue === undefined) {
+              payload.totalRevenue = payload.items.reduce((s, i) => s + (Number(i.unitPrice) || 0) * (i.qty || i.quantity || 1), 0);
+            }
+            if (payload.totalCost === undefined) {
+              payload.totalCost = payload.items.reduce((s, i) => s + (Number(i.unitCost) || 0) * (i.qty || i.quantity || 1), 0);
+            }
+            if (payload.profit === undefined) {
+              payload.profit = payload.totalRevenue - payload.totalCost;
+            }
+          } else if (payload.cartItems && typeof payload.cartItems === 'string') {
+            // Legacy path: no structured items supplied, only the pipe string.
             const clean = payload.cartItems.split(' (Notes:')[0];
             payload.parsedItems = clean.split(' | ').map(part => {
               const m = part.trim().match(/^(\d+)x\s+(.+)$/);
               return m ? { qty: parseInt(m[1], 10), name: m[2].trim() } : null;
             }).filter(Boolean);
           }
+
           await db.collection('orders').doc(payload.orderId).set(payload);
           CONFIG.writeAudit('ORDER_CREATED', payload.orderId,
             'Total: ' + (payload.totalPrice || payload.total || 0), payload.cashier || payload.customerName || 'System');
-
-          // Auto-deduct inventory if linked
-          if (payload.items && Array.isArray(payload.items)) {
-            for (const item of payload.items) {
-              if (item.linkedInventoryId && item.deductionQty) {
-                const deduction = parseFloat(item.deductionQty) * (item.quantity || 1);
-                if (deduction > 0) {
-                  const invRef = db.collection('inventory').doc(item.linkedInventoryId);
-                  try {
-                    await db.runTransaction(async (transaction) => {
-                      const doc = await transaction.get(invRef);
-                      if (doc.exists) {
-                        const newStock = Math.max(0, (doc.data().currentStock || 0) - deduction);
-                        transaction.update(invRef, { currentStock: newStock });
-                      }
-                    });
-                  } catch (e) {
-                    console.error("Auto-deduct error for " + item.name, e);
-                  }
-                }
-              }
-            }
-          }
+          // NOTE: inventory is deducted on first PAYMENT (see deductInventoryForOrder,
+          // called from 'updateStatus' and 'settleCredit'), not here at order creation.
+          // Deducting at creation meant a voided or never-paid order still consumed real
+          // stock — see FR-3.5/FR-5.2 in the PRD.
           return { status: 'success', data: payload };
         }
         if (action === 'updateOrder') {
@@ -517,6 +520,10 @@ const CONFIG = {
             updates.cashierName = cashier;
             auditAction = 'PAYMENT_RECEIVED';
             auditDetails = updates.paymentMethod + ' payment received' + (cashier ? ' by ' + cashier : '');
+            // First payment triggers stock deduction (FR-3.5). Idempotency is
+            // enforced inside deductInventoryForOrder itself via a claim
+            // transaction, so a double-tap or retry here can never double-deduct.
+            await CONFIG.deductInventoryForOrder(orderId);
           } else if (newStatus.indexOf('Void') === 0) {
             updates.voidedAt = Date.now();
             updates.voidedBy = cashier || 'Manager';
@@ -542,6 +549,9 @@ const CONFIG = {
             paidAt: Date.now(),
             creditSettledAt: Date.now()
           });
+          // Credit orders were never deducted at issue time (FR-3.5) — settlement
+          // is their first real payment, so it's deducted now.
+          await CONFIG.deductInventoryForOrder(payload.orderId);
           CONFIG.writeAudit('CREDIT_SETTLED', payload.orderId, 'Credit settled via ' + method + (cashier ? ' by ' + cashier : ''), cashier || 'System');
           return { status: 'success', data: { orderId: payload.orderId, status: newStatus } };
         }
@@ -598,6 +608,64 @@ const CONFIG = {
       redirect: "follow",
     });
     return await res.json();
+  },
+
+  // ─── Inventory deduction on first payment (FR-3.5 / FR-5.2) ──────────
+  // Deducting at order-creation time meant voided or never-paid orders still
+  // consumed real stock. Deduction now happens on first payment / credit
+  // settlement instead, guarded so it can only ever fire once per order.
+  //
+  // The guard is a small transaction on the ORDER doc itself: read
+  // `inventoryDeducted`, and if it's not already true, claim it (set true)
+  // in that same transaction before doing anything else. Two simultaneous
+  // "first payment" calls for the same order race on that one transaction;
+  // Firestore guarantees only one of them sees `inventoryDeducted: false`
+  // and proceeds — the other sees `true` and backs off. This is the same
+  // pattern the PRD asks for at FR-5.2's AC ("two simultaneous sales of the
+  // last unit never drive stock negative").
+  async claimInventoryDeduction(orderId) {
+    const orderRef = db.collection('orders').doc(orderId);
+    return await db.runTransaction(async (tx) => {
+      const doc = await tx.get(orderRef);
+      if (!doc.exists) return null;
+      const data = doc.data();
+      if (data.inventoryDeducted) return null; // already claimed by an earlier call
+      tx.update(orderRef, { inventoryDeducted: true });
+      return data;
+    });
+  },
+
+  async deductInventoryForOrder(orderId) {
+    if (!orderId) return;
+    let orderData;
+    try {
+      orderData = await CONFIG.claimInventoryDeduction(orderId);
+    } catch (e) {
+      console.error("Inventory deduction claim failed for " + orderId, e);
+      return;
+    }
+    if (!orderData) return; // nothing to do — already deducted, or order missing
+    const items = orderData.items;
+    if (!items || !Array.isArray(items)) return;
+    for (const item of items) {
+      if (item.linkedInventoryId && item.deductionQty) {
+        const deduction = parseFloat(item.deductionQty) * (item.quantity || item.qty || 1);
+        if (deduction > 0) {
+          const invRef = db.collection('inventory').doc(item.linkedInventoryId);
+          try {
+            await db.runTransaction(async (transaction) => {
+              const doc = await transaction.get(invRef);
+              if (doc.exists) {
+                const newStock = Math.max(0, (doc.data().currentStock || 0) - deduction);
+                transaction.update(invRef, { currentStock: newStock });
+              }
+            });
+          } catch (e) {
+            console.error("Auto-deduct error for " + item.name, e);
+          }
+        }
+      }
+    }
   },
 
   // ─── Audit Log (Firestore-native) ──────────────────────

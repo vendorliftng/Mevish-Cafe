@@ -655,6 +655,8 @@
     var refreshTimer      = null;
     var prepTimerInterval = null;
     var refreshCountdown  = Math.floor(TRACKER_INTERVAL / 1000);
+    var trackUnsubscribe  = null;  // active Firestore onSnapshot() listener, if any
+    var usingLiveTracking = false; // true once we're on the Firestore realtime path
 
     // Phase 5C: orders already reviewed this session (prevents re-prompting after submit)
     var submittedReviews  = {};
@@ -1059,12 +1061,19 @@
           // Total
           totalHtml +
 
-          // Auto-refresh bar (only if order still in progress)
+          // Freshness indicator (UX-11): honest about whether this screen is
+          // a live Firestore listener or an old-style poll, so the guest
+          // never has to wonder if it's stale.
           ((!paid && !void_) ?
-            '<div class="tracker-refresh" id="refreshBar">' +
-              '<span><span class="tracker-refresh-spinner"></span> Auto-refreshing…</span>' +
-              '<span id="countdownDisplay">Refreshing in ' + refreshCountdown + 's…</span>' +
-            '</div>' : '') +
+            (usingLiveTracking ?
+              '<div class="tracker-refresh" id="refreshBar">' +
+                '<span><span class="tracker-refresh-spinner"></span> Live — updates the instant staff act</span>' +
+              '</div>' :
+              '<div class="tracker-refresh" id="refreshBar">' +
+                '<span><span class="tracker-refresh-spinner"></span> Auto-refreshing…</span>' +
+                '<span id="countdownDisplay">Refreshing in ' + refreshCountdown + 's…</span>' +
+              '</div>')
+            : '') +
 
           // Footer links
           '<div class="tracker-footer-links">' +
@@ -1100,8 +1109,10 @@
         stopPrepTimer();
       }
 
-      // Start auto-refresh only if order not complete
-      if (!paid && !void_) {
+      // Start polling only on the legacy (non-Firestore) path — the live
+      // listener already re-renders on every change, so a 15s poll loop on
+      // top of it would just tear down and recreate the subscription.
+      if (!usingLiveTracking && !paid && !void_) {
         startAutoRefresh(order.orderId || currentOrderId);
       } else {
         clearInterval(refreshTimer);
@@ -1196,6 +1207,27 @@
       }, 1000);
     }
 
+    // Maps a raw Firestore `orders/{id}` doc onto the shape renderResult()
+    // expects — the same shape the legacy GAS `track` endpoint used to
+    // return — so the rendering path below needed no changes, only how the
+    // data arrives did (FR-11.2).
+    function normalizeFirestoreOrder(raw) {
+      return {
+        orderId:     raw.orderId || currentOrderId,
+        status:      raw.status || 'Active',
+        name:        raw.customerName || raw.name || '',
+        phone:       raw.customerPhone || raw.phone || '',
+        location:    raw.location || '',
+        items:       raw.items || raw.parsedItems || [],
+        total:       raw.totalPrice || raw.totalRevenue || raw.total || 0,
+        timestamp:   raw.timestamp || null,
+        prepStarted: raw.prepStartedAt || null,
+        prepTime:    raw.estimatedPrepMin,
+        readyAt:     raw.readyAt || null,
+        paidAt:      raw.paidAt || null
+      };
+    }
+
     // ── Core track function ────────────────────
     function trackOrder(orderId) {
       currentOrderId = (orderId || '').trim();
@@ -1206,6 +1238,33 @@
 
       showLoading();
 
+      // Detach any previous listener/poll before starting a new lookup.
+      if (trackUnsubscribe) { trackUnsubscribe(); trackUnsubscribe = null; }
+      clearInterval(refreshTimer); refreshTimer = null;
+
+      if (typeof db !== 'undefined' && db) {
+        // Realtime path (AD-2): a live Firestore listener means status
+        // changes reach the guest the instant staff act — no 15s wait.
+        usingLiveTracking = true;
+        trackUnsubscribe = db.collection('orders').doc(currentOrderId).onSnapshot(
+          function (doc) {
+            if (doc.exists) {
+              renderResult(normalizeFirestoreOrder(doc.data()));
+            } else {
+              showNotFound(currentOrderId);
+            }
+          },
+          function (err) {
+            console.error('Track listener error', err);
+            showError();
+          }
+        );
+        return;
+      }
+
+      // Fallback: legacy GAS polling path, used only if Firestore isn't
+      // available on this page load.
+      usingLiveTracking = false;
       apiGet('track', { orderId: currentOrderId })
         .then(function (data) {
           if (data.status === 'success' && data.data) {

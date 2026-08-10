@@ -51,23 +51,28 @@
       <div class="logo-text" id="authRestName">Restaurant</div>
       <div class="logo-sub">Manager Panel</div>
     </div>
+    <!-- NOTE: this form intentionally uses style.css's always-defined --text-primary/
+         --border/--bg-surface variables, NOT the --c-* theme family. --c-* is only set by
+         CONFIG.applyTheme(), which (in this file) doesn't run until AFTER login succeeds —
+         so before login, --c-* is undefined and inputs rendered with no visible border at
+         all (an invalid var() collapses `border` to its initial value, i.e. none). -->
     <div class="pin-card" style="padding: 2rem; width: 340px; text-align: left;">
-      <h3 style="margin-bottom: 1.5rem; text-align: center; color: var(--c-text); font-weight: 700;">Admin Login</h3>
+      <h3 style="margin-bottom: 1.5rem; text-align: center; color: var(--text-primary); font-weight: 700;">Admin Login</h3>
       <div style="margin-bottom: 1rem;">
-        <label style="font-size: 0.8rem; font-weight: 600; color: var(--c-text-light); margin-bottom: 0.3rem; display: block;">Email Address</label>
-        <input type="email" id="adminEmail" class="form-control" style="width: 100%; padding: 0.8rem; border-radius: 8px; border: 1px solid var(--c-border); background: var(--c-bg-card); color: var(--c-text);" />
+        <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.3rem; display: block;">Email Address</label>
+        <input type="email" id="adminEmail" class="form-control" style="width: 100%; padding: 0.8rem; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-surface); color: var(--text-primary);" />
       </div>
       <div style="margin-bottom: 1.5rem; position: relative;">
-        <label style="font-size: 0.8rem; font-weight: 600; color: var(--c-text-light); margin-bottom: 0.3rem; display: block;">Password</label>
-        <input type="password" id="adminPassword" class="form-control" style="width: 100%; padding: 0.8rem; border-radius: 8px; border: 1px solid var(--c-border); background: var(--c-bg-card); color: var(--c-text); padding-right: 2.5rem;" />
-        <button onclick="togglePassword()" type="button" style="position: absolute; right: 0.5rem; top: 1.9rem; background: none; border: none; color: var(--c-text-light); cursor: pointer; font-size: 1.2rem;">&#128065;</button>
+        <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.3rem; display: block;">Password</label>
+        <input type="password" id="adminPassword" class="form-control" style="width: 100%; padding: 0.8rem; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-surface); color: var(--text-primary); padding-right: 2.5rem;" />
+        <button onclick="togglePassword()" type="button" style="position: absolute; right: 0.5rem; top: 1.9rem; background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 1.2rem;">&#128065;</button>
       </div>
       <button onclick="loginAdmin()" class="btn btn-primary" style="width: 100%; padding: 0.8rem; border-radius: 8px; font-weight: 700;">Secure Login</button>
       <div class="pin-error" id="authError" style="margin-top: 1rem; text-align: center;"></div>
-      
-      <div style="margin-top: 1.5rem; font-size: 0.75rem; color: var(--c-text-light); text-align: center;">
+
+      <div style="margin-top: 1.5rem; font-size: 0.75rem; color: var(--text-secondary); text-align: center;">
         Don't have an admin account? <br/>
-        <a href="#" onclick="registerAdmin()" style="color: var(--c-primary); text-decoration: underline;">(First Time Setup Only) Register Admin</a>
+        <a href="#" onclick="registerAdmin()" style="color: var(--gold); text-decoration: underline;">(First Time Setup Only) Register Admin</a>
       </div>
     </div>
   </div>
@@ -187,6 +192,19 @@
             <div class="kpi-value" id="kpiCredit">&#8212;</div>
             <div class="kpi-label">Outstanding Credit</div>
             <div class="kpi-sub" id="kpiCreditSub"></div>
+          </div>
+          <div class="kpi-card kpi-warning">
+            <div class="kpi-value" id="kpiCost">&#8212;</div>
+            <div class="kpi-label">Total Cost</div>
+            <div class="kpi-sub" id="kpiCostSub"></div>
+          </div>
+          <div class="kpi-card kpi-success">
+            <div class="kpi-value" id="kpiProfit">&#8212;</div>
+            <div class="kpi-label">Gross Profit</div>
+          </div>
+          <div class="kpi-card kpi-info">
+            <div class="kpi-value" id="kpiMargin">&#8212;</div>
+            <div class="kpi-label">Margin %</div>
           </div>
         </div>
 
@@ -722,6 +740,18 @@ function applyFilters() {
   loadAnalyticsEnhancements();
 }
 
+// Order documents have never actually had a field literally named `total` —
+// every order-creation path (dashboard.html, index.html) writes `totalPrice`
+// (and, since the structured-items fix, `totalRevenue`/`totalCost`/`profit`
+// too). Reading `o.total` silently evaluated to NaN -> 0 everywhere, which is
+// why Revenue/Charts/Cashier Audit/Credit Log/Orders list all showed ₦0
+// regardless of real sales. These helpers are the one place that knows the
+// real field names, with graceful fallback for orders placed before cost
+// tracking existed (those show 0 cost/profit rather than crashing).
+function getOrderTotal(o)  { return Number(o.totalPrice ?? o.totalRevenue ?? o.total ?? 0) || 0; }
+function getOrderCost(o)   { return Number(o.totalCost ?? 0) || 0; }
+function getOrderProfit(o) { return (o.profit !== undefined && o.profit !== null) ? (Number(o.profit) || 0) : (getOrderTotal(o) - getOrderCost(o)); }
+
 function countUp(el, target, prefix, suffix) {
   prefix = prefix || ''; suffix = suffix || '';
   const locale = (CONFIG.RESTAURANT && CONFIG.RESTAURANT.locale) || 'en-US';
@@ -739,24 +769,44 @@ function countUp(el, target, prefix, suffix) {
 function renderKPIs(orders) {
   const isPaid = (s) => CONFIG.STATUS ? CONFIG.STATUS.isPaid(s) : s.includes('Paid');
   const isCredit = (s) => CONFIG.STATUS ? CONFIG.STATUS.isCredit(s) : s.includes('Credit');
-  let revenue = 0, paidCount = 0, creditAmt = 0, creditCount = 0;
+  let revenue = 0, cost = 0, paidCount = 0, creditAmt = 0, creditCount = 0, costKnownCount = 0;
   orders.forEach(o => {
-    const amt = parseFloat(o.total) || 0;
-    if (isPaid(o.status)) { revenue += amt; paidCount++; }
-    if (isCredit(o.status)) { creditAmt += amt; creditCount++; }
+    if (isPaid(o.status)) {
+      revenue += getOrderTotal(o);
+      cost += getOrderCost(o);
+      paidCount++;
+      // Orders placed before cost tracking existed have no cost data at all
+      // (not zero-cost — just unknown). Track how many paid orders actually
+      // have it, so the Total Cost card can say so instead of quietly
+      // understating cost as orders age out of the date range.
+      if (o.totalCost !== undefined || o.profit !== undefined) costKnownCount++;
+    }
+    if (isCredit(o.status)) { creditAmt += getOrderTotal(o); creditCount++; }
   });
+  const profit = revenue - cost;
+  const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
+
   countUp(document.getElementById('kpiRevenue'), Math.floor(revenue), CONFIG.CURRENCY);
   countUp(document.getElementById('kpiOrders'), orders.length);
   countUp(document.getElementById('kpiAvg'), Math.floor(paidCount > 0 ? revenue / paidCount : 0), CONFIG.CURRENCY);
   countUp(document.getElementById('kpiCredit'), Math.floor(creditAmt), CONFIG.CURRENCY);
   document.getElementById('kpiCreditSub').textContent = creditCount > 0 ? `(${creditCount} pending)` : '';
+  countUp(document.getElementById('kpiCost'), Math.floor(cost), CONFIG.CURRENCY);
+  countUp(document.getElementById('kpiProfit'), Math.floor(profit), CONFIG.CURRENCY);
+  document.getElementById('kpiMargin').textContent = revenue > 0 ? margin.toFixed(1) + '%' : '—';
+  const costSub = document.getElementById('kpiCostSub');
+  if (costSub) {
+    costSub.textContent = (paidCount > 0 && costKnownCount < paidCount)
+      ? `(${paidCount - costKnownCount} of ${paidCount} orders have no cost data)`
+      : '';
+  }
 }
 
 function renderCharts(orders) {
   const isPaid = (s) => CONFIG.STATUS ? CONFIG.STATUS.isPaid(s) : s.includes('Paid');
   const getMethod = (s) => CONFIG.STATUS ? CONFIG.STATUS.getMethod(s) : (s.includes('POS') ? 'POS' : 'Cash');
   let cash = 0, pos = 0;
-  orders.forEach(o => { if (!isPaid(o.status)) return; const a = parseFloat(o.total)||0; if(getMethod(o.status)==='Cash') cash+=a; else pos+=a; });
+  orders.forEach(o => { if (!isPaid(o.status)) return; const a = getOrderTotal(o); if(getMethod(o.status)==='Cash') cash+=a; else pos+=a; });
 
   if (revenueChartInstance) revenueChartInstance.destroy();
   revenueChartInstance = new Chart(document.getElementById('revenueChart').getContext('2d'), {
@@ -776,7 +826,7 @@ function renderCharts(orders) {
   const dayLabels = days.map(d => numDays <= 14 ? ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()] : `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`);
   const dailyMap = {};
   days.forEach(d => { dailyMap[`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`] = 0; });
-  orders.forEach(o => { if (!isPaid(o.status)) return; const k = new Date(o.timestamp); const key = `${k.getFullYear()}-${String(k.getMonth()+1).padStart(2,'0')}-${String(k.getDate()).padStart(2,'0')}`; if (dailyMap.hasOwnProperty(key)) dailyMap[key] += parseFloat(o.total)||0; });
+  orders.forEach(o => { if (!isPaid(o.status)) return; const k = new Date(o.timestamp); const key = `${k.getFullYear()}-${String(k.getMonth()+1).padStart(2,'0')}-${String(k.getDate()).padStart(2,'0')}`; if (dailyMap.hasOwnProperty(key)) dailyMap[key] += getOrderTotal(o); });
   const dailyData = days.map(d => dailyMap[`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`]);
 
   document.getElementById('dailyChartLabel').textContent = numDays <= 7 ? 'Last 7 days' : `Last ${numDays} days`;
@@ -798,7 +848,7 @@ function renderCashierAudit(orders) {
   const getCashier = (s) => CONFIG.STATUS ? CONFIG.STATUS.getCashier(s) : null;
   const fmt = (v) => CONFIG.formatCurrency(v);
   const audit = {};
-  orders.forEach(o => { if (!isPaid(o.status)) return; const c = getCashier(o.status); if (!c) return; if (!audit[c]) audit[c] = { cash: 0, pos: 0, orders: 0 }; const a = parseFloat(o.total)||0; if (getMethod(o.status)==='Cash') audit[c].cash+=a; else audit[c].pos+=a; audit[c].orders++; });
+  orders.forEach(o => { if (!isPaid(o.status)) return; const c = getCashier(o.status); if (!c) return; if (!audit[c]) audit[c] = { cash: 0, pos: 0, orders: 0 }; const a = getOrderTotal(o); if (getMethod(o.status)==='Cash') audit[c].cash+=a; else audit[c].pos+=a; audit[c].orders++; });
   const keys = Object.keys(audit).sort((a,b) => (audit[b].cash+audit[b].pos) - (audit[a].cash+audit[a].pos));
   const wrap = document.getElementById('cashierTableWrap');
   if (keys.length === 0) { wrap.innerHTML = '<div class="empty-state"><div class="empty-title">No cashier data yet</div><div class="empty-text">Sales handled by cashiers will appear here.</div></div>'; return; }
@@ -817,7 +867,7 @@ function renderCreditLog(orders) {
   let rows = '';
   flagged.forEach(o => {
     const d = new Date(o.timestamp);
-    rows += `<tr><td style="font-family:monospace;font-size:0.78rem;color:var(--c-text-light);">#${o.id||o.orderId||'—'}</td><td>${d.toLocaleDateString(CONFIG.RESTAURANT.locale,{day:'2-digit',month:'short'})} ${d.toLocaleTimeString(CONFIG.RESTAURANT.locale,{hour:'2-digit',minute:'2-digit'})}</td><td>${o.customerName||o.customer||'—'}</td><td><span class="chip">${o.tableNo||o.location||'—'}</span></td><td style="font-weight:700">${fmt(parseFloat(o.total)||0)}</td><td><span class="badge badge-warning">Credit</span></td></tr>`;
+    rows += `<tr><td style="font-family:monospace;font-size:0.78rem;color:var(--c-text-light);">#${o.id||o.orderId||'—'}</td><td>${d.toLocaleDateString(CONFIG.RESTAURANT.locale,{day:'2-digit',month:'short'})} ${d.toLocaleTimeString(CONFIG.RESTAURANT.locale,{hour:'2-digit',minute:'2-digit'})}</td><td>${o.customerName||o.customer||'—'}</td><td><span class="chip">${o.tableNo||o.location||'—'}</span></td><td style="font-weight:700">${fmt(getOrderTotal(o))}</td><td><span class="badge badge-warning">Credit</span></td></tr>`;
   });
   wrap.innerHTML = `<table><thead><tr><th>Order</th><th>Date</th><th>Customer</th><th>Table</th><th>Amount</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
@@ -1094,7 +1144,7 @@ function renderOrdersList() {
   orders.forEach(o => {
     const d = new Date(o.timestamp);
     const badge = getBadgeClass(o.status);
-    rows += `<tr><td style="font-family:monospace;font-size:0.78rem;">#${o.id||o.orderId||''}</td><td>${d.toLocaleDateString(CONFIG.RESTAURANT.locale,{day:'2-digit',month:'short'})} ${d.toLocaleTimeString(CONFIG.RESTAURANT.locale,{hour:'2-digit',minute:'2-digit'})}</td><td>${o.customerName||'—'}</td><td><span class="chip">${o.location||'—'}</span></td><td style="font-weight:700">${fmt(parseFloat(o.total)||0)}</td><td><span class="badge ${badge}">${CONFIG.STATUS ? CONFIG.STATUS.getLabel(o.status) : o.status}</span></td></tr>`;
+    rows += `<tr><td style="font-family:monospace;font-size:0.78rem;">#${o.id||o.orderId||''}</td><td>${d.toLocaleDateString(CONFIG.RESTAURANT.locale,{day:'2-digit',month:'short'})} ${d.toLocaleTimeString(CONFIG.RESTAURANT.locale,{hour:'2-digit',minute:'2-digit'})}</td><td>${o.customerName||'—'}</td><td><span class="chip">${o.location||'—'}</span></td><td style="font-weight:700">${fmt(getOrderTotal(o))}</td><td><span class="badge ${badge}">${CONFIG.STATUS ? CONFIG.STATUS.getLabel(o.status) : o.status}</span></td></tr>`;
   });
   wrap.innerHTML = `<table><thead><tr><th>Order ID</th><th>Time</th><th>Customer</th><th>Location</th><th>Total</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
@@ -1385,7 +1435,8 @@ function renderCashiersTable() {
     const obj = (typeof c === 'string') ? { name: c, phone: '', role: 'Cashier', active: 'Yes', pin: '' } : c;
     const initials = (obj.name||'??').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
     const safeName = (obj.name||'').replace(/'/g,"\\'");
-    rows += `<tr><td><span class="cashier-avatar">${initials}</span><strong>${obj.name}</strong></td><td>${obj.phone||'—'}</td><td>${obj.role||'Cashier'}</td><td style="font-family:monospace;letter-spacing:2px;">${obj.pin||'—'}</td><td><span class="badge ${obj.active==='Yes'?'badge-success':'badge-muted'}">${obj.active==='Yes'?'Active':'Inactive'}</span></td><td><button class="btn btn-ghost btn-sm" onclick="openCashierModal('${safeName}')">Edit</button> <button class="btn btn-danger btn-sm" onclick="removeCashier('${safeName}')">Remove</button></td></tr>`;
+    // PINs are never rendered — masked dots only, regardless of the real value.
+    rows += `<tr><td><span class="cashier-avatar">${initials}</span><strong>${obj.name}</strong></td><td>${obj.phone||'—'}</td><td>${obj.role||'Cashier'}</td><td style="font-family:monospace;letter-spacing:2px;" title="PINs are never displayed">${obj.pin ? '••••' : '—'}</td><td><span class="badge ${obj.active==='Yes'?'badge-success':'badge-muted'}">${obj.active==='Yes'?'Active':'Inactive'}</span></td><td><button class="btn btn-ghost btn-sm" onclick="openCashierModal('${safeName}')">Edit</button> <button class="btn btn-danger btn-sm" onclick="removeCashier('${safeName}')">Remove</button></td></tr>`;
   });
   wrap.innerHTML = `<table><thead><tr><th>Name</th><th>Phone</th><th>Role</th><th>PIN</th><th>Status</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
@@ -1404,7 +1455,7 @@ function openCashierModal(editName) {
     <div class="form-group"><label>Full Name <span class="mgr-req">*</span></label><input id="cf_name" placeholder="e.g. Adaeze Obi" value="${cashier ? (cashier.name||'').replace(/"/g,'&quot;') : ''}" oninput="validateCashierForm()" /></div>
     <div class="form-group"><label>Phone</label><input id="cf_phone" placeholder="e.g. 08012345678" value="${cashier ? (cashier.phone||'').replace(/"/g,'&quot;') : ''}" /></div>
     <div class="form-group"><label>Role</label><select id="cf_role"><option ${cashier&&cashier.role==='Cashier'?'selected':''}>Cashier</option><option ${cashier&&cashier.role==='Senior Cashier'?'selected':''}>Senior Cashier</option><option ${cashier&&cashier.role==='Manager'?'selected':''}>Manager</option></select></div>
-    <div class="form-group"><label>PIN (4 digits) <span class="mgr-req">*</span></label><input id="cf_pin" maxlength="4" pattern="[0-9]*" inputmode="numeric" placeholder="e.g. 1234" value="${cashier ? (cashier.pin||'') : ''}" oninput="validateCashierForm()" /></div>
+    <div class="form-group"><label>${cashier ? 'Reset PIN' : 'PIN (4 digits)'} ${cashier ? '' : '<span class="mgr-req">*</span>'}</label><input id="cf_pin" data-editing="${cashier ? '1' : '0'}" maxlength="4" pattern="[0-9]*" inputmode="numeric" placeholder="${cashier ? 'Leave blank to keep current PIN' : 'e.g. 1234'}" value="" oninput="validateCashierForm()" /><!-- PINs are write-only: never pre-filled or displayed, per FR-8.1 --></div>
     ${cashier ? `<div class="form-group"><label>Active</label><select id="cf_active"><option value="Yes" ${cashier.active!=='No'?'selected':''}>Yes</option><option value="No" ${cashier.active==='No'?'selected':''}>No</option></select></div>` : ''}
   </div>
   <div class="mgr-hint" id="cf_hint"></div>`;
@@ -1417,8 +1468,12 @@ function validateCashierForm() {
   const nameEl = document.getElementById('cf_name');
   const pinEl = document.getElementById('cf_pin');
   if (!nameEl || !pinEl) return;
-  const ok = nameEl.value.trim().length > 0 && /^\d{4}$/.test(pinEl.value.trim());
-  setFormState('cf_save', 'cf_hint', ok, 'Name and a 4-digit PIN are required');
+  const isEdit = pinEl.dataset.editing === '1';
+  // Editing: PIN is optional (blank = keep current). Adding: PIN is required.
+  const pinOk = isEdit ? (pinEl.value.trim() === '' || /^\d{4}$/.test(pinEl.value.trim()))
+                       : /^\d{4}$/.test(pinEl.value.trim());
+  const ok = nameEl.value.trim().length > 0 && pinOk;
+  setFormState('cf_save', 'cf_hint', ok, isEdit ? 'Name is required; PIN must be 4 digits if you set one' : 'Name and a 4-digit PIN are required');
 }
 
 async function saveCashier(editName) {
@@ -1427,10 +1482,12 @@ async function saveCashier(editName) {
   const role = document.getElementById('cf_role').value;
   const pin = document.getElementById('cf_pin').value.trim();
   if (!name) return toast('Name is required', 'error');
-  if (!/^\d{4}$/.test(pin)) return toast('PIN must be exactly 4 digits', 'error');
+  if (pin && !/^\d{4}$/.test(pin)) return toast('PIN must be exactly 4 digits', 'error');
+  if (!editName && !pin) return toast('A 4-digit PIN is required for a new cashier', 'error');
 
   if (editName) {
-    const payload = { name, phone, role, pin, active: (document.getElementById('cf_active') ? (document.getElementById('cf_active').value === 'Yes' ? 'Yes' : 'No') : 'Yes'), oldName: editName, performedBy: 'Manager' };
+    const payload = { name, phone, role, active: (document.getElementById('cf_active') ? (document.getElementById('cf_active').value === 'Yes' ? 'Yes' : 'No') : 'Yes'), oldName: editName, performedBy: 'Manager' };
+    if (pin) payload.pin = pin; // omit entirely when blank — updateCashier only touches fields it receives, so the current PIN is left untouched
     const res = await CONFIG.apiPost('updateCashier', payload);
     if (res.status === 'success') { toast('Cashier updated', 'success'); closeModal(); CONFIG.clearCache('cashiers'); await loadAllData(); renderCashiersTable(); }
     else toast(res.message || 'Failed to update', 'error');
