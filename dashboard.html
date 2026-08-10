@@ -300,7 +300,13 @@
           </div>
 
           <!-- Cart Items -->
-          <div style="flex:1; overflow-y:auto; margin-bottom:1.5rem; padding-right:0.5rem;" id="mo_cart">
+          <!-- min-height matters: with flex:1 and no floor, this collapses to
+               0px whenever the checkout section below (Total/dropdown/
+               disclosure/button) needs more room than the pane has — the
+               cart items were still in the DOM, just squeezed to invisible.
+               The floor forces the OUTER .pos-cart-pane to scroll the whole
+               panel instead of silently hiding what's in the cart. -->
+          <div style="flex:1; min-height:110px; overflow-y:auto; margin-bottom:1.5rem; padding-right:0.5rem;" id="mo_cart">
             <!-- Cart Items rendered here by JS -->
           </div>
           
