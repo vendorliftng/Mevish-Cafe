@@ -891,18 +891,72 @@ function exportReport() { window.print(); }
 
 /* ═══════════════════════════════════════════════════════════
    ANALYTICS ENHANCEMENTS (Peak Hours / Category / Top Customers)
-   ═══════════════════════════════════════════════════════════ */
+   ═══════════════════════════════════════════════════════════
+   These used to call GAS endpoints (peakHours/categoryBreakdown/
+   topCustomers) that were never migrated to Firestore — since orders
+   have lived in Firestore since Phase 1, those calls were reading
+   stale-or-empty Sheets data (or nothing at all) regardless of what
+   was actually happening in the restaurant. Computed here instead,
+   client-side, from the same `allOrders` the rest of Analytics already
+   uses — same pattern the PRD calls out as an acceptable transitional
+   step ("keep client-side computation as fallback"). */
+function isOrderPaid(status) { return CONFIG.STATUS ? CONFIG.STATUS.isPaid(status) : !!(status && status.includes('Paid')); }
+
 function loadAnalyticsEnhancements() {
-  // Fire all three fetches independently so one failure never blocks the others
-  Promise.allSettled([
-    CONFIG.apiGet('peakHours', { days: 30 }),
-    CONFIG.apiGet('categoryBreakdown', { days: 30 }),
-    CONFIG.apiGet('topCustomers', { days: 30 })
-  ]).then(results => {
-    renderPeakHours(results[0]);
-    renderCategoryChart(results[1]);
-    renderTopCustomers(results[2]);
+  const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+  const recent = (allOrders || []).filter(o => {
+    if (!o.status || (CONFIG.STATUS && CONFIG.STATUS.isVoid(o.status))) return false;
+    const t = new Date(o.timestamp).getTime();
+    return !isNaN(t) && t >= cutoff;
   });
+  renderPeakHours(computePeakHours(recent));
+  renderCategoryChart(computeCategoryBreakdown(recent));
+  renderTopCustomers(computeTopCustomers(recent));
+}
+
+function computePeakHours(orders) {
+  const byDay = Array.from({ length: 7 }, () => new Array(24).fill(0));
+  orders.forEach(o => {
+    if (!isOrderPaid(o.status)) return;
+    const d = new Date(o.timestamp);
+    if (isNaN(d)) return;
+    byDay[d.getDay()][d.getHours()]++;
+  });
+  return { status: 'fulfilled', value: { status: 'success', data: { byDay } } };
+}
+
+function computeCategoryBreakdown(orders) {
+  // Only orders with structured items[] (AD-5) carry a category per line —
+  // legacy orders are silently excluded rather than guessed at.
+  const totals = {};
+  orders.forEach(o => {
+    if (!isOrderPaid(o.status) || !Array.isArray(o.items)) return;
+    o.items.forEach(i => {
+      const cat = i.category || 'Uncategorized';
+      totals[cat] = (totals[cat] || 0) + (Number(i.unitPrice) || 0) * (i.qty || i.quantity || 1);
+    });
+  });
+  const data = Object.keys(totals)
+    .map(category => ({ category, revenue: totals[category] }))
+    .sort((a, b) => b.revenue - a.revenue);
+  return { status: 'fulfilled', value: { status: 'success', data } };
+}
+
+function computeTopCustomers(orders) {
+  // Only orders with a phone number can be attributed to a repeat guest —
+  // walk-ins without one just aren't trackable across visits.
+  const byPhone = {};
+  orders.forEach(o => {
+    if (!isOrderPaid(o.status)) return;
+    const phone = (o.customerPhone || '').trim();
+    if (!phone) return;
+    if (!byPhone[phone]) byPhone[phone] = { name: o.customerName || 'Guest', phone, orderCount: 0, totalSpent: 0 };
+    if (o.customerName) byPhone[phone].name = o.customerName;
+    byPhone[phone].orderCount++;
+    byPhone[phone].totalSpent += getOrderTotal(o);
+  });
+  const data = Object.values(byPhone).sort((a, b) => b.totalSpent - a.totalSpent);
+  return { status: 'fulfilled', value: { status: 'success', data } };
 }
 
 function renderPeakHours(result) {
