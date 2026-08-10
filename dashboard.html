@@ -25,8 +25,15 @@
     .pos-hot-badge { position:absolute; top:0; right:0; background:var(--danger); color:#fff; font-size:0.62rem; font-weight:800; padding:0.2rem 0.55rem; border-bottom-left-radius:var(--r-sm); text-transform:uppercase; letter-spacing:0.05em; }
     .pos-cat-header { width:100%; display:flex; align-items:center; justify-content:space-between; background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--r-md); padding:0.8rem 1rem; margin:0.5rem 0; cursor:pointer; font-weight:800; color:var(--text-primary); font-size:1rem; }
     .pos-cat-header:active { transform:scale(.99); }
-    .pos-cart-line { display:flex; align-items:center; gap:0.6rem; background:var(--bg-card); border:1px solid var(--border); border-radius:var(--r-md); padding:0.5rem 0.6rem; margin-bottom:0.5rem; }
-    .pos-cart-name { flex:1; font-size:0.9rem; font-weight:600; color:var(--text-primary); line-height:1.2; }
+    /* Two explicit rows instead of cramming emoji+name+stepper+line-total into
+       one — at POS panel width (even on tablets, let alone phones) a
+       compound name like "Coke / Fanta / Sprite" has nowhere near enough
+       room next to the qty stepper and forces an ugly mid-phrase wrap. */
+    .pos-cart-line { display:flex; flex-direction:column; gap:0.4rem; background:var(--bg-card); border:1px solid var(--border); border-radius:var(--r-md); padding:0.5rem 0.6rem; margin-bottom:0.5rem; }
+    .pos-cart-row1 { display:flex; align-items:center; gap:0.5rem; }
+    .pos-cart-row2 { display:flex; align-items:center; justify-content:space-between; gap:0.5rem; padding-left:1.9rem; }
+    .pos-cart-name { flex:1; font-size:0.9rem; font-weight:600; color:var(--text-primary); line-height:1.25; min-width:0; }
+    .pos-cart-linetotal { font-weight:800; color:var(--gold); white-space:nowrap; }
     .pos-cart-price { font-size:0.8rem; color:var(--text-muted); font-weight:500; }
     .pos-stepper { display:flex; align-items:center; gap:0.35rem; }
     .pos-step-btn { width:44px; height:44px; border-radius:var(--r-md); border:1px solid var(--border-light); background:var(--bg-surface); color:var(--text-primary); font-size:1.35rem; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1; transition:transform .1s; }
@@ -34,7 +41,12 @@
     .pos-step-btn.minus { color:var(--danger); }
     .pos-step-btn.plus { color:var(--success); }
     .pos-step-qty { min-width:28px; text-align:center; font-weight:900; font-size:1.05rem; color:var(--text-primary); }
-    .pos-confirm { width:100%; background:linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%); color:#fff; font-size:1.3rem; padding:1.15rem; font-weight:900; border:none; border-radius:var(--r-lg); box-shadow:var(--shadow-gold); cursor:pointer; transition:transform .15s, opacity .15s; }
+    /* Two stacked lines (label, then total — see updateManualCartUI) instead
+       of one "Confirm Order · ₦500" line, which was overflowing its own
+       button on a narrow phone. Fixed layout stays readable at any total. */
+    .pos-confirm { width:100%; background:linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%); color:#fff; padding:0.85rem 1.15rem; font-weight:900; border:none; border-radius:var(--r-lg); box-shadow:var(--shadow-gold); cursor:pointer; transition:transform .15s, opacity .15s; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.1rem; line-height:1.25; }
+    .pos-confirm-main { font-size:1rem; }
+    .pos-confirm-total { font-size:1.3rem; }
     .pos-confirm:active { transform:scale(.97); }
     .pos-confirm:disabled { opacity:.45; cursor:not-allowed; box-shadow:none; }
     .pos-disclosure { margin-bottom:0.9rem; }
@@ -45,11 +57,25 @@
     @keyframes posPop { 0%{transform:scale(.9)} 60%{transform:scale(1.05)} 100%{transform:scale(1)} }
     @media (max-width: 860px) {
       .pos-body { flex-direction:column; overflow-y:auto; }
-      .pos-menu-pane, .pos-cart-pane { min-width:0 !important; max-width:none !important; flex:none !important; }
+      /* flex:none alone left each pane sized to its own content instead of
+         the full stacked-column width — on a 390px phone the cart pane sat
+         at ~244px, squeezing item names and the qty stepper into far less
+         room than they actually had available, causing names to wrap
+         mid-phrase and the + button to sit right at the edge. */
+      .pos-menu-pane, .pos-cart-pane { min-width:0 !important; max-width:none !important; width:100% !important; flex:none !important; }
       .pos-menu-pane { min-height:50vh; }
     }
     /* ═══ Offline payment lock (NFR-1): visibly, not just functionally, disabled ═══ */
     body.is-offline [data-payment-btn] { opacity:.4; filter:grayscale(.5); pointer-events:none; }
+
+    /* .modal-overlay's shared `padding: var(--sp-lg)` (style.css) is meant to
+       keep small centered dialogs off the screen edges — it was also
+       shrinking this fullscreen POS modal by ~2×var(--sp-lg), despite its own
+       inline style clearly asking for max-width:100vw/margin:0/edge-to-edge.
+       That's why the cart pane measured ~244px on a 390px phone instead of
+       stretching full width: every child was correctly sized off a modal
+       that itself never got the width it asked for. */
+    .modal-overlay-fullscreen { padding: 0 !important; }
   </style>
     <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -234,7 +260,7 @@
   <!-- ═══════════════════════════════════════════════ -->
   <!--  MANUAL / WALK-IN ORDER MODAL (Full-Screen POS)  -->
   <!-- ═══════════════════════════════════════════════ -->
-  <div class="modal-overlay" id="manualOrderModal" onclick="onOverlayClick(event,'manualOrderModal')">
+  <div class="modal-overlay modal-overlay-fullscreen" id="manualOrderModal" onclick="onOverlayClick(event,'manualOrderModal')">
     <div class="modal modal-fullscreen" role="dialog" aria-modal="true" style="max-width:100vw; height:100vh; margin:0; border-radius:0; display:flex; flex-direction:column; background:var(--bg-primary);">
       <div class="modal-header" style="border-bottom:1px solid var(--border); padding:1rem 1.5rem; background:var(--bg-card);">
         <h3 class="modal-title" style="font-size:1.5rem; margin:0;">📋 Walk-in POS</h3>
@@ -1378,14 +1404,19 @@ function setRefreshing(yes) {
     } else {
       container.innerHTML = manualOrderCart.map(c => `
       <div class="pos-cart-line">
-        <div style="font-size:1.3rem;">${c.emoji || '🍽️'}</div>
-        <div class="pos-cart-name">${escHtml(c.name)}<div class="pos-cart-price">${CONFIG.formatCurrency(c.price)} each</div></div>
-        <div class="pos-stepper">
-          <button class="pos-step-btn minus" onclick="changeQty('${escAttr(String(c.id))}', -1)">−</button>
-          <span class="pos-step-qty">${c.qty}</span>
-          <button class="pos-step-btn plus" onclick="changeQty('${escAttr(String(c.id))}', 1)">+</button>
+        <div class="pos-cart-row1">
+          <div style="font-size:1.3rem;flex-shrink:0;">${c.emoji || '🍽️'}</div>
+          <div class="pos-cart-name">${escHtml(c.name)}</div>
+          <div class="pos-cart-linetotal">${CONFIG.formatCurrency(c.price * c.qty)}</div>
         </div>
-        <div style="min-width:70px;text-align:right;font-weight:800;color:var(--gold);">${CONFIG.formatCurrency(c.price * c.qty)}</div>
+        <div class="pos-cart-row2">
+          <div class="pos-cart-price">${CONFIG.formatCurrency(c.price)} each</div>
+          <div class="pos-stepper">
+            <button class="pos-step-btn minus" onclick="changeQty('${escAttr(String(c.id))}', -1)">−</button>
+            <span class="pos-step-qty">${c.qty}</span>
+            <button class="pos-step-btn plus" onclick="changeQty('${escAttr(String(c.id))}', 1)">+</button>
+          </div>
+        </div>
       </div>
       `).join('');
     }
@@ -1396,8 +1427,12 @@ function setRefreshing(yes) {
     if (totalDisplay) totalDisplay.textContent = CONFIG.formatCurrency(total);
     if (confirmBtn) {
       confirmBtn.disabled = manualOrderCart.length === 0;
-      confirmBtn.textContent = manualOrderCart.length
-        ? `✅ Confirm Order · ${CONFIG.formatCurrency(total)}`
+      // Two explicit lines (label, then total) instead of one "Confirm Order
+      // · ₦500" line — on a narrow phone that single line was overflowing
+      // its own button. A fixed two-line layout stays readable regardless
+      // of the total's size, instead of guessing at a font size that fits.
+      confirmBtn.innerHTML = manualOrderCart.length
+        ? `<span class="pos-confirm-main">✅ Confirm Order</span><span class="pos-confirm-total">${CONFIG.formatCurrency(total)}</span>`
         : 'Confirm Order';
     }
   }

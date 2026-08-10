@@ -91,11 +91,34 @@ service cloud.firestore {
       allow write: if isManager();
     }
 
-    // ─── staff — cashier records (next slice: PIN verification) ──
-    // Locked down until server-side PIN sessions exist. The manager panel
-    // reads/writes this while signed in; the PIN pad will go through a
-    // Cloud Function that never exposes PINs to the client.
+    // ─── staff — cashier records ────────────────────────────────
+    // Read is open so the unauthenticated cashier PIN pad (dashboard.html)
+    // can look itself up client-side — there is no Cloud Function yet to do
+    // that server-side (FR-1.4 is deferred pending a Blaze-plan decision).
+    // This is NOT a new hole: the old GAS `cashiers` endpoint already
+    // returned every PIN in plaintext to anyone who asked. Writes stay
+    // Manager+ only.
     match /staff/{member} {
+      allow read: if true;
+      allow write: if isManager();
+    }
+
+    // ─── tables — seats/status/notes managed from the Tables & QR panel ──
+    match /tables/{tableId} {
+      allow read: if true;
+      allow write: if isManager();
+    }
+
+    // ─── reviews ──────────────────────────────────────────────
+    match /reviews/{reviewId} {
+      allow read: if true;             // customer tracking page + public approved reviews
+      allow create: if true;           // guest submits their own review, unauthenticated
+      allow update: if isManager();    // approve/reject only
+      allow delete: if false;
+    }
+
+    // ─── customers — loyalty (Phase 2, write-path not built yet) ──
+    match /customers/{phone} {
       allow read, write: if isManager();
     }
 

@@ -982,7 +982,19 @@ body.menu-board-page { overflow: hidden; background: var(--bg-deep); }
     .pin-error.visible { opacity: 1; }
 
     /* ── LAYOUT ────────────────────────────────────────────── */
-    .app-layout { display: flex; min-height: 100vh; }
+    /* NOTE: an `.app-layout { display:flex; min-height:100vh; }` rule used to
+       live here. `.app-layout` is ALSO index.html's 2-column menu/cart grid
+       (defined earlier in this file: `display:grid; grid-template-columns:
+       1fr 340px;`) — same class name, two unrelated layouts, loaded by every
+       page from this one shared stylesheet. Because this rule came later in
+       the file, it silently won the cascade on index.html too, collapsing
+       its menu and cart columns down to their content width and leaving the
+       rest of the viewport dead grey space on desktop. manager.html doesn't
+       need this rule removed here — its own `.mgr-layout` class (see
+       manager.html's <style> block) already fully overrides display/height/
+       overflow for its root element and was the deliberate fix for the
+       reverse problem (index.html's rule breaking manager.html). Removing
+       the duplicate here is what actually closes the loop for index.html. */
 
     /* ── SIDEBAR ───────────────────────────────────────────── */
     .sidebar {

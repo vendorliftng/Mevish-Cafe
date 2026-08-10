@@ -253,12 +253,20 @@ const CONFIG = {
     localStorage.setItem(CONFIG.STORAGE_PREFIX + "theme", themeId);
   },
 
-  // Load theme: try localStorage first, then fall back to "default"
+  // Load theme: this device's own choice wins if it has one (localStorage);
+  // otherwise fall back to the restaurant-wide theme a Manager picked
+  // (CONFIG._serverTheme, populated by initGlobalSettings from
+  // system_config/global.theme), then finally "default".
   loadSavedTheme() {
     const saved = localStorage.getItem(CONFIG.STORAGE_PREFIX + "theme");
     if (saved && this.THEMES[saved]) {
       this.applyTheme(saved);
       return saved;
+    }
+    const serverTheme = CONFIG._serverTheme;
+    if (serverTheme && this.THEMES[serverTheme]) {
+      this.applyTheme(serverTheme);
+      return serverTheme;
     }
     this.applyTheme("default");
     return "default";
@@ -401,7 +409,61 @@ const CONFIG = {
           return { status: 'success', data: CONFIG.FALLBACK_MENU };
         }
         if (type === 'reviews') {
-          return { status: 'success', data: [] }; // reviews not yet migrated
+          let q = db.collection('reviews');
+          if (params && params.status && params.status.toLowerCase() !== 'all') {
+            // Manager panel sends 'Pending'; the customer page sends lowercase 'approved'.
+            const wanted = params.status.toLowerCase() === 'approved' ? 'Approved'
+                         : params.status.toLowerCase() === 'rejected' ? 'Rejected' : 'Pending';
+            q = q.where('status', '==', wanted);
+          }
+          const snapshot = await q.get();
+          const data = snapshot.docs.map(doc => { const d = doc.data(); d.id = doc.id; return d; });
+          data.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+          return { status: 'success', data };
+        }
+        if (type === 'averageRating') {
+          const snapshot = await db.collection('reviews').where('status', '==', 'Approved').get();
+          const ratings = snapshot.docs.map(d => Number(d.data().rating) || 0).filter(r => r > 0);
+          const average = ratings.length ? (ratings.reduce((a, b) => a + b, 0) / ratings.length) : 0;
+          return { status: 'success', data: { average, count: ratings.length } };
+        }
+        if (type === 'cashiers') {
+          const snapshot = await db.collection('staff').get();
+          return { status: 'success', data: snapshot.docs.map(doc => { const d = doc.data(); d.id = doc.id; return d; }) };
+        }
+        if (type === 'tables') {
+          const snapshot = await db.collection('tables').get();
+          return { status: 'success', data: snapshot.docs.map(doc => { const d = doc.data(); d.id = d.id || doc.id; return d; }) };
+        }
+        if (type === 'customers') {
+          const snapshot = await db.collection('customers').get();
+          const data = snapshot.docs.map(doc => { const d = doc.data(); d.phone = d.phone || doc.id; return d; });
+          data.sort((a, b) => (Number(b.totalSpent) || 0) - (Number(a.totalSpent) || 0));
+          return { status: 'success', data };
+        }
+        if (type === 'loginCashier') {
+          // Firestore is now the source of truth for staff going forward (see
+          // addCashier/updateCashier/removeCashier below) — this is the same
+          // plaintext PIN compare GAS used to do server-side, not a security
+          // improvement over that, but not a regression either. Real
+          // hardening — a hashed PIN verified by a Cloud Function so the
+          // client never reads anyone else's PIN — is still the correct end
+          // state (FR-1.4, PRD), deferred pending a Blaze-plan decision.
+          const pin = String((params && params.pin) || '');
+          if (pin) {
+            const snapshot = await db.collection('staff').where('pin', '==', pin).limit(1).get();
+            if (!snapshot.empty) {
+              const staff = snapshot.docs[0].data();
+              if (staff.active === 'No') return { status: 'not_found' }; // explicitly revoked in Firestore
+              return { status: 'success', data: { name: staff.name, role: staff.role || 'Cashier', phone: staff.phone || '' } };
+            }
+          }
+          // No match yet in Firestore `staff` — most likely a cashier who was
+          // only ever added in the old Sheet and hasn't been re-saved through
+          // the Cashiers panel since this migration. Fall through to the GAS
+          // check below (do NOT return here) rather than locking them out;
+          // once every cashier has been re-saved once, this fallback stops
+          // being needed.
         }
         if (type === 'inventory') {
           const snapshot = await db.collection('inventory').get();
@@ -423,14 +485,6 @@ const CONFIG = {
           const snapshot = await db.collection('audit_log').orderBy('timestamp', 'desc').limit(200).get();
           return { status: 'success', data: snapshot.docs.map(doc => doc.data()) };
         }
-        // NOTE: 'loginCashier' is deliberately NOT handled here. Cashiers still
-        // live in the Sheets-backed `Cashiers` list (Code.gs), which already does
-        // a real PIN + active-status check server-side. Do not add a Firestore
-        // stub here that accepts every PIN — that was a real security hole
-        // (any 4-digit PIN logged a "cashier" in with a fabricated name). Let
-        // this fall through to the real GAS call below. Proper fix (FR-1.4,
-        // PRD): move `staff` into Firestore with a hashed PIN verified by a
-        // Cloud Function.
       } catch (err) {
         console.error("Firestore apiGet error:", err);
       }
@@ -588,14 +642,135 @@ const CONFIG = {
           return { status: 'success' };
         }
         if (action === 'addInventoryItem') {
-          await db.collection('inventory').doc(String(payload.id)).set(payload);
-          CONFIG.writeAudit('INVENTORY_ITEM_ADDED', '', payload.name || '', payload.cashier || 'Manager');
-          return { status: 'success', data: payload };
+          // The manager.html add-form never sends an `id` — this used to write
+          // every single new item to the same doc (`inventory/undefined`),
+          // silently clobbering whatever was added before it. Auto-ID instead,
+          // and map the form's `stock`/`costPerUnit` fields onto the real
+          // schema (`currentStock`) that renderInventoryTable/deduction/restock
+          // all actually read.
+          const doc = {
+            name: payload.name, category: payload.category || '',
+            currentStock: parseFloat(payload.stock) || 0,
+            alertThreshold: parseFloat(payload.alertThreshold) || 0,
+            unit: payload.unit || '', costPerUnit: parseFloat(payload.costPerUnit) || 0,
+            supplier: payload.supplier || '', minOrderQty: parseFloat(payload.minOrderQty) || 0,
+            lastRestocked: Date.now()
+          };
+          await db.collection('inventory').add(doc);
+          CONFIG.writeAudit('INVENTORY_ITEM_ADDED', '', payload.name || '', payload.performedBy || payload.cashier || 'Manager');
+          return { status: 'success', data: doc };
         }
         if (action === 'updateInventoryItem') {
-          await db.collection('inventory').doc(String(payload.id)).update(payload);
-          CONFIG.writeAudit('INVENTORY_ITEM_UPDATED', '', payload.name || ('ID ' + payload.id), payload.cashier || 'Manager');
-          return { status: 'success', data: payload };
+          // manager.html's edit form addresses items by NAME (`payload.name` =
+          // the item being edited, `payload.newName` = the possibly-changed
+          // name) — the old handler required `payload.id`, which this form
+          // never sends, so every edit silently failed.
+          const snap = await db.collection('inventory').where('name', '==', payload.name).limit(1).get();
+          if (snap.empty) return { status: 'error', message: 'Inventory item not found: ' + payload.name };
+          const updates = {};
+          if (payload.newName) updates.name = payload.newName;
+          if (payload.category !== undefined) updates.category = payload.category;
+          if (payload.stock !== undefined) updates.currentStock = parseFloat(payload.stock) || 0;
+          if (payload.alertThreshold !== undefined) updates.alertThreshold = parseFloat(payload.alertThreshold) || 0;
+          if (payload.unit !== undefined) updates.unit = payload.unit;
+          if (payload.costPerUnit !== undefined) updates.costPerUnit = parseFloat(payload.costPerUnit) || 0;
+          if (payload.supplier !== undefined) updates.supplier = payload.supplier;
+          if (payload.minOrderQty !== undefined) updates.minOrderQty = parseFloat(payload.minOrderQty) || 0;
+          await snap.docs[0].ref.update(updates);
+          CONFIG.writeAudit('INVENTORY_ITEM_UPDATED', '', payload.newName || payload.name || '', payload.performedBy || payload.cashier || 'Manager');
+          return { status: 'success' };
+        }
+        if (action === 'deleteInventoryItem') {
+          const snap = await db.collection('inventory').where('name', '==', payload.name).limit(1).get();
+          if (snap.empty) return { status: 'error', message: 'Inventory item not found: ' + payload.name };
+          await snap.docs[0].ref.delete();
+          CONFIG.writeAudit('INVENTORY_ITEM_DELETED', '', payload.name || '', payload.performedBy || payload.cashier || 'Manager');
+          return { status: 'success' };
+        }
+        if (action === 'restockInventory') {
+          const snap = await db.collection('inventory').where('name', '==', payload.itemName).limit(1).get();
+          if (snap.empty) return { status: 'error', message: 'Inventory item not found: ' + payload.itemName };
+          const ref = snap.docs[0].ref;
+          const qty = parseFloat(payload.quantity) || 0;
+          await db.runTransaction(async (tx) => {
+            const doc = await tx.get(ref);
+            const newStock = (parseFloat(doc.data().currentStock) || 0) + qty;
+            tx.update(ref, { currentStock: newStock, lastRestocked: Date.now() });
+          });
+          CONFIG.writeAudit('INVENTORY_RESTOCKED', '', (payload.itemName || '') + ': +' + qty, payload.performedBy || payload.cashier || 'Manager');
+          return { status: 'success' };
+        }
+        if (action === 'addCashier') {
+          // `active` stays the 'Yes'/'No' string convention the client already
+          // reads/writes everywhere (inherited from the Sheets era) — kept as-is
+          // rather than switched to a boolean, to avoid reintroducing the exact
+          // type-mismatch bug class just fixed in the Menu panel.
+          const doc = { name: payload.name, phone: payload.phone || '', role: payload.role || 'Cashier', active: 'Yes', pin: payload.pin || '', createdAt: Date.now() };
+          await db.collection('staff').add(doc);
+          CONFIG.writeAudit('CASHIER_ADDED', '', payload.name || '', payload.performedBy || 'Manager');
+          return { status: 'success', data: doc };
+        }
+        if (action === 'updateCashier') {
+          const snap = await db.collection('staff').where('name', '==', payload.oldName).limit(1).get();
+          if (snap.empty) return { status: 'error', message: 'Cashier not found: ' + payload.oldName };
+          const updates = {};
+          if (payload.name !== undefined) updates.name = payload.name;
+          if (payload.phone !== undefined) updates.phone = payload.phone;
+          if (payload.role !== undefined) updates.role = payload.role;
+          if (payload.active !== undefined) updates.active = payload.active;
+          if (payload.pin) updates.pin = payload.pin; // only touch the PIN when a new one was actually entered
+          await snap.docs[0].ref.update(updates);
+          CONFIG.writeAudit('CASHIER_UPDATED', '', payload.oldName + ' -> ' + (payload.name || payload.oldName), payload.performedBy || 'Manager');
+          return { status: 'success' };
+        }
+        if (action === 'removeCashier') {
+          const snap = await db.collection('staff').where('name', '==', payload.name).limit(1).get();
+          if (snap.empty) return { status: 'error', message: 'Cashier not found: ' + payload.name };
+          await snap.docs[0].ref.delete();
+          CONFIG.writeAudit('CASHIER_REMOVED', '', payload.name || '', payload.performedBy || 'Manager');
+          return { status: 'success' };
+        }
+        if (action === 'addTable') {
+          const doc = { seats: parseFloat(payload.seats) || 4, status: 'Available', notes: payload.notes || '' };
+          await db.collection('tables').doc(String(payload.tableId)).set(doc);
+          CONFIG.writeAudit('TABLE_ADDED', '', payload.tableId || '', payload.performedBy || 'Manager');
+          return { status: 'success', data: doc };
+        }
+        if (action === 'updateTable') {
+          const updates = {};
+          if (payload.seats !== undefined) updates.seats = parseFloat(payload.seats) || 0;
+          if (payload.status !== undefined) updates.status = payload.status;
+          if (payload.notes !== undefined) updates.notes = payload.notes;
+          await db.collection('tables').doc(String(payload.tableId)).update(updates);
+          CONFIG.writeAudit('TABLE_UPDATED', '', payload.tableId || '', payload.performedBy || 'Manager');
+          return { status: 'success' };
+        }
+        if (action === 'removeTable') {
+          await db.collection('tables').doc(String(payload.tableId)).delete();
+          CONFIG.writeAudit('TABLE_REMOVED', '', payload.tableId || '', payload.performedBy || 'Manager');
+          return { status: 'success' };
+        }
+        if (action === 'saveReview') {
+          const doc = {
+            orderId: payload.orderId || '', phone: payload.phone || '',
+            rating: Number(payload.rating) || 0, comment: payload.comment || '',
+            customerName: payload.customerName || '', status: 'Pending', timestamp: Date.now()
+          };
+          await db.collection('reviews').add(doc);
+          CONFIG.writeAudit('REVIEW_SUBMITTED', payload.orderId || '', 'Rating: ' + doc.rating, payload.customerName || 'Customer');
+          return { status: 'success', data: doc };
+        }
+        if (action === 'approveReview') {
+          // A plain equality filter + orderBy on a different field would need a
+          // composite index in Firestore; there's normally only ever one review
+          // per order anyway, so fetch the (small) match set and sort in JS.
+          const snap = await db.collection('reviews').where('orderId', '==', payload.orderId).get();
+          if (snap.empty) return { status: 'error', message: 'Review not found for order ' + payload.orderId };
+          const docs = snap.docs.slice().sort((a, b) => (b.data().timestamp || 0) - (a.data().timestamp || 0));
+          const newStatus = payload.decision === 'approve' ? 'Approved' : 'Rejected';
+          await docs[0].ref.update({ status: newStatus });
+          CONFIG.writeAudit('REVIEW_' + newStatus.toUpperCase(), payload.orderId || '', '', payload.performedBy || 'Manager');
+          return { status: 'success' };
         }
       } catch (err) {
         console.error("Firestore apiPost error:", err);
@@ -802,6 +977,7 @@ const CONFIG = {
           if (data.tables && Array.isArray(data.tables)) CONFIG.TABLES = data.tables;
           if (data.taxRate !== undefined && data.taxRate !== null) CONFIG.TAX_RATE = data.taxRate;
           if (data.categories && Array.isArray(data.categories)) CONFIG.CATEGORIES = data.categories;
+          if (data.theme) CONFIG._serverTheme = data.theme;
         }
 
         // --- Auto-Migrate Menu Items ---

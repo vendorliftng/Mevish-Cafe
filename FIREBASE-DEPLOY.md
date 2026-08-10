@@ -95,7 +95,9 @@ sessions (Cloud Functions), which is the next slice.
 
 ## Smoke test after deploying (5 minutes)
 
-1. Open `dashboard.html`, log in (manager PIN `1234` or a cashier PIN).
+1. Open `dashboard.html`, log in with a real cashier PIN (the `1234` manager
+   PIN in `config.js` only works when the device is genuinely **offline** now
+   — see the next section).
 2. Create a manual order → it should appear with status **Active** (not Pending).
 3. Tap **Start Preparing → Mark Ready → Mark Served → Cash** — each step should
    complete without touching the old Apps Script backend (check the browser
@@ -113,3 +115,62 @@ sessions (Cloud Functions), which is the next slice.
 If anything misbehaves, the old rules can be restored in the Firebase Console
 (Firestore → Rules → history), and the code still falls back to the Apps Script
 backend automatically for anything not handled in Firestore.
+
+---
+
+## Update — everything moved off Apps Script (this slice)
+
+**You must redeploy `firestore.rules`** (step 3 above) for this slice to work —
+without it, Cashiers/Tables/Reviews/Customers will fail with "Missing or
+insufficient permissions" because the *currently live* rules don't know about
+those collections yet.
+
+**What moved to Firestore:**
+
+- **Cashier login** (`loginCashier`) — now checks the `staff` collection
+  first instead of going straight to the Apps Script Sheet. `staff` read is
+  now public (needed by the unauthenticated PIN pad) — this is the same
+  exposure the old `cashiers` GAS endpoint already had (plaintext PINs), not
+  a new one. Writes stay Manager-only. **Your 5 existing cashiers only exist
+  in the old Sheet right now** — login still falls back to GAS for any PIN
+  Firestore doesn't recognize, so nobody is locked out, but open the
+  **Cashiers panel and re-save each one once** (Edit → Update, no changes
+  needed) so they exist in Firestore too and stop depending on GAS.
+- **Cashiers CRUD** (add/edit/remove) — `staff` collection, addressed by name
+  (same as before).
+- **Tables CRUD** (add/edit/remove) — new `tables` collection, doc ID = table
+  ID (e.g. `T4`).
+- **Inventory add/edit/delete/restock** — fixed two real bugs in the process:
+  `addInventoryItem`/`updateInventoryItem` required an `id` the manager panel
+  never sent (every new item was silently overwriting the same
+  `inventory/undefined` doc); and the client's `stock` field was never mapped
+  to the `currentStock` field everything else reads. Both are now name-addressed
+  and correctly mapped, matching how Delete/Restock already worked.
+- **Reviews** — `saveReview` (customer submits), `approveReview` (manager
+  approves/rejects), and the `reviews`/`averageRating` reads are all
+  Firestore-native now (the `reviews` read used to be hardcoded to always
+  return empty, regardless of backend).
+- **Settings** — the main Settings form (`saveSettings`) was already
+  Firestore-native; only the **Theme picker** was still calling a dead GAS
+  action. It now writes `system_config/global.theme`, and new devices default
+  to that instead of always starting on Classic Teal.
+- **Popular Today / Complete Your Meal suggestions** (`index.html`) — now
+  computed from real order history (last 100 orders) instead of calling
+  GAS endpoints that read stale/empty Sheets data. Suggestions are genuine
+  "customers who ordered this also ordered…" co-occurrence, not random picks.
+
+**Two Menu panel bugs also fixed** (unrelated to GAS, pure client bugs):
+Edit/Delete/Sold-out-toggle used `${item.id}` **unquoted** inside `onclick`
+handlers — harmless for numeric IDs, but silently broken (invalid JS) for the
+alphanumeric IDs Firestore's auto-migration gave your original menu. Also,
+`available` is a real boolean in Firestore but was being compared against the
+string `'Yes'`, so every item displayed as Sold Out and the toggle button could
+never actually mark one sold out.
+
+**Still on Apps Script, deliberately:** `blog`/`article` pages — the PRD scopes
+the Blog CMS out of the RMS core rebuild.
+
+**Known debris to check for:** if the Inventory panel was ever used to add an
+item before this fix, it likely overwrote a single doc at `inventory/undefined`
+each time. Check the Firebase Console (Firestore → `inventory` collection) for
+a doc literally named `undefined` and delete it if present.

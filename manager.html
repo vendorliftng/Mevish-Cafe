@@ -701,6 +701,25 @@ function escHtml(s) {
   return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
+// Escapes a value for safe embedding inside a single-quoted string literal
+// within an inline onclick="..." attribute. Firestore doc IDs are always
+// strings (often non-numeric, e.g. auto-generated "k3F9xQa2") — interpolating
+// them unquoted into onclick (`fn(${id})`) produces invalid JS that silently
+// no-ops on click. Always route IDs through this before embedding them.
+function escAttrJs(v) {
+  return String(v == null ? '' : v).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
+// menu_items.available is a real boolean in Firestore (true/false). A few
+// call sites used to compare it against the strings 'Yes'/'No' (a leftover
+// from the Sheets era), which silently never matched — every item displayed
+// as Sold Out and the toggle button could never actually mark one sold out.
+function isMenuAvailable(item) {
+  if (!item) return true;
+  if (item.available === false || item.available === 'No') return false;
+  return true;
+}
+
 // Styled confirm dialog (replaces native confirm): big Cancel + red Confirm
 function confirmAction(message, onConfirm) {
   const body = `<p style="font-size:1.05rem;line-height:1.6;color:var(--c-text);margin:0;">${message}</p>`;
@@ -1222,10 +1241,11 @@ function renderMenuTable() {
   const fmt = (v) => CONFIG.formatCurrency(v);
   let rows = '';
   menuData.forEach(item => {
-    const avail = item.available === 'Yes';
+    const avail = isMenuAvailable(item);
+    const idAttr = escAttrJs(item.id);
     rows += `<tr><td><strong>${item.name}</strong></td><td>${item.category||''}</td><td>${fmt(parseFloat(item.price)||0)}</td><td>${item.prepTime||10} min</td>
-    <td><span class="badge ${avail?'badge-success':'badge-danger'}" style="cursor:pointer; user-select:none; padding:0.4em 0.8em; box-shadow:var(--shadow-xs);" onclick="toggleMenuStatus(${item.id})" title="Click to toggle status">${avail?'Available':'Sold Out'}</span></td>
-    <td><button class="btn btn-ghost btn-sm" onclick="openMenuModal(${item.id})">Edit</button> <button class="btn btn-danger btn-sm" onclick="deleteMenuItem(${item.id},'${(item.name||'').replace(/'/g,"\\'")}')">Delete</button></td></tr>`;
+    <td><span class="badge ${avail?'badge-success':'badge-danger'}" style="cursor:pointer; user-select:none; padding:0.4em 0.8em; box-shadow:var(--shadow-xs);" onclick="toggleMenuStatus('${idAttr}')" title="Click to toggle status">${avail?'Available':'Sold Out'}</span></td>
+    <td><button class="btn btn-ghost btn-sm" onclick="openMenuModal('${idAttr}')">Edit</button> <button class="btn btn-danger btn-sm" onclick="deleteMenuItem('${idAttr}','${(item.name||'').replace(/'/g,"\\'")}')">Delete</button></td></tr>`;
   });
   wrap.innerHTML = `<table><thead><tr><th>Name</th><th>Category</th><th>Price</th><th>Prep Time</th><th>Status</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
@@ -1258,7 +1278,7 @@ function openMenuModal(editId) {
       <div class="form-group"><label>Price (${CONFIG.CURRENCY}) <span class="mgr-req">*</span></label><input type="number" id="mf_price" placeholder="e.g. 1500" value="${item?item.price:''}" oninput="validateMenuForm()" /></div>
       <div class="form-group"><label>Cost (${CONFIG.CURRENCY})</label><input type="number" id="mf_cost" placeholder="e.g. 800" value="${item?item.cost:''}" /></div>
       <div class="form-group"><label>Prep Time (minutes)</label><input type="number" id="mf_prepTime" placeholder="e.g. 10" value="${item?item.prepTime:10}" /></div>
-      <div class="form-group"><label>Available for ordering?</label><select id="mf_available"><option value="true" ${!item||item.available==='Yes'?'selected':''}>Yes</option><option value="false" ${item&&item.available==='No'?'selected':''}>No</option></select></div>
+      <div class="form-group"><label>Available for ordering?</label><select id="mf_available"><option value="true" ${isMenuAvailable(item)?'selected':''}>Yes</option><option value="false" ${!isMenuAvailable(item)?'selected':''}>No</option></select></div>
 
       <div class="form-group"><label>Linked Inventory (auto stock deduction)</label><select id="mf_invId">${invOptions}</select></div>
       <div class="form-group"><label>Stock to deduct per order</label><input type="number" id="mf_invQty" value="${item?item.deductionQty||0:0}" step="0.01" /></div>
@@ -1271,7 +1291,7 @@ function openMenuModal(editId) {
       <div class="form-group form-full"><label>Description (shown to customers)</label><textarea id="mf_desc" placeholder="e.g. Flaky pastry filled with spicy minced meat">${item?item.description:''}</textarea></div>
     </div>
     <div class="mgr-hint" id="mf_hint"></div>`;
-  const actions = `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" id="mf_save" onclick="saveMenuItem(${editId||'null'})">${item?'Update':'Add'}</button>`;
+  const actions = `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" id="mf_save" onclick="saveMenuItem(${editId!=null?"'"+escAttrJs(editId)+"'":'null'})">${item?'Update':'Add'}</button>`;
   openModal(title, body, actions);
   validateMenuForm();
 }
@@ -1296,7 +1316,7 @@ function validateMenuForm() {
 async function toggleMenuStatus(id) {
   const item = menuData.find(m => String(m.id) === String(id));
   if (!item) return;
-  const newAvail = item.available === 'Yes' ? false : true;
+  const newAvail = !isMenuAvailable(item);
   const payload = {
     id: item.id,
     name: item.name,
@@ -1867,13 +1887,15 @@ function renderThemePicker() {
 }
 
 async function selectTheme(id) {
-  CONFIG.applyTheme(id);
-  // Save to Google Sheet so all pages pick it up
+  CONFIG.applyTheme(id); // also stores it in localStorage for this device
   try {
-    await CONFIG.apiPost('updateSettings', { settings: { Theme: id }, performedBy: 'Manager' });
+    // Also record it restaurant-wide, so a fresh device/browser starts on the
+    // same theme instead of always falling back to Classic Teal.
+    await db.collection('system_config').doc('global').set({ theme: id }, { merge: true });
+    if (typeof CONFIG.writeAudit === 'function') CONFIG.writeAudit('THEME_CHANGED', '', CONFIG.THEMES[id].label, 'Manager');
     toast('Theme applied: ' + CONFIG.THEMES[id].label, 'success');
   } catch (e) {
-    toast('Theme applied locally', 'info');
+    toast('Theme applied on this device only — could not save it restaurant-wide', 'info');
   }
   renderThemePicker();
 }

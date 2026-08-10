@@ -388,8 +388,10 @@
       .cart-sidebar { display: none !important; }
       #cart-fab { display: flex !important; }
       .cart-sheet-overlay { display: block; }
-      /* Extra bottom padding so last menu card isn't hidden behind FAB */
-      .menu-panel { padding-bottom: 100px; }
+      /* Extra bottom padding so last menu card isn't hidden behind FAB.
+         Added #menu-grid-wrapper alongside .menu-panel — it's the nested
+         element whose own height actually bounds the scrollable content. */
+      .menu-panel, #menu-grid-wrapper { padding-bottom: 110px; }
       /* Toast repositioned to top-right so it doesn't overlap cart FAB */
       .toast-container { bottom: auto; top: 76px; right: var(--sp-md); }
     }
@@ -680,6 +682,8 @@
       padding: 10px 14px 4px;
       border-top: 1px dashed var(--border-light);
       margin-top: 6px;
+      overflow-x: hidden; /* guard against the mobile cart sheet gaining a horizontal scrollbar */
+      box-sizing: border-box;
     }
     .upsell-title {
       font-size: var(--fs-xs);
@@ -1985,6 +1989,27 @@
       showToast(item.emoji + ' ' + item.name + ' added to order.', 'success', 1800);
     }
 
+    /* ── Order history cache, shared by Popular Today + Suggestions ──
+       Both used to call GAS endpoints (popularToday/suggestions) that were
+       never migrated — orders have lived in Firestore since Phase 1, so
+       those calls read stale-or-empty Sheets data regardless of what
+       customers actually ordered. Computed here instead from real orders. */
+    var orderHistoryCache = null;
+    async function getOrderHistoryForPopularity() {
+      if (orderHistoryCache) return orderHistoryCache;
+      try {
+        var res = await CONFIG.apiGet('orders');
+        orderHistoryCache = (res && res.status === 'success' && Array.isArray(res.data)) ? res.data : [];
+      } catch (e) {
+        orderHistoryCache = [];
+      }
+      return orderHistoryCache;
+    }
+    function orderItemCounts(o) {
+      var list = Array.isArray(o.items) ? o.items : (Array.isArray(o.parsedItems) ? o.parsedItems : []);
+      return list.map(function (i) { return { name: i.name, qty: i.qty || i.quantity || 1 }; }).filter(function (i) { return i.name; });
+    }
+
     /* ── Popular Today strip ── */
     async function initPopularToday() {
       var section = document.getElementById('popular-section');
@@ -1992,8 +2017,18 @@
       if (!section || !strip) return;
       try {
         if (typeof CONFIG === 'undefined' || !CONFIG.apiGet) return;
-        var res = await CONFIG.apiGet('popularToday');
-        var items = (res && res.data) ? res.data : [];
+        var orders = await getOrderHistoryForPopularity();
+        var todayStr = new Date().toDateString();
+        var freq = {};
+        orders.forEach(function (o) {
+          if (!o.status || (CONFIG.STATUS && CONFIG.STATUS.isVoid(o.status))) return;
+          var d = new Date(o.timestamp);
+          if (d.toDateString() !== todayStr) return;
+          orderItemCounts(o).forEach(function (i) { freq[i.name] = (freq[i.name] || 0) + i.qty; });
+        });
+        var items = Object.keys(freq)
+          .sort(function (a, b) { return freq[b] - freq[a]; })
+          .map(function (name) { return { name: name }; });
         if (!Array.isArray(items) || items.length === 0) {
           section.classList.add('hidden');
           return;
@@ -2056,8 +2091,24 @@
           hideUpsell(mobileEl);
           return;
         }
-        var res = await CONFIG.apiGet('suggestions', { cart: cartKey });
-        var items = (res && res.data) ? res.data : [];
+        // Real "people who ordered this also ordered..." co-occurrence, computed
+        // from actual order history (see getOrderHistoryForPopularity above).
+        var orders = await getOrderHistoryForPopularity();
+        var cartNamesLower = cart.map(function (c) { return c.name.toLowerCase(); });
+        var coFreq = {};
+        orders.forEach(function (o) {
+          if (!o.status || (CONFIG.STATUS && CONFIG.STATUS.isVoid(o.status))) return;
+          var names = orderItemCounts(o);
+          var hasCartItem = names.some(function (i) { return cartNamesLower.indexOf(i.name.toLowerCase()) !== -1; });
+          if (!hasCartItem) return;
+          names.forEach(function (i) {
+            if (cartNamesLower.indexOf(i.name.toLowerCase()) !== -1) return; // already in cart
+            coFreq[i.name] = (coFreq[i.name] || 0) + i.qty;
+          });
+        });
+        var items = Object.keys(coFreq)
+          .sort(function (a, b) { return coFreq[b] - coFreq[a]; })
+          .map(function (name) { return { name: name }; });
         if (!Array.isArray(items) || items.length === 0) {
           hideUpsell(desktopEl);
           hideUpsell(mobileEl);

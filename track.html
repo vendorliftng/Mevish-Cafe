@@ -709,8 +709,13 @@
     }
 
     // ── Prep countdown timer ──────────────────────
+    // `currentPrepTick` holds the active timer's own recompute function so the
+    // visibilitychange handler below can force an immediate catch-up.
+    var currentPrepTick = null;
+
     function startPrepTimer(order) {
       clearInterval(prepTimerInterval);
+      currentPrepTick = null;
 
       if (!order.prepStarted || order.prepTime === '' || order.prepTime === undefined || isPaid(order.status)) {
         return;
@@ -761,12 +766,14 @@
         }
       }
 
+      currentPrepTick = tick;
       tick();
       prepTimerInterval = setInterval(tick, 1000);
     }
 
     function stopPrepTimer() {
       clearInterval(prepTimerInterval);
+      currentPrepTick = null;
     }
 
     // ── Review form (Phase 5C) ────────────────────
@@ -1306,6 +1313,22 @@
     window.addEventListener('offline', goOffline);
     window.addEventListener('online', goOnline);
     if (!navigator.onLine) goOffline();
+
+    // ── Catch up instantly when the tab/screen comes back ──────
+    // Browsers throttle (sometimes fully suspend) setInterval in a
+    // backgrounded tab, so the prep countdown can sit frozen on a stale
+    // number for a while after switching apps or locking the phone, then
+    // jump. Force an immediate recompute the moment the page is visible
+    // again instead of waiting for the next (possibly delayed) tick.
+    // The order status itself doesn't have this problem on the live
+    // Firestore path — onSnapshot delivers the latest state as soon as the
+    // connection resumes, with or without the tab being focused — but the
+    // legacy poll fallback gets the same instant-refresh treatment here too.
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState !== 'visible') return;
+      if (currentPrepTick) currentPrepTick();
+      if (!usingLiveTracking && currentOrderId) trackOrder(currentOrderId);
+    });
 
     // ── DOM Ready ──────────────────────────────
     document.addEventListener('DOMContentLoaded', function () {
