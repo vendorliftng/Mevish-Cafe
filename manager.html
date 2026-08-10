@@ -367,7 +367,11 @@
       <!-- ════════════════════════════════════════════════════ -->
       <div id="panel-audit" class="panel">
         <div class="card">
-          <div class="card-header"><h3>Audit Log</h3></div>
+          <div class="card-header">
+            <h3>Audit Log</h3>
+            <input type="text" id="auditSearch" placeholder="Search by action, order, or who did it..." oninput="renderAuditTable()"
+              style="padding:0.4rem 0.8rem;border:1px solid var(--c-border);border-radius:8px;font-size:0.82rem;width:280px;background:var(--c-bg);color:var(--c-text);" />
+          </div>
           <div class="table-wrap" id="auditTableWrap"><div class="loading-state"><div class="spinner"></div></div></div>
         </div>
       </div>
@@ -409,9 +413,7 @@
       <div id="panel-admins" class="panel">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
           <h2 style="margin:0; font-size:1.4rem;">Admin Management</h2>
-          <button class="btn btn-primary" onclick="openAdminModal()">
-            <i class="fas fa-plus"></i> Add Admin
-          </button>
+          <button class="btn btn-primary" onclick="openAdminModal()">+ Add Admin</button>
         </div>
         <div class="data-table-wrapper">
           <table class="data-table" id="adminsTable">
@@ -565,10 +567,89 @@ let customersData = [], reviewsData = [];
 let currentSettings = {};
 let revenueChartInstance = null, dailyChartInstance = null, categoryChartInstance = null;
 
+let audioCtx = null;
+let knownOrderIds = new Set();
+let orderListenerInitialized = false;
+let newOrderUnsubscribe = null;
+
 async function initApp() {
   initDateDefaults();
+  initAudio();
   await loadAllData();
   switchPanel('analytics');
+  startNewOrderListener();
+}
+
+// Same WebAudio ding as dashboard.html (FR-2.7) — a Manager watching this
+// screen should hear a new order arrive exactly like a Cashier does.
+// AudioContext needs a user gesture to unlock; the login button click that
+// leads here counts.
+function initAudio() {
+  if (!audioCtx) {
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {}
+  } else if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+}
+function playDing() {
+  if (!audioCtx) return;
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  try {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(1760, audioCtx.currentTime + 0.1);
+    gain.gain.setValueAtTime(0, audioCtx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.5, audioCtx.currentTime + 0.05);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.5);
+  } catch (e) {}
+}
+
+// manager.html previously had no live order listener at all — the Orders
+// panel only ever showed whatever loadAllData() fetched once at login or on
+// manual refresh, so a new order arriving mid-shift produced no sound and no
+// visible update until someone thought to hit Refresh. This runs alongside
+// loadAllData() (which still drives the panels themselves) purely to detect
+// new orders the instant they land and ding + toast for them.
+function startNewOrderListener() {
+  if (typeof db === 'undefined' || !db) return;
+  if (newOrderUnsubscribe) newOrderUnsubscribe();
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  newOrderUnsubscribe = db.collection('orders')
+    .where('timestamp', '>=', startOfToday.getTime())
+    .onSnapshot(snapshot => {
+      let newOrdersFound = false;
+      let newestName = '';
+      snapshot.forEach(doc => {
+        const o = doc.data();
+        const id = o.orderId || doc.id;
+        const s = o.status || '';
+        if (orderListenerInitialized && (s === 'Active' || s === 'Pending') && !knownOrderIds.has(id)) {
+          newOrdersFound = true;
+          newestName = o.customerName || 'Walk-in';
+        }
+        knownOrderIds.add(id);
+      });
+      if (newOrdersFound) {
+        playDing();
+        toast('🔔 New order — ' + newestName, 'info');
+        // Keep the Orders panel and KPIs current without forcing the
+        // manager off whatever panel they're actually looking at.
+        loadAllData().then(() => {
+          const active = document.querySelector('.nav-item.active');
+          if (active && (active.dataset.panel === 'orders' || active.dataset.panel === 'analytics')) {
+            switchPanel(active.dataset.panel);
+          }
+        });
+      }
+      orderListenerInitialized = true;
+    }, err => console.error('New-order listener error:', err));
 }
 
 function initDateDefaults() {
@@ -653,13 +734,12 @@ function renderPanel(panelId) {
     case 'cashiers': renderCashiersTable(); break;
     case 'tables': renderTablesTable(); generateAllQRCodes(); break;
     case 'expenses': renderExpensesTable(); break;
-    case 'settings': loadSettings();
-    loadAdmins();
-    loadInventory(); break;
+    case 'settings': loadSettings(); break;
     case 'theme': renderThemePicker(); break;
     case 'audit': loadAuditLog(); break;
     case 'customers': renderCustomersTable(); break;
     case 'reviews': loadReviews(); break;
+    case 'admins': loadAdmins(); break;
   }
 }
 
@@ -1953,7 +2033,12 @@ function editAdminRole(uid, currentRole) {
 async function saveAdminRole(uid) {
   const newRole = document.getElementById('af_role').value;
   try {
+    const targetDoc = await db.collection('users').doc(uid).get();
+    const targetEmail = targetDoc.exists ? targetDoc.data().email : uid;
     await db.collection('users').doc(uid).update({ role: newRole });
+    if (typeof CONFIG.writeAudit === 'function') {
+      CONFIG.writeAudit('ROLE_CHANGED', '', targetEmail + ' -> ' + newRole, (auth.currentUser && auth.currentUser.email) || 'SuperAdmin');
+    }
     toast('Role updated successfully', 'success');
     closeModal();
     loadAdmins();
@@ -1962,24 +2047,50 @@ async function saveAdminRole(uid) {
   }
 }
 
+let auditLogData = [];
+
 async function loadAuditLog() {
   const wrap = document.getElementById('auditTableWrap');
   try {
     const res = await CONFIG.apiGet('auditLog');
-    const logs = (res.data || []);
-    if (logs.length === 0) { wrap.innerHTML = '<div class="empty-state"><div class="empty-title">No audit entries yet</div></div>'; return; }
-    const loc = CONFIG.RESTAURANT.locale || 'en-US';
-    let rows = '';
-    logs.forEach(l => {
-      const d = new Date(l.timestamp);
-      const dateStr = isNaN(d) ? (l.timestamp || '—') : d.toLocaleDateString(loc, { day: '2-digit', month: 'short' }) + ' ' + d.toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' });
-      rows += `<tr><td style="font-size:0.78rem;color:var(--c-text-light);white-space:nowrap;">${dateStr}</td><td><span class="badge badge-info">${l.action || '—'}</span></td><td style="font-family:monospace;font-size:0.78rem;">${l.orderId || '—'}</td><td>${l.details || '—'}</td><td>${l.performedBy || '—'}</td></tr>`;
-    });
-    wrap.innerHTML = `<table><thead><tr><th>Time</th><th>Action</th><th>Order ID</th><th>Details</th><th>By</th></tr></thead><tbody>${rows}</tbody></table>`;
+    auditLogData = (res.data || []);
+    renderAuditTable();
   } catch (e) {
     console.error('loadAuditLog error', e);
     wrap.innerHTML = '<div class="empty-state"><div class="empty-title">Could not load audit log</div><div class="empty-text">Check your connection and try refreshing.</div></div>';
   }
+}
+
+// FR-10.1 requires the audit log to be searchable — split out from
+// loadAuditLog (a network fetch) so typing in the search box just re-filters
+// data already in memory instead of re-fetching on every keystroke.
+function renderAuditTable() {
+  const wrap = document.getElementById('auditTableWrap');
+  const searchEl = document.getElementById('auditSearch');
+  const search = searchEl ? searchEl.value.trim().toLowerCase() : '';
+  let logs = auditLogData;
+  if (search) {
+    logs = logs.filter(l =>
+      String(l.action || '').toLowerCase().includes(search) ||
+      String(l.orderId || '').toLowerCase().includes(search) ||
+      String(l.details || '').toLowerCase().includes(search) ||
+      String(l.performedBy || '').toLowerCase().includes(search)
+    );
+  }
+  if (logs.length === 0) {
+    wrap.innerHTML = auditLogData.length === 0
+      ? '<div class="empty-state"><div class="empty-title">No audit entries yet</div></div>'
+      : '<div class="empty-state"><div class="empty-title">No matching entries</div></div>';
+    return;
+  }
+  const loc = CONFIG.RESTAURANT.locale || 'en-US';
+  let rows = '';
+  logs.forEach(l => {
+    const d = new Date(l.timestamp);
+    const dateStr = isNaN(d) ? (l.timestamp || '—') : d.toLocaleDateString(loc, { day: '2-digit', month: 'short' }) + ' ' + d.toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' });
+    rows += `<tr><td style="font-size:0.78rem;color:var(--c-text-light);white-space:nowrap;">${dateStr}</td><td><span class="badge badge-info">${l.action || '—'}</span></td><td style="font-family:monospace;font-size:0.78rem;">${l.orderId || '—'}</td><td>${l.details || '—'}</td><td>${l.performedBy || '—'}</td></tr>`;
+  });
+  wrap.innerHTML = `<table><thead><tr><th>Time</th><th>Action</th><th>Order ID</th><th>Details</th><th>By</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 </script>
 </body>

@@ -621,10 +621,11 @@ function setRefreshing(yes) {
      ═══════════════════════════════════════════════════ */
   function getStatusCategory(s) {
     if (!s) return 'active';
+    if (s.includes('Credit')) return 'credit';
     if (s.includes('Preparing')) return 'preparing';
     if (s === 'Ready') return 'ready';
     if (s === 'Served') return 'served';
-    if (s.includes('Paid') || s.includes('Credit')) return 'paid';
+    if (s.includes('Paid')) return 'paid';
     if (s.includes('Void')) return 'void';
     return 'active';
   }
@@ -719,6 +720,7 @@ function setRefreshing(yes) {
       actions = `<button class="btn btn-info" onclick="event.stopPropagation();handleStartPreparing('${escAttr(order.orderId || order.id)}')">Start Preparing</button>`;
       actions += `<button class="btn btn-primary" data-payment-btn="1" onclick="event.stopPropagation();handlePayPOS('${escAttr(order.orderId || order.id)}')">POS</button>`;
       actions += `<button class="btn btn-cash" data-payment-btn="1" onclick="event.stopPropagation();handlePayCash('${escAttr(order.orderId || order.id)}')">Cash</button>`;
+      actions += `<button class="btn btn-credit" data-payment-btn="1" onclick="event.stopPropagation();handleCredit('${escAttr(order.orderId || order.id)}')">Credit</button>`;
       if (currentUser && currentUser.isManager) {
         actions += `<button class="btn btn-danger-outline" id="voidBtn-${escAttr(order.orderId || order.id)}" onclick="event.stopPropagation();handleVoid('${escAttr(order.orderId || order.id)}')">Void</button>`;
       }
@@ -729,6 +731,14 @@ function setRefreshing(yes) {
     } else if (cat === 'served') {
       actions = `<button class="btn btn-primary" data-payment-btn="1" onclick="event.stopPropagation();handlePayPOS('${escAttr(order.orderId || order.id)}')">POS</button>`;
       actions += `<button class="btn btn-cash" data-payment-btn="1" onclick="event.stopPropagation();handlePayCash('${escAttr(order.orderId || order.id)}')">Cash</button>`;
+      actions += `<button class="btn btn-credit" data-payment-btn="1" onclick="event.stopPropagation();handleCredit('${escAttr(order.orderId || order.id)}')">Credit</button>`;
+    } else if (cat === 'credit') {
+      // "Any cashier taps the card, chooses Cash or POS, and it closes
+      // properly" (USER-JOURNEY §4E) — settling is the same two buttons,
+      // just routed to settleCredit so inventory deducts now (FR-3.5: credit
+      // issue never deducts stock, settlement does) instead of at issue time.
+      actions = `<button class="btn btn-primary" data-payment-btn="1" onclick="event.stopPropagation();handleSettleCredit('${escAttr(order.orderId || order.id)}','POS')">Settle · POS</button>`;
+      actions += `<button class="btn btn-cash" data-payment-btn="1" onclick="event.stopPropagation();handleSettleCredit('${escAttr(order.orderId || order.id)}','Cash')">Settle · Cash</button>`;
     }
     // WhatsApp forward/share button — available for ALL statuses
     actions += `<button class="btn btn-whatsapp" title="Forward order via WhatsApp" onclick="event.stopPropagation();openWhatsAppForward('${escAttr(order.orderId || order.id)}')"><span aria-hidden="true">💬</span> Share</button>`;
@@ -876,6 +886,41 @@ function setRefreshing(yes) {
     }
   }
 
+  // "I'll pay tomorrow" (USER-JOURNEY §4E) — closes the order as owed-but-
+  // not-paid. Never deducts inventory at this point (FR-3.5): only actually
+  // settling it later does.
+  async function handleCredit(orderId) {
+    if (isPaymentLocked()) return showToast('You are offline — credit sales are locked until the connection returns', 'error');
+    const cashier = getSelectedCashier();
+    const ok = await updateStatus(orderId, (CONFIG.STATUS && CONFIG.STATUS.CREDIT) || 'Unpaid (Credit)', cashier);
+    if (ok) {
+      // Unlike Cash/POS, a credit order stays visible on the board (just
+      // recolored, with Settle buttons) — not cleared. The live Firestore
+      // listener re-renders it in its new category on its own; no manual
+      // DOM removal needed here.
+      showToast(`Marked as Credit by ${cashier} — settle it later from the Credit card`, 'warning');
+    }
+  }
+
+  async function handleSettleCredit(orderId, method) {
+    if (isPaymentLocked()) return showToast('You are offline — payments are locked until the connection returns', 'error');
+    const cashier = getSelectedCashier();
+    try {
+      const res = await CONFIG.apiPost('settleCredit', { orderId, cashier, method });
+      if (res && res.status === 'error') {
+        showToast(res.message || 'Failed to settle credit', 'error');
+        return;
+      }
+      const order = getOrderById(orderId);
+      removeCardFromGrid(orderId);
+      showToast(`Credit settled · ${method} by ${cashier}`, 'success');
+      if (order) showReceiptModal(order);
+    } catch (err) {
+      showToast('Network error — could not settle credit', 'error');
+      console.error('handleSettleCredit error', err);
+    }
+  }
+
   function handleVoid(orderId) {
     if (voidPending === orderId) {
       voidPending = null;
@@ -987,6 +1032,11 @@ function setRefreshing(yes) {
     if (cat === 'active' || cat === 'served') {
       footer.innerHTML += `<button class="btn btn-primary" onclick="closeDetailModal();handlePayPOS('${escAttr(order.orderId || order.id)}')">Pay POS</button>`;
       footer.innerHTML += `<button class="btn btn-cash" onclick="closeDetailModal();handlePayCash('${escAttr(order.orderId || order.id)}')">Pay Cash</button>`;
+      footer.innerHTML += `<button class="btn btn-credit" onclick="closeDetailModal();handleCredit('${escAttr(order.orderId || order.id)}')">Credit</button>`;
+    }
+    if (cat === 'credit') {
+      footer.innerHTML += `<button class="btn btn-primary" onclick="closeDetailModal();handleSettleCredit('${escAttr(order.orderId || order.id)}','POS')">Settle · POS</button>`;
+      footer.innerHTML += `<button class="btn btn-cash" onclick="closeDetailModal();handleSettleCredit('${escAttr(order.orderId || order.id)}','Cash')">Settle · Cash</button>`;
     }
     if (currentUser && currentUser.isManager) {
       footer.innerHTML += `<button class="btn btn-danger-outline" onclick="closeDetailModal();handleVoid('${escAttr(order.orderId || order.id)}')">Void</button>`;

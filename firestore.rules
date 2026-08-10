@@ -120,9 +120,15 @@ service cloud.firestore {
       allow delete: if isSuperAdmin(); // same one-time reset exception as orders, above
     }
 
-    // ─── customers — loyalty (Phase 2, write-path not built yet) ──
+    // ─── customers — loyalty (FR-11.3) ─────────────────────────
+    // Points are earned at checkout and spend is credited at payment —
+    // both happen from unauthenticated cashier/customer sessions, same as
+    // orders itself, so create/update need to stay open. Only deleting a
+    // customer record is Manager+.
     match /customers/{phone} {
-      allow read, write: if isManager();
+      allow read: if true;
+      allow create, update: if true;
+      allow delete: if isManager();
     }
 
     // ─── everything else: deny ────────────────────────────────

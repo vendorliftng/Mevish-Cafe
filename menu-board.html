@@ -428,8 +428,15 @@
       return '\u20A6' + (Number(n) || 0).toLocaleString();
     };
 
-    // ── Apply saved theme ────────────────────────
-    if (C.loadSavedTheme) C.loadSavedTheme();
+    // NOTE: deliberately NOT calling C.loadSavedTheme() here. This page has
+    // its own fixed dark TV-display design (the ambient gradient background,
+    // ember accents, etc. earlier in this file's <style> block) — it isn't
+    // meant to follow whichever of the 5 manager-facing presets a Manager
+    // last picked for the dashboard/admin panels. Calling it here used to
+    // overwrite --text-primary/--bg-deep with the *light* default theme's
+    // colors (dark slate text on what was suddenly a near-white background),
+    // making every item on the board unreadable against the still-dark
+    // ambient background underneath it.
 
     // ── Set dynamic brand ─────────────────────────
     document.title = RESTAURANT.name + ' — Menu Board';
@@ -515,7 +522,12 @@
     // ── Show category ──────────────────────────
     function showCategory(index, skipFade) {
       var cat   = DISPLAY_CATS[index];
-      var items = menuData.filter(function (i) { return i.category === cat; });
+      // Sold-out items showing on the TV board would invite a customer to
+      // ask for something the kitchen just told everyone it can't make
+      // (FR-4.2) — filter them out the same way the ordering pages do.
+      var items = menuData.filter(function (i) {
+        return i.category === cat && i.available !== false && i.available !== 'No';
+      });
 
       // Update header
       document.getElementById('mbCategory').textContent = cat;

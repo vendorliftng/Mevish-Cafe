@@ -567,18 +567,38 @@ const CONFIG = {
           // called from 'updateStatus' and 'settleCredit'), not here at order creation.
           // Deducting at creation meant a voided or never-paid order still consumed real
           // stock — see FR-3.5/FR-5.2 in the PRD.
-          return { status: 'success', data: payload };
-        }
-        if (action === 'updateOrder') {
-          if (payload.status === 'Void') {
-            // Never delete orders — preserve voids for history and audit
-            await db.collection('orders').doc(payload.orderId).update({ status: 'Void', voidedAt: Date.now() });
-            CONFIG.writeAudit('ORDER_VOIDED', payload.orderId, '', payload.cashier || 'Manager');
-          } else {
-            await db.collection('orders').doc(payload.orderId).update({ status: payload.status });
-            CONFIG.writeAudit('STATUS_UPDATED', payload.orderId, 'Status -> ' + payload.status, payload.cashier || 'System');
+
+          // Loyalty (FR-11.3): this used to not persist anywhere, so the
+          // success-screen banner always fell back to claiming "Total: 1
+          // point" for every single order, on every visit — real data now.
+          // (totalSpent is updated separately, at payment — see updateStatus/
+          // settleCredit — so it only ever counts confirmed revenue.)
+          let loyaltyPoints, nextRewardAt;
+          if (payload.customerPhone) {
+            const pointsPerOrder = (CONFIG.RESTAURANT && CONFIG.RESTAURANT.loyaltyPointsPerOrder) || 1;
+            nextRewardAt = (CONFIG.RESTAURANT && CONFIG.RESTAURANT.loyaltyRewardThreshold) || 10;
+            try {
+              const custRef = db.collection('customers').doc(payload.customerPhone);
+              loyaltyPoints = await db.runTransaction(async (tx) => {
+                const doc = await tx.get(custRef);
+                const prev = doc.exists ? doc.data() : {};
+                const newPoints = (Number(prev.loyaltyPoints) || 0) + pointsPerOrder;
+                tx.set(custRef, {
+                  phone: payload.customerPhone,
+                  name: payload.customerName || prev.name || 'Guest',
+                  totalOrders: (Number(prev.totalOrders) || 0) + 1,
+                  totalSpent: Number(prev.totalSpent) || 0,
+                  loyaltyPoints: newPoints,
+                  lastVisit: Date.now()
+                }, { merge: true });
+                return newPoints;
+              });
+            } catch (e) { console.error('Loyalty upsert failed (order still placed fine):', e); }
           }
-          return { status: 'success', data: payload };
+          const responseData = Object.assign({}, payload);
+          if (loyaltyPoints !== undefined) responseData.loyaltyPoints = loyaltyPoints;
+          if (nextRewardAt !== undefined) responseData.nextRewardAt = nextRewardAt;
+          return { status: 'success', data: responseData };
         }
         if (action === 'updateStatus') {
           const orderId = payload.orderId;
@@ -606,6 +626,7 @@ const CONFIG = {
             // enforced inside deductInventoryForOrder itself via a claim
             // transaction, so a double-tap or retry here can never double-deduct.
             await CONFIG.deductInventoryForOrder(orderId);
+            await CONFIG.creditCustomerSpend(orderId);
           } else if (newStatus.indexOf('Void') === 0) {
             updates.voidedAt = Date.now();
             updates.voidedBy = cashier || 'Manager';
@@ -634,6 +655,7 @@ const CONFIG = {
           // Credit orders were never deducted at issue time (FR-3.5) — settlement
           // is their first real payment, so it's deducted now.
           await CONFIG.deductInventoryForOrder(payload.orderId);
+          await CONFIG.creditCustomerSpend(payload.orderId);
           CONFIG.writeAudit('CREDIT_SETTLED', payload.orderId, 'Credit settled via ' + method + (cashier ? ' by ' + cashier : ''), cashier || 'System');
           return { status: 'success', data: { orderId: payload.orderId, status: newStatus } };
         }
@@ -948,6 +970,33 @@ const CONFIG = {
         }
       }
     }
+  },
+
+  // Credits a paying customer's totalSpent (FR-11.3) — called from
+  // updateStatus's Paid branch and settleCredit, i.e. only once money has
+  // actually changed hands, never at order creation (which only earns
+  // loyalty points — see 'newOrder' above). Best-effort: a failure here
+  // must never block the payment itself from completing.
+  async creditCustomerSpend(orderId) {
+    if (!orderId) return;
+    try {
+      const orderDoc = await db.collection('orders').doc(orderId).get();
+      if (!orderDoc.exists) return;
+      const order = orderDoc.data();
+      if (!order.customerPhone) return;
+      const amount = Number(order.totalPrice || order.totalRevenue || 0);
+      if (!amount) return;
+      const custRef = db.collection('customers').doc(order.customerPhone);
+      await db.runTransaction(async (tx) => {
+        const doc = await tx.get(custRef);
+        const prevSpent = doc.exists ? (Number(doc.data().totalSpent) || 0) : 0;
+        tx.set(custRef, {
+          phone: order.customerPhone,
+          name: order.customerName || (doc.exists ? doc.data().name : '') || 'Guest',
+          totalSpent: prevSpent + amount
+        }, { merge: true });
+      });
+    } catch (e) { console.error('creditCustomerSpend failed for ' + orderId, e); }
   },
 
   // ─── Audit Log (Firestore-native) ──────────────────────
