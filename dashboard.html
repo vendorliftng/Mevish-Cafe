@@ -66,7 +66,18 @@
          mid-phrase and the + button to sit right at the edge. */
       .pos-menu-pane, .pos-cart-pane { min-width:0 !important; max-width:none !important; width:100% !important; flex:none !important; }
       .pos-menu-pane { min-height:50vh; }
+      .mo-mobile-cart-bar.has-items { display: flex; }
     }
+    .mo-mobile-cart-bar {
+      display: none; /* only ever shown on mobile, and only once the cart has items — see .has-items above */
+      position: fixed; left: 1rem; right: 1rem; bottom: 1rem; z-index: 60;
+      align-items: center; justify-content: space-between;
+      background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
+      color: #fff; border-radius: var(--r-lg); padding: 0.9rem 1.2rem;
+      box-shadow: var(--shadow-gold); font-weight: 800; font-size: 0.98rem; cursor: pointer;
+    }
+    .mo-mobile-cart-bar:active { transform: scale(.98); }
+    .mo-mobile-cart-bar-arrow { font-weight: 700; opacity: .9; }
     /* ═══ Offline payment lock (NFR-1): visibly, not just functionally, disabled ═══ */
     body.is-offline [data-payment-btn] { opacity:.4; filter:grayscale(.5); pointer-events:none; }
 
@@ -352,6 +363,18 @@
           </div>
         </div>
 
+      </div>
+
+      <!-- Mobile-only floating cart bar. On mobile the menu and cart stack
+           in one long column (see the max-width:860px rules above), so the
+           cart — and the ✕ remove button on each line, and the Confirm
+           button — sits BELOW the entire menu. A cashier scrolling through
+           categories had no way back to their cart short of scrolling past
+           everything they'd just looked at. This stays pinned to the
+           viewport regardless of scroll position and jumps straight there. -->
+      <div id="mo_mobile_cart_bar" class="mo-mobile-cart-bar" onclick="scrollToCart()">
+        <span id="mo_mobile_cart_bar_text">🛒 0 items · ₦0</span>
+        <span class="mo-mobile-cart-bar-arrow">View Cart ▾</span>
       </div>
     </div>
   </div>
@@ -1502,6 +1525,21 @@ function setRefreshing(yes) {
         ? `<span class="pos-confirm-main">✅ Confirm Order</span><span class="pos-confirm-total">${CONFIG.formatCurrency(total)}</span>`
         : 'Confirm Order';
     }
+
+    // Mobile floating cart bar — only reason to exist is getting a cashier
+    // back to their cart without scrolling past the whole menu (see the
+    // comment where it's defined in the HTML).
+    const mobileBar = document.getElementById('mo_mobile_cart_bar');
+    const mobileBarText = document.getElementById('mo_mobile_cart_bar_text');
+    if (mobileBar) {
+      mobileBar.classList.toggle('has-items', manualOrderCart.length > 0);
+      if (mobileBarText) mobileBarText.textContent = `🛒 ${count} ${count === 1 ? 'item' : 'items'} · ${CONFIG.formatCurrency(total)}`;
+    }
+  }
+
+  function scrollToCart() {
+    const pane = document.querySelector('.pos-cart-pane');
+    if (pane) pane.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   function closeManualOrderModal() {
