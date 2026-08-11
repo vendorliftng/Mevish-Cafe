@@ -1647,6 +1647,14 @@ body.menu-board-page { overflow: hidden; background: var(--bg-deep); }
       white-space: nowrap; display: flex; align-items: center;
       justify-content: center; gap: 0.25rem;
     }
+    /* .order-actions .btn (2 classes) outranks single-class variants like
+       .btn-danger-outline, so its blanket "border:none" silently stripped
+       the Void button's outline. Re-assert the border here at matching
+       specificity so it survives inside order-card action rows. */
+    .order-actions .btn-danger-outline {
+      border: 1.5px solid var(--danger); background: transparent; color: var(--danger);
+    }
+    .order-actions .btn-danger-outline:hover { background: rgba(220,38,38,0.12); }
     .btn {
       display: inline-flex; align-items: center; gap: 0.4em;
       padding: 0.55rem 1.1rem; border-radius: 10px; font-size: 0.82rem;
