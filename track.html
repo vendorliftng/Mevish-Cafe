@@ -532,6 +532,16 @@
       .tracker-footer-links { flex-direction: column; gap: var(--sp-sm); }
       .tracker-footer-links .btn { width: 100%; text-align: center; }
     }
+    /* .navbar's shared container is a plain non-wrapping flex row — fine on
+       every other page using it, but track.html is the one page packing a
+       brand + two nav items into it, which overflowed at 320-360px widths
+       (the "Order Now" button got clipped at the edge). Dropping "Back to
+       Menu" to just its arrow at the narrowest widths keeps both nav items
+       (and, more importantly, the Order Now CTA) fully visible and tappable. */
+    @media (max-width: 360px) {
+      .nav-back-text { display: none; }
+      #trackNavLogo .brand-text { font-size: 0.95rem; }
+    }
   </style>
 </head>
 <body>
@@ -546,7 +556,7 @@
         <span class="brand-text">Restaurant</span> <span class="brand-accent"></span>
       </a>
       <div style="display:flex; align-items:center; gap: var(--sp-md);">
-        <a href="index.html" class="nav-link" id="trackNavHome">← Back to Menu</a>
+        <a href="index.html" class="nav-link" id="trackNavHome">← <span class="nav-back-text">Back to Menu</span></a>
         <a href="index.html?table=Counter" class="btn btn-primary btn-sm" id="trackNavOrder">Order Now</a>
       </div>
     </div>

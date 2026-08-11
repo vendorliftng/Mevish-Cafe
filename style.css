@@ -1395,6 +1395,13 @@ body.menu-board-page { overflow: hidden; background: var(--bg-deep); }
       /* Make modals nearly full-screen on small phones */
       .modal-content { margin: 0.5rem; max-width: calc(100% - 1rem); }
     }
+    @media(max-width:340px){
+      /* Hamburger + title + Refresh + Export all sharing one row ran 5px
+         past the edge at 320px (iPhone SE / small Android width) — icon-
+         only actions here, the labels are still in the title above them. */
+      .top-bar-btn-text { display: none; }
+      .top-bar-actions .btn { padding-left: 0.6rem; padding-right: 0.6rem; }
+    }
 
     /* ── PRINT ─────────────────────────────────────────────── */
     @media print {

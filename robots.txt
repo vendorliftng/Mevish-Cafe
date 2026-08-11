@@ -12,5 +12,6 @@ Allow: /config.js
 Disallow: /dashboard.html
 Disallow: /manager.html
 Disallow: /blog-admin.html
+Disallow: /reset-data.html
 
 Sitemap: sitemap.xml

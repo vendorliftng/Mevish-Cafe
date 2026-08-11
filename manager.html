@@ -154,10 +154,10 @@
       </div>
       <div class="top-bar-actions">
         <button class="btn btn-ghost btn-sm" onclick="refreshCurrentPanel()">
-          &#8635; Refresh
+          &#8635; <span class="top-bar-btn-text">Refresh</span>
         </button>
         <button class="btn btn-primary btn-sm" onclick="exportReport()">
-          &#9113; Export
+          &#9113; <span class="top-bar-btn-text">Export</span>
         </button>
       </div>
     </header>
@@ -849,8 +849,6 @@ function applyFilters() {
 // tracking existed (those show 0 cost/profit rather than crashing).
 function getOrderTotal(o)  { return Number(o.totalPrice ?? o.totalRevenue ?? o.total ?? 0) || 0; }
 function getOrderCost(o)   { return Number(o.totalCost ?? 0) || 0; }
-function getOrderProfit(o) { return (o.profit !== undefined && o.profit !== null) ? (Number(o.profit) || 0) : (getOrderTotal(o) - getOrderCost(o)); }
-
 function countUp(el, target, prefix, suffix) {
   prefix = prefix || ''; suffix = suffix || '';
   const locale = (CONFIG.RESTAURANT && CONFIG.RESTAURANT.locale) || 'en-US';

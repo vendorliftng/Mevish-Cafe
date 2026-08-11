@@ -230,8 +230,6 @@
     <div class="grid-orders" id="clearedGrid">
       <div class="empty-state" style="padding:2rem;"><div class="empty-state-sub">No cleared orders yet.</div></div>
     </div>
-<span>Loading orders...</span></div>
-    </div>
   </main>
 
   <!-- ═══════════════════════════════════════════════ -->
@@ -822,14 +820,6 @@ function setRefreshing(yes) {
     const items = getOrderItemLines(order);
     if (!items.length) return '<em style="color:var(--c-text-light)">No items</em>';
     return items.map(i => `<div>${i.qty}x <strong>${escHtml(i.name)}</strong></div>`).join('');
-  }
-
-  function showEmptyState(title, sub) {
-    const grid = document.getElementById('ordersGrid');
-    grid.innerHTML = `<div class="empty-state">
-      <div class="empty-state-title">${escHtml(title)}</div>
-      <div class="empty-state-sub">${escHtml(sub)}</div></div>`;
-    document.getElementById('orderCount').textContent = '0';
   }
 
   /* ═══════════════════════════════════════════════════
