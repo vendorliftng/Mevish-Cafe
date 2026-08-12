@@ -783,34 +783,45 @@ function setRefreshing(yes) {
     const badgeLabel = getLabel(order.status);
     const itemLines = buildItemLines(order);
 
-    // Build action buttons based on status
+    // Build action buttons based on status. Payment/workflow actions stay
+    // inline (cashiers tap these constantly — burying them costs a tap every
+    // single order, per the earlier "keep instant-pay visible" decision).
+    // Void and Share are lower-frequency, so they live in one shared "⋯"
+    // overflow menu instead of competing for space on every card — up to 6
+    // inline buttons was cramming small phone-width cards.
+    const oid = escAttr(order.orderId || order.id);
     let actions = '';
     if (cat === 'active') {
-      actions = `<button class="btn btn-info" onclick="event.stopPropagation();handleStartPreparing('${escAttr(order.orderId || order.id)}')">Start Preparing</button>`;
-      actions += `<button class="btn btn-primary" data-payment-btn="1" onclick="event.stopPropagation();handlePayPOS('${escAttr(order.orderId || order.id)}')">POS</button>`;
-      actions += `<button class="btn btn-cash" data-payment-btn="1" onclick="event.stopPropagation();handlePayCash('${escAttr(order.orderId || order.id)}')">Cash</button>`;
-      actions += `<button class="btn btn-credit" data-payment-btn="1" onclick="event.stopPropagation();handleCredit('${escAttr(order.orderId || order.id)}')">Credit</button>`;
-      if (currentUser && currentUser.isManager) {
-        actions += `<button class="btn btn-danger-outline" id="voidBtn-${escAttr(order.orderId || order.id)}" onclick="event.stopPropagation();handleVoid('${escAttr(order.orderId || order.id)}')">Void</button>`;
-      }
+      actions = `<button class="btn btn-info" onclick="event.stopPropagation();handleStartPreparing('${oid}')">Start Preparing</button>`;
+      actions += `<button class="btn btn-primary" data-payment-btn="1" onclick="event.stopPropagation();handlePayPOS('${oid}')">POS</button>`;
+      actions += `<button class="btn btn-cash" data-payment-btn="1" onclick="event.stopPropagation();handlePayCash('${oid}')">Cash</button>`;
+      actions += `<button class="btn btn-credit" data-payment-btn="1" onclick="event.stopPropagation();handleCredit('${oid}')">Credit</button>`;
     } else if (cat === 'preparing') {
-      actions = `<button class="btn btn-success" onclick="event.stopPropagation();handleMarkReady('${escAttr(order.orderId || order.id)}')">Mark Ready</button>`;
+      actions = `<button class="btn btn-success" onclick="event.stopPropagation();handleMarkReady('${oid}')">Mark Ready</button>`;
     } else if (cat === 'ready') {
-      actions = `<button class="btn btn-warning" onclick="event.stopPropagation();handleMarkServed('${escAttr(order.orderId || order.id)}')">Mark Served</button>`;
+      actions = `<button class="btn btn-warning" onclick="event.stopPropagation();handleMarkServed('${oid}')">Mark Served</button>`;
     } else if (cat === 'served') {
-      actions = `<button class="btn btn-primary" data-payment-btn="1" onclick="event.stopPropagation();handlePayPOS('${escAttr(order.orderId || order.id)}')">POS</button>`;
-      actions += `<button class="btn btn-cash" data-payment-btn="1" onclick="event.stopPropagation();handlePayCash('${escAttr(order.orderId || order.id)}')">Cash</button>`;
-      actions += `<button class="btn btn-credit" data-payment-btn="1" onclick="event.stopPropagation();handleCredit('${escAttr(order.orderId || order.id)}')">Credit</button>`;
+      actions = `<button class="btn btn-primary" data-payment-btn="1" onclick="event.stopPropagation();handlePayPOS('${oid}')">POS</button>`;
+      actions += `<button class="btn btn-cash" data-payment-btn="1" onclick="event.stopPropagation();handlePayCash('${oid}')">Cash</button>`;
+      actions += `<button class="btn btn-credit" data-payment-btn="1" onclick="event.stopPropagation();handleCredit('${oid}')">Credit</button>`;
     } else if (cat === 'credit') {
       // "Any cashier taps the card, chooses Cash or POS, and it closes
       // properly" (USER-JOURNEY §4E) — settling is the same two buttons,
       // just routed to settleCredit so inventory deducts now (FR-3.5: credit
       // issue never deducts stock, settlement does) instead of at issue time.
-      actions = `<button class="btn btn-primary" data-payment-btn="1" onclick="event.stopPropagation();handleSettleCredit('${escAttr(order.orderId || order.id)}','POS')">Settle · POS</button>`;
-      actions += `<button class="btn btn-cash" data-payment-btn="1" onclick="event.stopPropagation();handleSettleCredit('${escAttr(order.orderId || order.id)}','Cash')">Settle · Cash</button>`;
+      actions = `<button class="btn btn-primary" data-payment-btn="1" onclick="event.stopPropagation();handleSettleCredit('${oid}','POS')">Settle · POS</button>`;
+      actions += `<button class="btn btn-cash" data-payment-btn="1" onclick="event.stopPropagation();handleSettleCredit('${oid}','Cash')">Settle · Cash</button>`;
     }
-    // WhatsApp forward/share button — available for ALL statuses
-    actions += `<button class="btn btn-whatsapp" title="Forward order via WhatsApp" onclick="event.stopPropagation();openWhatsAppForward('${escAttr(order.orderId || order.id)}')"><span aria-hidden="true">💬</span> Share</button>`;
+    // Overflow menu: Share always, Void only for managers on an active order
+    // (the only state a void is a clean no-stock-moved cancellation).
+    let menuItems = `<button class="card-menu-item" onclick="event.stopPropagation();toggleCardMenu('${oid}',event);openWhatsAppForward('${oid}')"><span aria-hidden="true">💬</span> Share via WhatsApp</button>`;
+    if (cat === 'active' && currentUser && currentUser.isManager) {
+      menuItems += `<button class="card-menu-item danger" id="voidBtn-${oid}" onclick="event.stopPropagation();toggleCardMenu('${oid}',event);handleVoid('${oid}')"><span aria-hidden="true">🚫</span> Void Order</button>`;
+    }
+    actions += `<div class="card-menu">
+        <button class="btn card-menu-btn" aria-label="More actions" title="More actions" onclick="event.stopPropagation();toggleCardMenu('${oid}',event)">⋯</button>
+        <div class="card-menu-dropdown" id="cardMenu-${oid}">${menuItems}</div>
+      </div>`;
 
     let initialTimerDisplay = '--';
     let timerColorStyle = '';
@@ -849,10 +860,11 @@ function setRefreshing(yes) {
         <div class="order-total">${CONFIG.formatCurrency(order.total || order.totalRevenue || order.totalPrice || 0)}</div>
       </div>
       <div class="order-card-footer">
+        ${(cat === 'active' || cat === 'preparing') ? `
         <div class="prep-timers">
           ${CONFIG.PREP_TIMERS ? CONFIG.PREP_TIMERS.map(m => `<button class="prep-btn" onclick="event.stopPropagation();startTimer('${escAttr(order.orderId || order.id)}', ${m})" title="Set ${m} min timer">${m} min</button>`).join('') : ''}
           <span class="prep-timer-display" data-timer="${escAttr(order.orderId || order.id)}" style="${timerColorStyle}">${initialTimerDisplay}</span>
-        </div>
+        </div>` : ''}
         <div class="order-actions">${actions}</div>
       </div>`;
     return cardEl;
@@ -981,6 +993,45 @@ function setRefreshing(yes) {
       console.error('handleSettleCredit error', err);
     }
   }
+
+  // Order-card "⋯" overflow menu (Share / Void). Only one open at a time;
+  // any click outside a menu closes whatever's open.
+  //
+  // Positioning is computed in JS (fixed + clamped), not left via CSS
+  // "right:0" on the dropdown: .order-actions is flex-wrap, so the "⋯"
+  // button doesn't reliably sit at the right edge of the card — once it
+  // wraps to its own row it can land near the card's LEFT edge, and a
+  // right-anchored dropdown wider than the button then renders mostly
+  // off-screen to the left. Anchoring to the button's real position and
+  // clamping to the viewport works regardless of where it wrapped to.
+  function toggleCardMenu(id, ev) {
+    if (ev) ev.stopPropagation();
+    const dropdown = document.getElementById('cardMenu-' + id);
+    if (!dropdown) return;
+    const wasOpen = dropdown.classList.contains('open');
+    document.querySelectorAll('.card-menu-dropdown.open').forEach(d => d.classList.remove('open'));
+    if (wasOpen) return;
+    dropdown.classList.add('open');
+    const btn = ev && ev.currentTarget;
+    if (btn && btn.getBoundingClientRect) {
+      const r = btn.getBoundingClientRect();
+      const menuWidth = dropdown.offsetWidth || 190;
+      let left = r.right - menuWidth;
+      left = Math.max(8, Math.min(left, window.innerWidth - menuWidth - 8));
+      let top = r.bottom + 4;
+      // Also clamp vertically -- if opening downward would run off the
+      // bottom of the screen, open upward from the button instead.
+      const menuHeight = dropdown.offsetHeight || 90;
+      if (top + menuHeight > window.innerHeight - 8) top = r.top - menuHeight - 4;
+      dropdown.style.position = 'fixed';
+      dropdown.style.left = left + 'px';
+      dropdown.style.top = top + 'px';
+      dropdown.style.right = 'auto';
+    }
+  }
+  document.addEventListener('click', () => {
+    document.querySelectorAll('.card-menu-dropdown.open').forEach(d => d.classList.remove('open'));
+  });
 
   function handleVoid(orderId) {
     if (voidPending === orderId) {
@@ -1646,10 +1697,28 @@ function setRefreshing(yes) {
   /* ═══════════════════════════════════════════════════
      INIT
      ═══════════════════════════════════════════════════ */
+  // Mobile status tab strip (All/Active/Preparing/Ready/Served) scrolls
+  // horizontally within its own pill rather than pushing the page wide
+  // (see the min-width:0 fix in style.css), but a horizontally-scrollable
+  // strip with no visual hint just looks like "Served" got cut off. This
+  // fades the right edge in/out based on whether there's really more to
+  // scroll to, so the hint disappears once you've scrolled to the end.
+  function updateTabBarFade() {
+    const tabBar = document.querySelector('.tab-bar');
+    const wrap = document.querySelector('.controls-right');
+    if (!tabBar || !wrap) return;
+    const hasMore = tabBar.scrollWidth - tabBar.scrollLeft - tabBar.clientWidth > 4;
+    wrap.classList.toggle('has-more-tabs', hasMore);
+  }
+
   async function initApp() {
     renderUserDisplay();
     await fetchOrders();
     startAutoRefresh();
+    updateTabBarFade();
+    const tabBarEl = document.querySelector('.tab-bar');
+    if (tabBarEl) tabBarEl.addEventListener('scroll', updateTabBarFade, { passive: true });
+    window.addEventListener('resize', updateTabBarFade);
   }
   </script>
 </body>

@@ -1136,6 +1136,33 @@ const CONFIG = {
           if (data.theme) CONFIG._serverTheme = data.theme;
         }
 
+        // --- Tables: single source of truth ---
+        // The "tables" collection (per-table docs with seats/status/notes,
+        // managed from the Manager's Tables & QR panel) now drives
+        // CONFIG.TABLES, not the plain comma-separated
+        // system_config/global.tables list Settings used to keep in
+        // parallel — that meant a table added in one place silently never
+        // showed up in the other (Tables & QR CRUD wrote to the
+        // collection; every order-taking dropdown read the settings
+        // list). One-time-migrate whatever's already in the settings list
+        // into real documents so existing tables aren't lost in the
+        // switch; after that, the collection wins.
+        try {
+          const tablesSnap = await db.collection('tables').get();
+          if (!tablesSnap.empty) {
+            CONFIG.TABLES = tablesSnap.docs.map(d => d.id);
+          } else if (CONFIG.TABLES && CONFIG.TABLES.length) {
+            console.log("Migrating settings table list to the 'tables' collection...");
+            const batch = db.batch();
+            CONFIG.TABLES.forEach(id => {
+              batch.set(db.collection('tables').doc(String(id)), { seats: 4, status: 'Available', notes: '' });
+            });
+            await batch.commit();
+          }
+        } catch (err) {
+          console.error("Failed to load/migrate tables collection:", err);
+        }
+
         // --- Auto-Migrate Menu Items ---
         const menuSnap = await db.collection('menu_items').limit(1).get();
         if (menuSnap.empty) {

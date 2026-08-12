@@ -1545,6 +1545,18 @@ body.menu-board-page { overflow: hidden; background: var(--bg-deep); }
       display: flex; gap: 0.25rem; background: var(--bg-card);
       border-radius: 8px; padding: 3px; border: 1px solid var(--border);
     }
+    /* Scroll-fade hint for the tab strip: .controls-right (not .tab-bar
+       itself, which is the scrolling element) carries the fade overlay so
+       it stays pinned at the visible edge instead of scrolling away with
+       the tab buttons. Toggled by updateTabBarFade() in dashboard.html —
+       only shown when there's genuinely more to scroll to. */
+    .controls-right { position: relative; }
+    .controls-right::after {
+      content: ''; position: absolute; top: 4px; right: 1px; bottom: 4px; width: 26px;
+      background: linear-gradient(to right, transparent, var(--bg-card) 70%);
+      pointer-events: none; opacity: 0; transition: opacity 0.15s ease; border-radius: 0 8px 8px 0;
+    }
+    .controls-right.has-more-tabs::after { opacity: 1; }
     .tab-btn {
       padding: 0.35rem 0.9rem; font-size: 0.8rem; font-weight: 600;
       border-radius: 6px; border: none; cursor: pointer;
@@ -1660,6 +1672,35 @@ body.menu-board-page { overflow: hidden; background: var(--bg-deep); }
       border: 1.5px solid var(--danger); background: transparent; color: var(--danger);
     }
     .order-actions .btn-danger-outline:hover { background: rgba(220,38,38,0.12); }
+
+    /* ── ORDER-CARD OVERFLOW MENU ("⋯" -> Share / Void) ────────
+       Payment/workflow buttons (Start Preparing, POS, Cash, Credit) stay
+       inline — cashiers tap those on every order. Void and Share are
+       lower-frequency, so they're tucked behind one "⋯" trigger instead
+       of adding 2 more buttons to an already-busy card. */
+    .card-menu { position: relative; display: inline-flex; flex: 0 0 auto; }
+    .card-menu-btn {
+      background: transparent; border: 1px solid var(--border); color: var(--text-secondary);
+      width: 34px; min-width: 34px; height: 34px; padding: 0; border-radius: 8px;
+      font-size: 1.15rem; line-height: 1;
+    }
+    .card-menu-btn:hover { background: var(--bg-primary); color: var(--text-primary); border-color: var(--gold); }
+    .card-menu-dropdown {
+      position: absolute; top: calc(100% + 4px); right: 0; z-index: 50;
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r-md);
+      box-shadow: var(--shadow-lg); min-width: 190px; padding: 0.35rem;
+      display: none; flex-direction: column; gap: 0.15rem;
+    }
+    .card-menu-dropdown.open { display: flex; }
+    .card-menu-item {
+      display: flex; align-items: center; gap: 0.55rem; width: 100%; text-align: left;
+      background: transparent; border: none; padding: 0.6rem 0.7rem; border-radius: 6px;
+      font-size: 0.82rem; font-weight: 600; color: var(--text-primary); cursor: pointer;
+      white-space: nowrap; transition: background 0.12s;
+    }
+    .card-menu-item:hover { background: var(--bg-primary); }
+    .card-menu-item.danger { color: var(--danger); }
+    .card-menu-item.danger:hover { background: rgba(220,38,38,0.1); }
     .btn {
       display: inline-flex; align-items: center; gap: 0.4em;
       padding: 0.55rem 1.1rem; border-radius: 10px; font-size: 0.82rem;

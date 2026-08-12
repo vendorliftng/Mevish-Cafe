@@ -265,6 +265,7 @@
       <!--  PANEL: MENU MANAGEMENT                               -->
       <!-- ════════════════════════════════════════════════════ -->
       <div id="panel-menu" class="panel">
+        <div id="menuDupBanner"></div>
         <div class="card">
           <div class="card-header">
             <h3>Menu Items</h3>
@@ -1315,17 +1316,96 @@ function getBadgeClass(s) {
    ═══════════════════════════════════════════════════════════ */
 function renderMenuTable() {
   const wrap = document.getElementById('menuTableWrap');
+  renderMenuDupBanner();
   if (menuData.length === 0) { wrap.innerHTML = '<div class="empty-state"><div class="empty-title">No menu items yet</div><div class="empty-text">Tap + Add Item to add your first dish.</div></div>'; return; }
   const fmt = (v) => CONFIG.formatCurrency(v);
   let rows = '';
   menuData.forEach(item => {
     const avail = isMenuAvailable(item);
     const idAttr = escAttrJs(item.id);
+    const linked = item.linkedInventoryId && item.linkedInventoryId !== 'undefined';
     rows += `<tr><td><strong>${item.name}</strong></td><td>${item.category||''}</td><td>${fmt(parseFloat(item.price)||0)}</td><td>${item.prepTime||10} min</td>
+    <td><span class="badge ${linked?'badge-success':'badge-muted'}" title="${linked?'Selling this deducts linked inventory stock':'No inventory linked -- stock never auto-deducts for this item'}">${linked?'✓ Linked':'Not linked'}</span></td>
     <td><span class="badge ${avail?'badge-success':'badge-danger'}" style="cursor:pointer; user-select:none; padding:0.4em 0.8em; box-shadow:var(--shadow-xs);" onclick="toggleMenuStatus('${idAttr}')" title="Click to toggle status">${avail?'Available':'Sold Out'}</span></td>
     <td><button class="btn btn-ghost btn-sm" onclick="openMenuModal('${idAttr}')">Edit</button> <button class="btn btn-danger btn-sm" onclick="deleteMenuItem('${idAttr}','${(item.name||'').replace(/'/g,"\\'")}')">Delete</button></td></tr>`;
   });
-  wrap.innerHTML = `<table><thead><tr><th>Name</th><th>Category</th><th>Price</th><th>Prep Time</th><th>Status</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table>`;
+  wrap.innerHTML = `<table><thead><tr><th>Name</th><th>Category</th><th>Price</th><th>Prep Time</th><th>Inventory</th><th>Status</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+// Groups menu items that are very likely the same dish entered more than
+// once (matched on name + price + category, so two dishes that legitimately
+// share a name at different prices are never lumped together). This exists
+// because a since-fixed migration bug re-seeded the fallback menu multiple
+// times in the past, leaving exact repeats sitting in the live menu.
+function findMenuDuplicateGroups() {
+  const groups = {};
+  menuData.forEach(item => {
+    const key = (item.name || '').trim().toLowerCase() + '|' + (parseFloat(item.price) || 0) + '|' + (item.category || '');
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(item);
+  });
+  return Object.values(groups).filter(g => g.length > 1);
+}
+
+function renderMenuDupBanner() {
+  const el = document.getElementById('menuDupBanner');
+  if (!el) return;
+  const groups = findMenuDuplicateGroups();
+  if (!groups.length) { el.innerHTML = ''; return; }
+  const extraCount = groups.reduce((s, g) => s + g.length - 1, 0);
+  el.innerHTML = `<div class="card" style="border-color:var(--c-danger); background:rgba(220,38,38,0.06); margin-bottom:1rem; padding:0.9rem 1.2rem; display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;">
+    <div><strong>⚠ ${extraCount} likely duplicate menu item${extraCount === 1 ? '' : 's'}</strong> across ${groups.length} dish${groups.length === 1 ? '' : 'es'} -- same name, price, and category repeated.</div>
+    <button class="btn btn-danger btn-sm" onclick="openMenuDuplicatesModal()">Review &amp; Clean Up</button>
+  </div>`;
+}
+
+function openMenuDuplicatesModal() {
+  const groups = findMenuDuplicateGroups();
+  if (!groups.length) return;
+  // Keep the copy with the most complete data (a real cost figure beats
+  // none), tie-broken by lowest id so the choice is stable/repeatable.
+  const rows = groups.map(g => {
+    const sorted = [...g].sort((a, b) => {
+      const aCost = parseFloat(a.cost) || 0, bCost = parseFloat(b.cost) || 0;
+      if (!!bCost !== !!aCost) return (bCost ? 1 : 0) - (aCost ? 1 : 0);
+      return String(a.id).localeCompare(String(b.id));
+    });
+    const keep = sorted[0], drop = sorted.slice(1);
+    return { name: g[0].name, price: g[0].price, keep, drop };
+  });
+  const totalDrop = rows.reduce((s, r) => s + r.drop.length, 0);
+  const body = `
+    <p style="margin-top:0;color:var(--c-text-light);">One copy of each dish is kept (preferring the one with a cost filled in); the rest are deleted. This cannot be undone.</p>
+    <div style="max-height:320px;overflow-y:auto;border:1px solid var(--c-border);border-radius:8px;">
+      <table><thead><tr><th>Dish</th><th>Price</th><th>Keeping</th><th>Deleting</th></tr></thead><tbody>
+      ${rows.map(r => `<tr><td>${escHtml(r.name)}</td><td>${CONFIG.formatCurrency(parseFloat(r.price)||0)}</td><td style="font-family:monospace;font-size:0.75rem;">${escHtml(String(r.keep.id))}</td><td>${r.drop.length} cop${r.drop.length===1?'y':'ies'}</td></tr>`).join('')}
+      </tbody></table>
+    </div>
+    <div class="mgr-hint" style="margin-top:0.75rem;">Total: ${totalDrop} item${totalDrop===1?'':'s'} will be deleted, ${rows.length} kept.</div>`;
+  const actions = `<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-danger" onclick="cleanUpMenuDuplicates()">Delete ${totalDrop} Duplicate${totalDrop===1?'':'s'}</button>`;
+  openModal('Clean Up Duplicate Menu Items', body, actions);
+}
+
+async function cleanUpMenuDuplicates() {
+  closeModal();
+  const groups = findMenuDuplicateGroups();
+  const toDelete = [];
+  groups.forEach(g => {
+    const sorted = [...g].sort((a, b) => {
+      const aCost = parseFloat(a.cost) || 0, bCost = parseFloat(b.cost) || 0;
+      if (!!bCost !== !!aCost) return (bCost ? 1 : 0) - (aCost ? 1 : 0);
+      return String(a.id).localeCompare(String(b.id));
+    });
+    sorted.slice(1).forEach(item => toDelete.push(item.id));
+  });
+  toast(`Deleting ${toDelete.length} duplicate items...`, 'info');
+  const results = await Promise.allSettled(toDelete.map(id => CONFIG.apiPost('deleteMenuItem', { id: id, performedBy: 'Manager' })));
+  const failed = results.filter(r => r.status === 'rejected' || (r.value && r.value.status === 'error')).length;
+  CONFIG.clearCache('menu');
+  await loadAllData();
+  renderMenuTable();
+  if (failed) toast(`Done, but ${failed} item(s) failed to delete -- try again`, 'warning');
+  else toast(`Cleaned up ${toDelete.length} duplicate menu items`, 'success');
 }
 
 function openMenuModal(editId) {
@@ -1850,7 +1930,8 @@ async function loadSettings() {
     hours:          data.hours          || CONFIG.RESTAURANT.hours || '',
     currency:       data.currency       || CONFIG.CURRENCY || '₦',
     taxRate:        (data.taxRate !== undefined && data.taxRate !== null) ? Number(data.taxRate) : 0,
-    tables:         Array.isArray(data.tables) ? data.tables : (CONFIG.TABLES || CONFIG.FALLBACK_TABLES),
+    // Tables live in the "tables" collection now, managed from the Tables
+    // & QR panel -- see CONFIG.initGlobalSettings() in config.js.
     categories:     Array.isArray(data.categories) ? data.categories : (CONFIG.CATEGORIES || []).filter(c => c !== 'All')
   };
   renderSettingsForm();
@@ -1888,7 +1969,13 @@ function renderSettingsForm() {
       field('sf_currency', 'Currency symbol', s.currency, { ph: 'e.g. ₦' }) +
       field('sf_taxRate', 'Tax rate (%)', s.taxRate, { type: 'number', ph: 'e.g. 0 if none' }) +
       field('sf_categories', 'Menu categories (comma-separated)', (s.categories || []).join(', '), { full: true, ph: 'e.g. Foods, Swallows, Pastries, Drinks' }) +
-      field('sf_tables', 'Tables (comma-separated)', (s.tables || []).join(', '), { full: true, ph: 'e.g. T1, T2, T3, Counter' });
+      `<div class="form-full" style="margin-top:0.25rem;">
+        <label>Tables</label>
+        <div style="font-size:0.85rem; color:var(--c-text-light); padding:0.6rem 0.8rem; background:var(--c-bg); border:1px solid var(--c-border); border-radius:8px;">
+          Managed from <a href="#" onclick="switchPanel('tables');return false;" style="color:var(--gold); font-weight:600;">Tables &amp; QR</a> now, not here —
+          that's also where each table's seats, status, and QR code live, so there's one list instead of two that can drift apart.
+        </div>
+      </div>`;
   } catch (err) {
     wrap.innerHTML = `<div class="pin-error visible">Error rendering settings: ${err.message}</div>`;
     console.error("renderSettingsForm error:", err);
@@ -1914,7 +2001,6 @@ async function saveSettings() {
     hours: val('sf_hours'),
     currency: val('sf_currency') || CONFIG.CURRENCY,
     taxRate: parseFloat(val('sf_taxRate')) || 0,
-    tables: list('sf_tables'),
     categories: list('sf_categories')
   };
   try {
@@ -1931,7 +2017,6 @@ async function saveSettings() {
     CONFIG.RESTAURANT.hours = payload.hours;
     CONFIG.CURRENCY = payload.currency;
     if (payload.categories.length) CONFIG.CATEGORIES = ['All'].concat(payload.categories.filter(c => c !== 'All'));
-    if (payload.tables.length) CONFIG.TABLES = payload.tables;
     if (typeof CONFIG.writeAudit === 'function') CONFIG.writeAudit('SETTINGS_UPDATED', '', 'Restaurant settings saved', 'Manager');
     document.getElementById('topBarTitle').textContent = payload.restaurantName + ' Settings';
     toast('Settings saved! Other pages pick them up on next load.', 'success');
