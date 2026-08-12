@@ -457,7 +457,38 @@
       // straight to the offline break-glass check.
       return finishOfflineOrFail(enteredPin);
     }
-    // Preferred path: a Cloud Function checks the PIN against a bcrypt
+    // Fastest check first, and the one that's actually live today: a
+    // per-cashier salted hash stored in Firestore, verified with the
+    // browser's own built-in crypto — free, no server, no Blaze plan (see
+    // CONFIG.hashPin). Only covers cashiers re-saved through the Cashiers
+    // panel since this was added; anyone not yet migrated falls through
+    // to the Cloud Function attempt below, then the legacy plaintext path.
+    verifyPinViaHash(enteredPin).then(function (matched) {
+      if (!matched) verifyPinCloudOrLegacy(enteredPin);
+    });
+  }
+
+  async function verifyPinViaHash(enteredPin) {
+    try {
+      var snap = await db.collection('staff').where('active', '!=', 'No').get();
+      for (var i = 0; i < snap.docs.length; i++) {
+        var staff = snap.docs[i].data();
+        if (!staff.pinHash || !staff.pinSalt) continue;
+        var candidate = await CONFIG.hashPin(enteredPin, staff.pinSalt);
+        if (candidate === staff.pinHash) {
+          currentUser = { name: staff.name, role: staff.role || 'Cashier', isManager: (staff.role === 'Manager') };
+          completeLogin();
+          return true;
+        }
+      }
+    } catch (e) {
+      console.warn('Hash-based PIN check unavailable, falling back:', e && e.message);
+    }
+    return false;
+  }
+
+  function verifyPinCloudOrLegacy(enteredPin) {
+    // Cloud Function path: checks the PIN against a bcrypt
     // hash server-side, so the PIN itself is never compared client-side
     // and no PIN — this one or anyone else's — is ever readable from the
     // browser. Falls back automatically to the pre-existing Firestore/

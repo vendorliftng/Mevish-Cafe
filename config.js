@@ -73,6 +73,34 @@ const CONFIG = {
     return CONFIG.CURRENCY + n.toLocaleString(CONFIG.RESTAURANT.locale, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
   },
 
+  // ─── PIN hashing — no server, no Blaze plan ──────────────────
+  // The full version of this (functions/) does the check server-side with
+  // bcrypt and never lets the client see a hash to attack offline. That
+  // needs Cloud Functions, which needs the Blaze plan. Until that's turned
+  // on, this is the honest middle ground: PINs are hashed+salted using the
+  // browser's own built-in crypto (free, no library, no billing change)
+  // instead of stored and compared as plaintext. It closes the *casual*
+  // exposure — nobody glancing at Firestore console or a support
+  // screenshot sees a working PIN — and a generic precomputed table can't
+  // reverse it, because every cashier gets their own random salt. It does
+  // NOT stop someone who deliberately reads the staff collection directly
+  // and brute-forces a specific hash offline (4 digits is only 10,000
+  // guesses, and SHA-256 is fast on purpose) — that protection genuinely
+  // requires a trusted server, which is exactly what functions/ is for
+  // once Blaze is on the table.
+  async sha256Hex(text) {
+    const bytes = new TextEncoder().encode(text);
+    const digest = await crypto.subtle.digest('SHA-256', bytes);
+    return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('');
+  },
+  randomSalt() {
+    const bytes = crypto.getRandomValues(new Uint8Array(16));
+    return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+  },
+  async hashPin(pin, salt) {
+    return CONFIG.sha256Hex(String(pin) + ':' + salt);
+  },
+
   // ─── Storage Prefix (prevents collisions between restaurants) ──
   STORAGE_PREFIX: "mevish_",
 

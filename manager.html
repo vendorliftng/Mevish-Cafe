@@ -469,8 +469,47 @@ const auth = firebase.auth();
 auth.setPersistence(firebase.auth.Auth.Persistence.SESSION).catch(err => console.error('setPersistence failed:', err));
 let currentUserRole = null;
 
+// Session persistence alone still means "logged in for as long as this
+// browser tab happens to stay open" — could be all day. A 30-minute cap
+// on top of that means walking away from an unlocked device only leaves
+// it open for 30 minutes, not indefinitely. Absolute from login time, not
+// idle-reset — simpler to reason about, and clicking around the panel for
+// 31 minutes straight isn't actually a case that needs protecting.
+const SESSION_MAX_MS = 30 * 60 * 1000;
+const SESSION_TS_KEY = CONFIG.STORAGE_PREFIX + 'mgr_login_ts';
+let sessionExpiryTimer = null;
+
+function scheduleSessionExpiry(msRemaining) {
+  clearTimeout(sessionExpiryTimer);
+  sessionExpiryTimer = setTimeout(async () => {
+    sessionStorage.removeItem(SESSION_TS_KEY);
+    await auth.signOut();
+    showError('Your session expired after 30 minutes — please log in again.');
+  }, msRemaining);
+}
+
+// Returns false (and has already signed out) if the session is expired;
+// true if it's fine to proceed, having stamped/scheduled as needed.
+async function checkAndArmSessionTimeout() {
+  let loginTs = Number(sessionStorage.getItem(SESSION_TS_KEY));
+  if (!loginTs) {
+    loginTs = Date.now();
+    sessionStorage.setItem(SESSION_TS_KEY, String(loginTs));
+  }
+  const elapsed = Date.now() - loginTs;
+  if (elapsed >= SESSION_MAX_MS) {
+    sessionStorage.removeItem(SESSION_TS_KEY);
+    await auth.signOut();
+    showError('Your session expired after 30 minutes — please log in again.');
+    return false;
+  }
+  scheduleSessionExpiry(SESSION_MAX_MS - elapsed);
+  return true;
+}
+
 auth.onAuthStateChanged(async user => {
   if (user) {
+    if (!(await checkAndArmSessionTimeout())) return;
     try {
       const userDoc = await db.collection('users').doc(user.uid).get();
       if (!userDoc.exists) {
@@ -520,6 +559,8 @@ auth.onAuthStateChanged(async user => {
       showError('Error checking permissions: ' + e.message);
     }
   } else {
+    clearTimeout(sessionExpiryTimer);
+    sessionStorage.removeItem(SESSION_TS_KEY);
     document.getElementById('authGate').style.display = 'flex';
     document.getElementById('appLayout').style.display = 'none';
   }
@@ -1838,8 +1879,28 @@ async function saveCashier(editName) {
     return;
   }
   // savedViaFunction === 'unavailable': Cloud Functions aren't deployed
-  // yet on this project. Fall back to the pre-existing plaintext path so
-  // cashier management keeps working in the meantime.
+  // (no Blaze plan yet). Rather than dropping straight to plaintext, hash
+  // it ourselves right here with the browser's own crypto — free, no
+  // server, matches what dashboard.html's verifyPinViaHash checks first.
+  if (pin) {
+    try {
+      const salt = CONFIG.randomSalt();
+      const pinHash = await CONFIG.hashPin(pin, salt);
+      if (docId) {
+        await db.collection('staff').doc(docId).set({ pinSalt: salt, pinHash, name, phone, role, active, updatedAt: Date.now() }, { merge: true });
+      } else {
+        await db.collection('staff').add({ pinSalt: salt, pinHash, name, phone, role, active, createdAt: Date.now() });
+      }
+      toast(editName ? 'Cashier updated — PIN stored hashed' : 'Cashier added — PIN stored hashed', 'success');
+      closeModal(); CONFIG.clearCache('cashiers'); await loadAllData(); renderCashiersTable();
+      return;
+    } catch (e) {
+      console.warn('Direct hashed write failed, falling back to plaintext path:', e && e.message);
+    }
+  }
+  // Last resort: no PIN was being changed (a plain name/phone/role edit),
+  // or even the direct hashed write above failed — fall back to the
+  // original plaintext path so cashier management still works either way.
   if (editName) {
     const payload = { name, phone, role, active, oldName: editName, performedBy: 'Manager' };
     if (pin) payload.pin = pin; // omit entirely when blank — updateCashier only touches fields it receives, so the current PIN is left untouched

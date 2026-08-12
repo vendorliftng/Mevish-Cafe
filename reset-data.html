@@ -142,12 +142,48 @@ const RESETTABLE = [
 
 let currentUserRole = null;
 
+// Same 30-minute absolute session cap as manager.html — see that file for
+// the full reasoning. This page permanently deletes data, so if anything
+// deserves it, this does.
+const SESSION_MAX_MS = 30 * 60 * 1000;
+const SESSION_TS_KEY = (CONFIG.STORAGE_PREFIX || 'mevish_') + 'reset_login_ts';
+let sessionExpiryTimer = null;
+
+function scheduleSessionExpiry(msRemaining) {
+  clearTimeout(sessionExpiryTimer);
+  sessionExpiryTimer = setTimeout(async () => {
+    sessionStorage.removeItem(SESSION_TS_KEY);
+    await auth.signOut();
+    showError('Your session expired after 30 minutes — please log in again.');
+  }, msRemaining);
+}
+
+async function checkAndArmSessionTimeout() {
+  let loginTs = Number(sessionStorage.getItem(SESSION_TS_KEY));
+  if (!loginTs) {
+    loginTs = Date.now();
+    sessionStorage.setItem(SESSION_TS_KEY, String(loginTs));
+  }
+  const elapsed = Date.now() - loginTs;
+  if (elapsed >= SESSION_MAX_MS) {
+    sessionStorage.removeItem(SESSION_TS_KEY);
+    await auth.signOut();
+    showError('Your session expired after 30 minutes — please log in again.');
+    return false;
+  }
+  scheduleSessionExpiry(SESSION_MAX_MS - elapsed);
+  return true;
+}
+
 auth.onAuthStateChanged(async user => {
   if (!user) {
+    clearTimeout(sessionExpiryTimer);
+    sessionStorage.removeItem(SESSION_TS_KEY);
     document.getElementById('authGate').style.display = 'flex';
     document.getElementById('mainPanel').style.display = 'none';
     return;
   }
+  if (!(await checkAndArmSessionTimeout())) return;
   try {
     const userDoc = await db.collection('users').doc(user.uid).get();
     currentUserRole = userDoc.exists ? userDoc.data().role : null;
