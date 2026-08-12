@@ -714,7 +714,7 @@ function switchPanel(panelId) {
     analytics: 'Analytics', orders: 'Orders', menu: 'Menu Management',
     inventory: 'Inventory', cashiers: 'Cashiers', tables: 'Tables & QR',
     expenses: 'Expenses', settings: 'Settings', theme: 'Themes', audit: 'Audit Log',
-    customers: 'Customers', reviews: 'Reviews'
+    customers: 'Customers', reviews: 'Reviews', admins: 'Admin Management'
   };
   document.getElementById('topBarTitle').textContent = titles[panelId] || panelId;
   renderPanel(panelId);
@@ -755,10 +755,17 @@ function toggleSidebar() {
 function toast(message, type) {
   type = type || 'info';
   const el = document.createElement('div');
-  el.className = 'toast ' + type;
+  // Must match style.css's .toast-{type} convention (toast-success, not
+  // plain "success") -- style.css's .toast/.toast-container used to be
+  // defined 3 separate times with conflicting rules; consolidating down to
+  // one (see dashboard.html's own toast cleanup) means this class name and
+  // the .show-toggle reveal below are no longer optional extras, they're
+  // the only thing that makes a toast visible at all.
+  el.className = 'toast toast-' + type;
   el.textContent = message;
   document.getElementById('toastContainer').appendChild(el);
-  setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }, 3000);
+  requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('show')));
+  setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 300); }, 3000);
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -1515,10 +1522,26 @@ async function saveMenuItem(editId) {
     if (res.status === 'success') { toast('Menu item updated', 'success'); closeModal(); CONFIG.clearCache('menu'); await loadAllData(); renderMenuTable(); }
     else toast(res.message || 'Failed to update', 'error');
   } else {
-    payload.id = Date.now();
-    const res = await CONFIG.apiPost('addMenuItem', payload);
-    if (res.status === 'success') { toast('Menu item added', 'success'); closeModal(); CONFIG.clearCache('menu'); await loadAllData(); renderMenuTable(); }
-    else toast(res.message || 'Failed to add', 'error');
+    // Same name + price + category already on the menu -- almost always an
+    // accidental double-add (this is exactly how the menu ended up with 8
+    // copies of every dish before). Let it through if the manager confirms;
+    // just don't let it happen silently.
+    const dupe = menuData.find(m =>
+      (m.name || '').trim().toLowerCase() === payload.name.toLowerCase() &&
+      (parseFloat(m.price) || 0) === (parseFloat(payload.price) || 0) &&
+      (m.category || '') === payload.category
+    );
+    const doAdd = async () => {
+      payload.id = Date.now();
+      const res = await CONFIG.apiPost('addMenuItem', payload);
+      if (res.status === 'success') { toast('Menu item added', 'success'); closeModal(); CONFIG.clearCache('menu'); await loadAllData(); renderMenuTable(); }
+      else toast(res.message || 'Failed to add', 'error');
+    };
+    if (dupe) {
+      confirmAction(`"${escHtml(payload.name)}" at ${escHtml(String(payload.price))} already exists in ${escHtml(payload.category)}. Add it again anyway?`, doAdd);
+    } else {
+      await doAdd();
+    }
   }
 }
 
@@ -1535,7 +1558,17 @@ async function deleteMenuItem(id, name) {
    ═══════════════════════════════════════════════════════════ */
 function renderInventoryTable() {
   const wrap = document.getElementById('inventoryTableWrap');
-  if (inventoryData.length === 0) { wrap.innerHTML = '<div class="empty-state"><div class="empty-title">No inventory items yet</div><div class="empty-text">Tap + Add Item to start tracking stock.</div></div>'; return; }
+  if (inventoryData.length === 0) {
+    wrap.innerHTML = `<div class="empty-state">
+      <div class="empty-title">No inventory items yet</div>
+      <div class="empty-text">Add your real stock here (rice, chicken, drinks, packaging...) with a quantity on hand,
+      then open each dish in <strong>Menu Items</strong> and link it to what it consumes. Once linked, every sale
+      quietly deducts the right amount of stock and warns you before you run out -- none of that happens until
+      there's something here to link to.</div>
+      <button class="btn btn-primary" style="margin-top:1rem;" onclick="openInventoryModal()">+ Add Your First Item</button>
+    </div>`;
+    return;
+  }
   let rows = '';
   inventoryData.forEach(item => {
     const s = parseFloat(item.currentStock) || 0;

@@ -1144,23 +1144,23 @@ const CONFIG = {
         // parallel — that meant a table added in one place silently never
         // showed up in the other (Tables & QR CRUD wrote to the
         // collection; every order-taking dropdown read the settings
-        // list). One-time-migrate whatever's already in the settings list
-        // into real documents so existing tables aren't lost in the
-        // switch; after that, the collection wins.
+        // list). Read-only here deliberately: this runs on every page load
+        // of every page, including the public unauthenticated customer
+        // menu, and a write attempt from there is both doomed (rules
+        // require isManager()) and, on a cold connection, can fire before
+        // the very first read of a brand-new collection reliably resolves
+        // non-empty — a false-empty reading here would otherwise attempt a
+        // write and log a scary permission error on every customer page
+        // load for no reason. A restaurant with tables only in the old
+        // settings list still works (falls back below); an empty
+        // collection is filled in properly the first time a Manager opens
+        // Tables & QR and adds one there, which is the one place that's
+        // actually authenticated to write it.
         try {
           const tablesSnap = await db.collection('tables').get();
-          if (!tablesSnap.empty) {
-            CONFIG.TABLES = tablesSnap.docs.map(d => d.id);
-          } else if (CONFIG.TABLES && CONFIG.TABLES.length) {
-            console.log("Migrating settings table list to the 'tables' collection...");
-            const batch = db.batch();
-            CONFIG.TABLES.forEach(id => {
-              batch.set(db.collection('tables').doc(String(id)), { seats: 4, status: 'Available', notes: '' });
-            });
-            await batch.commit();
-          }
+          if (!tablesSnap.empty) CONFIG.TABLES = tablesSnap.docs.map(d => d.id);
         } catch (err) {
-          console.error("Failed to load/migrate tables collection:", err);
+          console.error("Failed to load tables collection:", err);
         }
 
         // --- Auto-Migrate Menu Items ---
