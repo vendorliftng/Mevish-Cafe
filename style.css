@@ -557,18 +557,19 @@ tbody tr:hover { background: var(--glass-bg); }
 
 /* ============================================================
    19. TOAST NOTIFICATIONS
-   ============================================================ */
-.toast-container { position: fixed; bottom: var(--sp-lg); right: var(--sp-lg); z-index: var(--z-toast); display: flex; flex-direction: column; gap: var(--sp-sm); }
-.toast {
-  background: var(--bg-surface); border: 1px solid var(--border-light); border-radius: var(--r-md);
-  padding: var(--sp-md) var(--sp-lg); display: flex; align-items: center; gap: var(--sp-sm);
-  box-shadow: var(--shadow-lg); font-size: var(--fs-sm); color: var(--text-primary);
-  min-width: 280px; max-width: 380px; animation: slideInRight 0.3s ease;
-}
-.toast-success { border-left: 3px solid var(--success); }
-.toast-error   { border-left: 3px solid var(--danger); }
-.toast-warning { border-left: 3px solid var(--warning); }
-.toast-info    { border-left: 3px solid var(--info); }
+   ============================================================
+   This used to be defined THREE times in this file (here, again
+   under "TOAST NOTIFICATION" further down, and a third time in the
+   "EXTRACTED DASHBOARD CSS" section). All three selectors had equal
+   specificity (.toast-container / .toast), so the cascade merged
+   them property-by-property instead of block-by-block: this block's
+   `bottom` survived alongside a later block's `top`, so the container
+   had BOTH set at once and stretched to fill the entire viewport
+   height, dumping every toast up near the top instead of hugging the
+   bottom-right corner (and on narrow screens, pushing it off-screen).
+   The one true definition — the one that actually matches showToast()'s
+   translateX + .show reveal — now lives ONLY in the "EXTRACTED
+   DASHBOARD CSS" section below. Do not re-add a duplicate here. */
 
 /* ============================================================
    20. OFFLINE BANNER
@@ -776,7 +777,6 @@ body.menu-board-page { overflow: hidden; background: var(--bg-deep); }
 @keyframes fadeOut   { from { opacity: 1; }                              to { opacity: 0; } }
 @keyframes slideUp   { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes slideDown { from { transform: translateY(-100%); }            to { transform: translateY(0); } }
-@keyframes slideInRight { from { opacity: 0; transform: translateX(100%); } to { opacity: 1; transform: translateX(0); } }
 @keyframes spin      { to { transform: rotate(360deg); } }
 @keyframes shimmer   { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
 @keyframes popIn     { 0% { transform: scale(0); opacity: 0; } 70% { transform: scale(1.1); } 100% { transform: scale(1); opacity: 1; } }
@@ -1026,7 +1026,7 @@ body.menu-board-page { overflow: hidden; background: var(--bg-deep); }
       transition: all 0.15s; text-decoration: none; margin-bottom: 2px;
     }
     .nav-item:hover { background: rgba(255,255,255,0.06); color: #e2e8f0; }
-    .nav-item.active { background: var(--gold); color: var(#111); font-weight: 600; }
+    .nav-item.active { background: var(--gold); color: #111; font-weight: 600; }
     .nav-item .nav-icon { font-size: 1.1rem; width: 24px; text-align: center; flex-shrink: 0; }
     .sidebar-footer {
       padding: 1rem 1.25rem; border-top: 1px solid rgba(255,255,255,0.08);
@@ -1125,9 +1125,9 @@ body.menu-board-page { overflow: hidden; background: var(--bg-deep); }
       font-weight: 600; cursor: pointer; border: none; outline: none;
       transition: all 0.18s; text-decoration: none; white-space: nowrap;
     }
-    .btn-primary { background: var(--gold); color: var(#111); }
+    .btn-primary { background: var(--gold); color: #111; }
     .btn-primary:hover { background: var(--gold-dark); transform: translateY(-1px); }
-    .btn-accent  { background: var(--orange); color: var(#111); }
+    .btn-accent  { background: var(--orange); color: #111; }
     .btn-accent:hover { background: var(--orange); }
     .btn-danger  { background: var(--danger); color: #fff; }
     .btn-danger:hover { opacity: 0.9; }
@@ -1212,20 +1212,11 @@ body.menu-board-page { overflow: hidden; background: var(--bg-deep); }
     .alert-qty.critical { color: var(--danger); }
     .alert-qty.warning { color: var(--warning); }
 
-    /* ── TOAST NOTIFICATION ────────────────────────────────── */
-    .toast-container {
-      position: fixed; top: 1rem; right: 1rem; z-index: 10000;
-      display: flex; flex-direction: column; gap: 0.5rem;
-    }
-    .toast {
-      padding: 0.75rem 1.25rem; border-radius: 10px; font-size: 0.85rem;
-      font-weight: 500; color: #fff; box-shadow: 0 8px 24px rgba(0,0,0,0.15);
-      animation: toastIn 0.3s ease; min-width: 250px;
-    }
-    .toast.success { background: var(--success); }
-    .toast.error   { background: var(--danger); }
-    .toast.info    { background: var(--info); }
-    @keyframes toastIn { from{opacity:0;transform:translateX(40px)} to{opacity:1;transform:translateX(0)} }
+    /* Duplicate .toast-container/.toast definition removed — see the
+       "TOAST NOTIFICATIONS" comment near the top of this file. The
+       .toast.success/.error/.info dot-classes here were also dead:
+       every page's showToast() emits hyphenated toast-success/-error
+       classes, never these. */
 
     /* ── MODAL ─────────────────────────────────────────────── */
     .modal-overlay {
@@ -1340,7 +1331,7 @@ body.menu-board-page { overflow: hidden; background: var(--bg-deep); }
     .cashier-avatar {
       display: inline-flex; align-items: center; justify-content: center;
       width: 28px; height: 28px; border-radius: 50%;
-      background: var(--gold); color: var(#111);
+      background: var(--gold); color: #111;
       font-size: 0.72rem; font-weight: 800; margin-right: 0.5em; flex-shrink: 0;
     }
     .chip {
@@ -1481,10 +1472,16 @@ body.menu-board-page { overflow: hidden; background: var(--bg-deep); }
     .pin-error.visible { opacity: 1; }
 
     /* ── HEADER ───────────────────────────────────────── */
+    /* min-height, not height: at <=768px .page-header gets flex-wrap:wrap
+       (see the @media(max-width:768px) rule earlier in this file), and a
+       hard height:64px clipped that second row instead of letting the box
+       grow — the wrapped content just overflowed straight through into
+       whatever sits below (the offline banner), reading as one broken,
+       overlapping mess instead of two stacked rows. */
     .page-header {
       position: sticky; top: 0; z-index: 200;
       display: flex; align-items: center; justify-content: space-between;
-      padding: 0 1.5rem; height: 64px;
+      padding: 0.5rem 1.5rem; min-height: 64px;
       background: var(--bg-card); border-bottom: 1px solid var(--border);
       box-shadow: var(--shadow-md); gap: 1rem;
     }
@@ -1512,11 +1509,19 @@ body.menu-board-page { overflow: hidden; background: var(--bg-deep); }
     #lastUpdated { font-size: 0.75rem; color: var(--text-secondary); white-space: nowrap; }
 
     /* ── OFFLINE BANNER ──────────────────────────────── */
+    /* position:sticky + top:0, NOT a hardcoded top matching "the header's
+       height" — the header isn't always 64px (it wraps to two rows on
+       narrow screens), and this element sits right after </header> in the
+       DOM, so its natural in-flow position (while unscrolled) already
+       lands directly below the header, whatever that height happens to
+       be. top:0 only matters once scrolled — it's where this element then
+       pins. A hardcoded top here previously caused it to render inside/
+       over the header on any layout shorter or taller than that guess. */
     .offline-banner {
       background: linear-gradient(90deg, #7f1d1d, #991b1b); color: #fef2f2;
       text-align: center; padding: 0.55rem 1rem; font-size: 0.85rem;
       font-weight: 600; letter-spacing: 0.02em; display: none;
-      border-bottom: 1px solid #ef4444; z-index: 199; position: sticky; top: 64px;
+      border-bottom: 1px solid #ef4444; z-index: 199; position: sticky; top: 0;
     }
     .offline-banner.show { display: block; }
 
@@ -1547,7 +1552,7 @@ body.menu-board-page { overflow: hidden; background: var(--bg-deep); }
       transition: all 0.18s; white-space: nowrap;
     }
     .tab-btn.active {
-      background: var(--gold); color: var(#111);
+      background: var(--gold); color: #111;
       box-shadow: 0 2px 8px rgba(13,148,136,0.3);
     }
     .tab-btn:not(.active):hover { background: var(--bg-primary); color: var(--text-primary); }
@@ -1632,7 +1637,7 @@ body.menu-board-page { overflow: hidden; background: var(--bg-deep); }
       border-radius: 6px; border: 1px solid var(--border);
       background: var(--bg-primary); color: var(--text-secondary); cursor: pointer; transition: all 0.15s;
     }
-    .prep-btn:hover { background: var(--gold); border-color: var(--gold); color: var(#111); }
+    .prep-btn:hover { background: var(--gold); border-color: var(--gold); color: #111; }
     .prep-timer-display {
       margin-left: auto; font-size: 0.74rem; font-weight: 600;
       color: var(--text-secondary); white-space: nowrap;
@@ -1661,9 +1666,9 @@ body.menu-board-page { overflow: hidden; background: var(--bg-deep); }
       font-weight: 600; cursor: pointer; border: none; outline: none;
       transition: all 0.18s; text-decoration: none; white-space: nowrap;
     }
-    .btn-primary { background: var(--gold); color: var(#111); }
+    .btn-primary { background: var(--gold); color: #111; }
     .btn-primary:hover { background: var(--gold-dark); transform: translateY(-1px); }
-    .btn-accent { background: var(--orange); color: var(#111); }
+    .btn-accent { background: var(--orange); color: #111; }
     .btn-accent:hover { background: var(--orange); }
     .btn-danger { background: var(--danger); color: #fff; }
     .btn-danger:hover { opacity: 0.9; }
@@ -1867,7 +1872,19 @@ body.menu-board-page { overflow: hidden; background: var(--bg-deep); }
     /* ── RESPONSIVE ────────────────────────────────────── */
     @media(max-width:768px){
       .controls-bar { flex-direction: column; align-items: stretch; }
-      .controls-bar .controls-left { min-width: unset; }
+      /* min-width:unset reverts to the initial value ("auto"), not 0 — a
+         flex/stretch item with min-width:auto still refuses to shrink
+         below its content's intrinsic width. With 5 non-wrapping tab
+         pills inside .controls-right, that intrinsic width is wider than
+         a phone screen, so the whole row (and the page under it) pushed
+         out sideways instead of the tab strip scrolling within itself.
+         min-width:0 is the actual fix — it lets these columns shrink to
+         the container's width and hands overflow to .tab-bar's own
+         overflow-x:auto instead of the page. */
+      .controls-bar .controls-left,
+      .controls-bar .controls-center,
+      .controls-bar .controls-right { min-width: 0; width: 100%; max-width: 100%; }
+      .controls-bar .tab-bar { max-width: 100%; }
       .page-header { padding: 0 1rem; }
       .main-content { padding: 1rem; }
     }

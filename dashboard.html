@@ -617,6 +617,7 @@
      OFFLINE / ONLINE
      ═══════════════════════════════════════════════════ */
   document.body.classList.toggle('is-offline', !navigator.onLine);
+  if (!navigator.onLine) document.getElementById('offlineBanner').classList.add('show');
   window.addEventListener('offline', () => {
     document.getElementById('offlineBanner').classList.add('show');
     document.body.classList.add('is-offline');
