@@ -891,6 +891,18 @@
           <p class="form-error" id="phone-error"></p>
         </div>
 
+        <!-- Loyalty redemption — hidden until a returning phone number with
+             enough points is recognized (Feature: redeem, not just earn) -->
+        <div class="form-group hidden" id="loyalty-redeem-box" style="background:var(--gold-light,#fef3c7); border:1px solid var(--gold,#d4a017); border-radius:12px; padding:0.85rem 1rem;">
+          <label style="display:flex; align-items:flex-start; gap:0.6rem; cursor:pointer; margin:0;">
+            <input type="checkbox" id="loyalty-redeem-checkbox" style="width:20px; height:20px; margin-top:2px; accent-color:var(--gold,#d4a017); flex-shrink:0;" />
+            <span>
+              <strong id="loyalty-redeem-title">🎁 Free item reward available!</strong>
+              <span id="loyalty-redeem-sub" style="display:block; font-size:0.82rem; color:var(--text-secondary); margin-top:0.15rem;"></span>
+            </span>
+          </label>
+        </div>
+
         <!-- Customer Name -->
         <div class="form-group">
           <label class="form-label" id="name-label" for="customer-name">Customer Name</label>
@@ -1553,6 +1565,14 @@
       }).join('');
       document.getElementById('modal-summary-total').textContent = formatCurrency(getCartTotal());
 
+      // Loyalty redemption starts closed every time the modal opens — the
+      // phone number (and therefore eligibility) isn't known again until
+      // it's re-entered or re-checked below.
+      loyaltyEligible = null;
+      document.getElementById('loyalty-redeem-box').classList.add('hidden');
+      document.getElementById('loyalty-redeem-checkbox').checked = false;
+      updateOrderTotalDisplay();
+
       // Customer name label
       var nameLabel = document.getElementById('name-label');
       var nameHint = document.getElementById('name-hint');
@@ -1637,6 +1657,87 @@
 
     // Clear error as the user types
     phoneInput.addEventListener('input', clearPhoneError);
+
+    /* ══════════════════════════════════════════
+       LOYALTY REDEMPTION (FR-11.3's other half — 1 point earned per
+       order already existed; this is the part that lets a returning
+       customer actually spend the 10 they've built up). Free item =
+       the single cheapest line in the current cart, same rule the
+       server re-derives and enforces in config.js's newOrder handler —
+       this client-side version is only ever a preview.
+    ══════════════════════════════════════════ */
+    var loyaltyEligible = null; // null = unknown, false = checked & not eligible, {points,threshold,discount} = eligible
+    var loyaltyCheckTimer = null;
+    var loyaltyLastCheckedPhone = null;
+
+    function cheapestCartUnitPrice() {
+      var min = Infinity;
+      cart.forEach(function (i) {
+        var price = Number(i.price) || 0;
+        if (price > 0 && price < min) min = price;
+      });
+      return min === Infinity ? 0 : min;
+    }
+
+    async function checkLoyaltyEligibility(phone) {
+      var digits = String(phone).replace(/\D/g, '');
+      if (digits.length < 7 || typeof db === 'undefined' || !db) return;
+      loyaltyLastCheckedPhone = phone;
+      try {
+        var doc = await db.collection('customers').doc(phone).get();
+        if (phone !== loyaltyLastCheckedPhone) return; // phone changed again while this was in flight
+        var threshold = (typeof CONFIG !== 'undefined' && CONFIG.RESTAURANT && CONFIG.RESTAURANT.loyaltyRewardThreshold) || 10;
+        var points = doc.exists ? (Number(doc.data().loyaltyPoints) || 0) : 0;
+        var box = document.getElementById('loyalty-redeem-box');
+        var checkbox = document.getElementById('loyalty-redeem-checkbox');
+        if (points >= threshold) {
+          var discount = cheapestCartUnitPrice();
+          loyaltyEligible = { points: points, threshold: threshold, discount: discount };
+          document.getElementById('loyalty-redeem-sub').textContent =
+            points + ' points — redeem ' + threshold + ' for ' + formatCurrency(discount) + ' off (your cheapest item, free).';
+          box.classList.remove('hidden');
+        } else {
+          loyaltyEligible = false;
+          box.classList.add('hidden');
+          checkbox.checked = false;
+        }
+      } catch (e) {
+        // Unrecognized/new number, offline, or a permissions hiccup — none
+        // of that should block placing the order, it just means no reward
+        // banner shows up this time.
+        loyaltyEligible = false;
+        document.getElementById('loyalty-redeem-box').classList.add('hidden');
+      }
+      updateOrderTotalDisplay();
+    }
+
+    phoneInput.addEventListener('input', function () {
+      clearTimeout(loyaltyCheckTimer);
+      var val = phoneInput.value.trim();
+      document.getElementById('loyalty-redeem-box').classList.add('hidden');
+      document.getElementById('loyalty-redeem-checkbox').checked = false;
+      loyaltyEligible = null;
+      if (!isValidPhone(val)) return;
+      loyaltyCheckTimer = setTimeout(function () { checkLoyaltyEligibility(val); }, 500);
+    });
+
+    document.getElementById('loyalty-redeem-checkbox').addEventListener('change', updateOrderTotalDisplay);
+
+    function isRedeemingLoyalty() {
+      return !!(loyaltyEligible && document.getElementById('loyalty-redeem-checkbox').checked);
+    }
+
+    function updateOrderTotalDisplay() {
+      var total = getCartTotal();
+      var totalEl = document.getElementById('modal-summary-total');
+      if (isRedeemingLoyalty()) {
+        var after = Math.max(0, total - loyaltyEligible.discount);
+        totalEl.innerHTML = '<span style="text-decoration:line-through; opacity:0.55; font-size:0.85em; margin-right:0.4em;">' +
+          formatCurrency(total) + '</span>' + formatCurrency(after);
+      } else {
+        totalEl.textContent = formatCurrency(total);
+      }
+    }
 
     /* ══════════════════════════════════════════
        HERO CAROUSEL
@@ -1731,6 +1832,12 @@
 
       var orderId = generateOrderId();
 
+      // Redemption itself is applied server-side (config.js recomputes the
+      // discount from the real cart rather than trusting a client-sent
+      // amount) — this flag is just the customer's stated intent to spend
+      // the reward on this order.
+      var redeeming = isRedeemingLoyalty();
+
       var payload = {
         action: 'newOrder',
         orderId: orderId,
@@ -1744,7 +1851,8 @@
         totalRevenue: totalRevenue,
         totalCost: totalCost,
         profit: totalRevenue - totalCost,
-        status: (typeof CONFIG !== 'undefined' && CONFIG.STATUS) ? CONFIG.STATUS.ACTIVE : 'Active'
+        status: (typeof CONFIG !== 'undefined' && CONFIG.STATUS) ? CONFIG.STATUS.ACTIVE : 'Active',
+        redeemLoyalty: redeeming
       };
 
       // Show loading state
@@ -1780,8 +1888,18 @@
             totalRevenue: payload.totalRevenue,
             totalCost: payload.totalCost,
             profit: payload.profit,
-            status: payload.status
+            status: payload.status,
+            redeemLoyalty: payload.redeemLoyalty
           });
+          // The server recomputes the discount itself and returns the real
+          // total — reflect that on the success screen instead of the
+          // pre-discount client guess.
+          if (apiResponse && apiResponse.data && apiResponse.data.totalPrice !== undefined) {
+            successCtx.totalPrice = apiResponse.data.totalPrice;
+          }
+          if (apiResponse && apiResponse.data && apiResponse.data.loyaltyDiscount) {
+            successCtx.loyaltyDiscount = apiResponse.data.loyaltyDiscount;
+          }
         } else if (typeof CONFIG !== 'undefined' && CONFIG.API_URL) {
           await fetch(CONFIG.API_URL, {
             method: 'POST',

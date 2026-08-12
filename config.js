@@ -579,29 +579,41 @@ const CONFIG = {
             }).filter(Boolean);
           }
 
-          await db.collection('orders').doc(payload.orderId).set(payload);
-          CONFIG.writeAudit('ORDER_CREATED', payload.orderId,
-            'Total: ' + (payload.totalPrice || payload.total || 0), payload.cashier || payload.customerName || 'System');
-          // NOTE: inventory is deducted on first PAYMENT (see deductInventoryForOrder,
-          // called from 'updateStatus' and 'settleCredit'), not here at order creation.
-          // Deducting at creation meant a voided or never-paid order still consumed real
-          // stock — see FR-3.5/FR-5.2 in the PRD.
-
-          // Loyalty (FR-11.3): this used to not persist anywhere, so the
-          // success-screen banner always fell back to claiming "Total: 1
-          // point" for every single order, on every visit — real data now.
-          // (totalSpent is updated separately, at payment — see updateStatus/
-          // settleCredit — so it only ever counts confirmed revenue.)
-          let loyaltyPoints, nextRewardAt;
+          // Loyalty (FR-11.3): earn 1 point per order, redeem a free item at
+          // 10 (both configurable). This used to only ever earn — points
+          // were visible but there was nowhere in the app that actually let
+          // a customer spend them. Redemption has to happen in the SAME
+          // transaction as the earn, and BEFORE the order is saved: earning
+          // and redeeming are both touching one balance, and the order's
+          // own total needs the discount applied before it's written, not
+          // patched afterward. The discount is recomputed here from
+          // payload.items rather than trusting whatever the client sends —
+          // orders are open to unauthenticated writes, so a client-supplied
+          // discount amount can't be trusted at face value.
+          let loyaltyPoints, nextRewardAt, redeemedAmount = 0;
           if (payload.customerPhone) {
             const pointsPerOrder = (CONFIG.RESTAURANT && CONFIG.RESTAURANT.loyaltyPointsPerOrder) || 1;
-            nextRewardAt = (CONFIG.RESTAURANT && CONFIG.RESTAURANT.loyaltyRewardThreshold) || 10;
+            const threshold = (CONFIG.RESTAURANT && CONFIG.RESTAURANT.loyaltyRewardThreshold) || 10;
+            nextRewardAt = threshold;
             try {
               const custRef = db.collection('customers').doc(payload.customerPhone);
-              loyaltyPoints = await db.runTransaction(async (tx) => {
+              const result = await db.runTransaction(async (tx) => {
                 const doc = await tx.get(custRef);
                 const prev = doc.exists ? doc.data() : {};
-                const newPoints = (Number(prev.loyaltyPoints) || 0) + pointsPerOrder;
+                let balance = Number(prev.loyaltyPoints) || 0;
+                let discount = 0;
+                if (payload.redeemLoyalty && balance >= threshold && Array.isArray(payload.items) && payload.items.length) {
+                  let cheapest = Infinity;
+                  payload.items.forEach(function (it) {
+                    const price = Number(it.unitPrice) || 0;
+                    if (price > 0 && price < cheapest) cheapest = price;
+                  });
+                  if (cheapest !== Infinity) {
+                    discount = cheapest;
+                    balance -= threshold;
+                  }
+                }
+                const newPoints = balance + pointsPerOrder;
                 tx.set(custRef, {
                   phone: payload.customerPhone,
                   name: payload.customerName || prev.name || 'Guest',
@@ -610,10 +622,31 @@ const CONFIG = {
                   loyaltyPoints: newPoints,
                   lastVisit: Date.now()
                 }, { merge: true });
-                return newPoints;
+                return { newPoints: newPoints, discount: discount };
               });
+              loyaltyPoints = result.newPoints;
+              redeemedAmount = result.discount;
             } catch (e) { console.error('Loyalty upsert failed (order still placed fine):', e); }
           }
+          if (redeemedAmount > 0) {
+            payload.loyaltyDiscount = redeemedAmount;
+            payload.totalPrice = Math.max(0, (Number(payload.totalPrice) || 0) - redeemedAmount);
+            if (payload.totalRevenue !== undefined) payload.totalRevenue = Math.max(0, Number(payload.totalRevenue) - redeemedAmount);
+            if (payload.profit !== undefined) payload.profit = Number(payload.profit) - redeemedAmount;
+          }
+          delete payload.redeemLoyalty; // client-side intent flag only, not part of the stored order
+
+          await db.collection('orders').doc(payload.orderId).set(payload);
+          CONFIG.writeAudit(
+            redeemedAmount > 0 ? 'ORDER_CREATED_WITH_REWARD' : 'ORDER_CREATED',
+            payload.orderId,
+            'Total: ' + (payload.totalPrice || payload.total || 0) + (redeemedAmount > 0 ? ' (reward applied: -' + redeemedAmount + ')' : ''),
+            payload.cashier || payload.customerName || 'System');
+          // NOTE: inventory is deducted on first PAYMENT (see deductInventoryForOrder,
+          // called from 'updateStatus' and 'settleCredit'), not here at order creation.
+          // Deducting at creation meant a voided or never-paid order still consumed real
+          // stock — see FR-3.5/FR-5.2 in the PRD.
+
           const responseData = Object.assign({}, payload);
           if (loyaltyPoints !== undefined) responseData.loyaltyPoints = loyaltyPoints;
           if (nextRewardAt !== undefined) responseData.nextRewardAt = nextRewardAt;

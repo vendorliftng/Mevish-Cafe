@@ -1009,6 +1009,12 @@ function setRefreshing(yes) {
       actions = `<button class="btn btn-success" onclick="event.stopPropagation();handleMarkReady('${oid}')">Mark Ready</button>`;
     } else if (cat === 'ready') {
       actions = `<button class="btn btn-warning" onclick="event.stopPropagation();handleMarkServed('${oid}')">Mark Served</button>`;
+      // Free version: a wa.me link pre-filled to the customer's own number,
+      // not the Business API — only shows up when there's a phone to send
+      // it to, and a person here still taps Send themselves.
+      if (order.customerPhone || order.phone) {
+        actions += `<button class="btn btn-whatsapp" onclick="event.stopPropagation();notifyOrderReady('${oid}')"><span aria-hidden="true">📱</span> Notify</button>`;
+      }
     } else if (cat === 'served') {
       actions = `<button class="btn btn-primary" data-payment-btn="1" onclick="event.stopPropagation();handlePayPOS('${oid}')">POS</button>`;
       actions += `<button class="btn btn-cash" data-payment-btn="1" onclick="event.stopPropagation();handlePayCash('${oid}')">Cash</button>`;
@@ -1535,6 +1541,38 @@ function setRefreshing(yes) {
     window.open(buildWhatsAppForwardUrl(order), '_blank', 'noopener');
   }
 
+  // "Order ready" ping to the customer — the free version. No WhatsApp
+  // Business API, no per-message cost, no Meta business verification: a
+  // wa.me link with the customer's own number and a pre-filled message
+  // opens WhatsApp (app or web) with that message and that recipient
+  // already chosen. The one real limit that comes with "free" is that a
+  // human still has to tap Send — wa.me can't deliver a message on its
+  // own, it can only hand WhatsApp a drafted one. Same mechanism the
+  // Share button already uses, just aimed at a specific number instead
+  // of left open for the cashier to pick who to forward to.
+  function toWhatsAppNumber(raw) {
+    var digits = String(raw || '').replace(/\D/g, '');
+    if (!digits) return '';
+    // Nigerian local format (0803...) -> international (234803...).
+    // A number already carrying a country code is left as-is.
+    if (digits.charAt(0) === '0') return '234' + digits.slice(1);
+    return digits;
+  }
+  function buildReadyNotifyUrl(order) {
+    var name = (order.name || order.customerName || '').split(' ')[0] || 'there';
+    var msg = 'Hi ' + name + '! 🍽️ Your order ' + (order.orderId || order.id || '') +
+      ' at ' + (CONFIG.RESTAURANT ? CONFIG.RESTAURANT.name : 'Mevish Eatery') + ' is ready' +
+      (order.location ? ' — see you at ' + order.location + '.' : '. Come on through!');
+    return 'https://wa.me/' + toWhatsAppNumber(order.customerPhone || order.phone) + '?text=' + encodeURIComponent(msg);
+  }
+  function notifyOrderReady(orderId) {
+    const order = getOrderById(orderId);
+    if (!order) { showToast('Order not found', 'error'); return; }
+    const phone = toWhatsAppNumber(order.customerPhone || order.phone);
+    if (!phone) { showToast('No phone number on this order to notify', 'warning'); return; }
+    window.open(buildReadyNotifyUrl(order), '_blank', 'noopener');
+  }
+
   /* ═══════════════════════════════════════════════════
      ROLE PERMISSIONS
      ═══════════════════════════════════════════════════ */
@@ -1551,12 +1589,31 @@ function setRefreshing(yes) {
   /* ═══════════════════════════════════════════════════
      MANUAL / WALK-IN ORDER (Manager only)
      ═══════════════════════════════════════════════════ */
+  // A table counts as occupied if it's carrying any order that isn't paid
+  // or voided yet — derived live from what's already on the board rather
+  // than a manually-maintained status field, so it can't go stale the way
+  // a Manager toggling a dropdown after the fact would. Free: no new
+  // reads, allOrders is already sitting in memory from the live listener.
+  function occupiedLocations() {
+    var occ = {};
+    allOrders.forEach(function (o) {
+      var loc = o.location || o.tableNo;
+      if (loc && loc !== 'Counter') occ[loc] = true;
+    });
+    return occ;
+  }
+
   function openManualOrderModal() {
     // Populate location select: 'Counter' + configured tables
     var locSelect = document.getElementById('mo_location');
     var tables = (CONFIG.TABLES && CONFIG.TABLES.length) ? CONFIG.TABLES : CONFIG.FALLBACK_TABLES;
     var locations = ['Counter'].concat(tables.filter(t => t !== 'Counter'));
-    locSelect.innerHTML = locations.map(t => '<option value="' + escHtml(t) + '">' + escHtml(t) + '</option>').join('');
+    var occupied = occupiedLocations();
+    locSelect.innerHTML = locations.map(function (t) {
+      var busy = occupied[t];
+      var label = t + (busy ? ' — Occupied' : '');
+      return '<option value="' + escHtml(t) + '"' + (busy ? ' style="color:var(--text-muted);"' : '') + '>' + escHtml(label) + '</option>';
+    }).join('');
 
     // Default date/time to now
     var now = new Date();
