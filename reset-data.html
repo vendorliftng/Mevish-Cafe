@@ -118,6 +118,11 @@
 <script>
 'use strict';
 const auth = firebase.auth();
+// Same reasoning as manager.html: default Firebase Auth persistence
+// survives a full browser close, so a login from days ago could still be
+// silently active. This is a permanent-delete tool — session-only is the
+// right call here even more than on the manager panel.
+auth.setPersistence(firebase.auth.Auth.Persistence.SESSION).catch(err => console.error('setPersistence failed:', err));
 
 // Collections offered here are exactly the ones a fresh go-live would want
 // cleared of test data. `users` (admin logins), `system_config` (your real

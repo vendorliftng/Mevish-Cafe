@@ -31,6 +31,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-functions-compat.js"></script>
   <script src="config.js?v=104"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
@@ -458,6 +459,14 @@
    ═══════════════════════════════════════════════════════════ */
 
 const auth = firebase.auth();
+// Default Firebase Auth persistence is LOCAL — it survives closing the
+// browser entirely and only ends on an explicit Log Out, which is how a
+// login could still be sitting active on a shared/public device with
+// nobody having typed a password that day. SESSION persistence clears the
+// moment the browser (not just the tab) is closed, so a fresh visit later
+// always re-asks — while a manager actively working through several pages
+// in one sitting still isn't re-prompted on every click.
+auth.setPersistence(firebase.auth.Auth.Persistence.SESSION).catch(err => console.error('setPersistence failed:', err));
 let currentUserRole = null;
 
 auth.onAuthStateChanged(async user => {
@@ -659,10 +668,28 @@ function initDateDefaults() {
   document.getElementById('endDate').value = now.toISOString().split('T')[0];
 }
 
+// Converts the two date-picker values into the millisecond bounds
+// CONFIG.apiGet('orders', ...) uses for a real Firestore range query,
+// instead of the old "fetch the most recent 100 orders and hope the
+// picked range is inside that" approach — see the comment on the
+// 'orders' handler in config.js for why that was silently wrong, not
+// just slow.
+function getOrdersDateRangeParams() {
+  const startEl = document.getElementById('startDate');
+  const endEl = document.getElementById('endDate');
+  const start = startEl && startEl.value;
+  const end = endEl && endEl.value;
+  if (!start || !end) return null;
+  return {
+    startMs: new Date(start + 'T00:00:00').getTime(),
+    endMs: new Date(end + 'T23:59:59.999').getTime()
+  };
+}
+
 async function loadAllData() {
   // Load each endpoint independently so one failure doesn't block the rest
   const loaders = [
-    { key: 'orders',    fn: () => CONFIG.apiGet('orders') },                // live, no cache
+    { key: 'orders',    fn: () => CONFIG.apiGet('orders', getOrdersDateRangeParams()) }, // live, scoped to the selected range
     { key: 'inventory', fn: () => CONFIG.cachedGet('inventory', null, 5) }, // 5 min cache
     { key: 'menu',      fn: () => CONFIG.cachedGet('menu', null, 10) },    // 10 min cache
     { key: 'cashiers',  fn: () => CONFIG.cachedGet('cashiers', null, 10) },// 10 min cache
@@ -827,17 +854,30 @@ function setFormState(btnId, hintId, valid, hintText) {
 /* ═══════════════════════════════════════════════════════════
    ANALYTICS
    ═══════════════════════════════════════════════════════════ */
-function applyFilters() {
-  const start = document.getElementById('startDate').value;
-  const end = document.getElementById('endDate').value;
+async function applyFilters() {
+  // Re-fetch scoped to the new range rather than re-filtering whatever
+  // happens to already be sitting in allOrders — that array can only ever
+  // hold what an earlier fetch pulled in, so filtering it client-side
+  // silently drops anything outside that. See getOrdersDateRangeParams().
+  const range = getOrdersDateRangeParams();
+  const inputs = [document.getElementById('startDate'), document.getElementById('endDate')];
+  if (range) {
+    inputs.forEach(el => el && (el.disabled = true));
+    try {
+      const res = await CONFIG.apiGet('orders', range);
+      if (res && Array.isArray(res.data)) allOrders = res.data;
+    } catch (e) {
+      console.error('Failed to load orders for date range:', e);
+      toast('Could not load orders for that date range', 'error');
+    } finally {
+      inputs.forEach(el => el && (el.disabled = false));
+    }
+  }
   const filtered = allOrders.filter(o => {
     if (!o.status) return false;
     if (CONFIG.STATUS && CONFIG.STATUS.isVoid(o.status)) return false;
     if (o.status.toLowerCase && o.status.toLowerCase().includes('void')) return false;
-    const d = new Date(o.timestamp);
-    if (start && d < new Date(start)) return false;
-    if (end && d > new Date(end + 'T23:59:59')) return false;
-    return true;
+    return true; // date bounds are now enforced by the query itself
   });
   renderKPIs(filtered);
   renderCharts(filtered);
@@ -845,6 +885,7 @@ function applyFilters() {
   renderCreditLog(filtered);
   renderInventoryAlerts(inventoryData);
   loadAnalyticsEnhancements();
+  if (document.getElementById('panel-orders').classList.contains('active')) renderOrdersList();
 }
 
 // Order documents have never actually had a field literally named `total` —
@@ -1741,17 +1782,66 @@ function validateCashierForm() {
   setFormState('cf_save', 'cf_hint', ok, isEdit ? 'Name is required; PIN must be 4 digits if you set one' : 'Name and a 4-digit PIN are required');
 }
 
+// Returns 'ok' (saved, caller should stop), 'denied' (a real permission
+// error came back — caller should stop and not try the legacy path), or
+// 'unavailable' (the function isn't deployed / reachable — caller should
+// fall back). Distinguishing those matters: a wrong answer on 'denied'
+// would silently retry through a path with no such protection at all.
+async function trySetCashierPinViaFunction(payload) {
+  if (typeof firebase === 'undefined' || !firebase.functions) return 'unavailable';
+  try {
+    const fn = firebase.functions().httpsCallable('setCashierPin');
+    const result = await fn(payload);
+    return (result && result.data && result.data.success) ? 'ok' : 'unavailable';
+  } catch (err) {
+    if (err && (err.code === 'functions/permission-denied' || err.code === 'functions/unauthenticated')) {
+      toast(err.message || 'Not allowed', 'error');
+      return 'denied';
+    }
+    if (err && err.code === 'functions/invalid-argument') {
+      toast(err.message || 'Check the form and try again', 'error');
+      return 'denied';
+    }
+    console.warn('setCashierPin Cloud Function unavailable, falling back:', err && (err.code || err.message));
+    return 'unavailable';
+  }
+}
+
 async function saveCashier(editName) {
   const name = document.getElementById('cf_name').value.trim();
   const phone = document.getElementById('cf_phone').value.trim();
   const role = document.getElementById('cf_role').value;
   const pin = document.getElementById('cf_pin').value.trim();
+  const active = document.getElementById('cf_active') ? (document.getElementById('cf_active').value === 'Yes' ? 'Yes' : 'No') : 'Yes';
   if (!name) return toast('Name is required', 'error');
   if (pin && !/^\d{4}$/.test(pin)) return toast('PIN must be exactly 4 digits', 'error');
   if (!editName && !pin) return toast('A 4-digit PIN is required for a new cashier', 'error');
 
+  // A cashier's own record already has a Firestore doc id only if it's
+  // been through this hashed-PIN path before; one that still only exists
+  // in the old Apps Script sheet has none — omitting docId there is what
+  // makes setCashierPin create it fresh in Firestore instead of updating
+  // in place, migrating it the same moment its PIN gets hashed.
+  const existing = editName ? cashiersData.find(c => (typeof c === 'string' ? c : c.name) === editName) : null;
+  const docId = existing && typeof existing === 'object' ? existing.id : null;
+
+  const savedViaFunction = await trySetCashierPinViaFunction({ docId, name, phone, role, pin, active });
+  if (savedViaFunction === 'ok') {
+    toast(editName ? 'Cashier updated' : 'Cashier added — PIN stored hashed', 'success');
+    closeModal(); CONFIG.clearCache('cashiers'); await loadAllData(); renderCashiersTable();
+    return;
+  }
+  if (savedViaFunction === 'denied') {
+    // Real permission failure (not "function doesn't exist yet") — don't
+    // silently fall through to a legacy path that would just fail its own
+    // way; the Cloud Function's message is the accurate one here.
+    return;
+  }
+  // savedViaFunction === 'unavailable': Cloud Functions aren't deployed
+  // yet on this project. Fall back to the pre-existing plaintext path so
+  // cashier management keeps working in the meantime.
   if (editName) {
-    const payload = { name, phone, role, active: (document.getElementById('cf_active') ? (document.getElementById('cf_active').value === 'Yes' ? 'Yes' : 'No') : 'Yes'), oldName: editName, performedBy: 'Manager' };
+    const payload = { name, phone, role, active, oldName: editName, performedBy: 'Manager' };
     if (pin) payload.pin = pin; // omit entirely when blank — updateCashier only touches fields it receives, so the current PIN is left untouched
     const res = await CONFIG.apiPost('updateCashier', payload);
     if (res.status === 'success') { toast('Cashier updated', 'success'); closeModal(); CONFIG.clearCache('cashiers'); await loadAllData(); renderCashiersTable(); }

@@ -93,6 +93,7 @@
     <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-functions-compat.js"></script>
   <script src="config.js?v=103"></script>
 </head>
 <body>
@@ -266,6 +267,23 @@
   </div>
 
   <!-- ═══════════════════════════════════════════════ -->
+  <!--  SHIFT END / RECONCILE MODAL                     -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <div class="modal-overlay" id="shiftModal" onclick="onOverlayClick(event,'shiftModal')">
+    <div class="modal modal-sm" role="dialog" aria-modal="true">
+      <div class="modal-header">
+        <h3 class="modal-title">End Shift</h3>
+        <button class="modal-close" onclick="closeShiftModal()" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body"><div id="shiftModalBody"></div></div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeShiftModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="confirmEndShift()">Close Shift</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ -->
   <!--  MANUAL / WALK-IN ORDER MODAL (Manager only)     -->
   <!-- ═══════════════════════════════════════════════ -->
   <!-- ═══════════════════════════════════════════════ -->
@@ -434,9 +452,84 @@
   }
   function verifyPin() {
     var enteredPin = pin;
-    // Real check first, always: every staff PIN (Cashier or Manager) is
-    // verified against the actual staff list, so Void/analytics access is
-    // tied to a named, real person — never a universal magic number.
+    if (!navigator.onLine) {
+      // No point calling out for either path without a connection — go
+      // straight to the offline break-glass check.
+      return finishOfflineOrFail(enteredPin);
+    }
+    // Preferred path: a Cloud Function checks the PIN against a bcrypt
+    // hash server-side, so the PIN itself is never compared client-side
+    // and no PIN — this one or anyone else's — is ever readable from the
+    // browser. Falls back automatically to the pre-existing Firestore/
+    // Apps-Script check if Cloud Functions aren't deployed (or unreachable)
+    // on this project, so login keeps working either way.
+    //
+    // A CORS-blocked call to a function that doesn't exist yet takes the
+    // browser several seconds to actually fail — measured ~8s here, against
+    // a login that used to resolve near-instantly. `settled` + a bounded
+    // timeout race caps that worst case instead of making every cashier
+    // wait out the browser's own failure detection on every single login.
+    // Once the function is genuinely deployed, a normal (non-cold-start)
+    // call resolves in well under this and wins the race for real.
+    if (typeof firebase !== 'undefined' && firebase.functions) {
+      var settled = false;
+      var fallbackTimer = setTimeout(function() {
+        if (settled) return;
+        settled = true;
+        verifyPinLegacy(enteredPin);
+      }, 5000);
+
+      firebase.functions().httpsCallable('verifyCashierPin')({ pin: enteredPin }).then(function(result) {
+        if (settled) return; // already fell back past the timeout — let this land silently
+        settled = true;
+        clearTimeout(fallbackTimer);
+        var data = result && result.data;
+        if (data && data.success) {
+          currentUser = { name: data.name, role: data.role || 'Cashier', isManager: (data.role === 'Manager') };
+          completeLogin();
+        } else if (data) {
+          // A real answer came back ("no match") — trust it, don't fall
+          // through to a legacy check that has no rate limiting at all.
+          showPinError();
+        } else {
+          verifyPinLegacy(enteredPin);
+        }
+      }).catch(function(err) {
+        if (settled) return;
+        settled = true;
+        clearTimeout(fallbackTimer);
+        if (err && err.code === 'functions/resource-exhausted') {
+          showPinError(); // too many attempts — a real, meaningful answer, not "unavailable"
+          return;
+        }
+        console.warn('verifyCashierPin Cloud Function unavailable, falling back:', err && (err.code || err.message));
+        verifyPinLegacy(enteredPin);
+      });
+    } else {
+      verifyPinLegacy(enteredPin);
+    }
+  }
+
+  function finishOfflineOrFail(enteredPin) {
+    if (enteredPin === (CONFIG.MANAGER_PIN || '1234')) {
+      // Offline break-glass fallback ONLY: the staff list is unreachable
+      // without a connection, so a Manager still needs a way in to void a
+      // mistake or close the shift. This path is unavailable whenever the
+      // device is online — change CONFIG.MANAGER_PIN from its default
+      // before go-live, and treat every offline-fallback login as
+      // reviewable (it is not attributable to a named person).
+      currentUser = { name: 'Manager (offline)', role: 'Manager', isManager: true };
+      completeLogin();
+    } else {
+      showPinError();
+    }
+  }
+
+  // Pre-Cloud-Function path: Firestore's staff collection (falling back to
+  // the legacy Apps Script sheet if that's empty), compared directly. Kept
+  // as a fallback so login doesn't break on a project where the
+  // verifyCashierPin function hasn't been deployed yet — see verifyPin().
+  function verifyPinLegacy(enteredPin) {
     CONFIG.apiGet('loginCashier', { pin: enteredPin }).then(function(res) {
       if (res && res.status === 'success' && res.data) {
         currentUser = {
@@ -445,25 +538,13 @@
           isManager: (res.data.role === 'Manager')
         };
         completeLogin();
-      } else if (!navigator.onLine && enteredPin === (CONFIG.MANAGER_PIN || '1234')) {
-        // Offline break-glass fallback ONLY: the staff list is unreachable
-        // without a connection, so a Manager still needs a way in to void a
-        // mistake or close the shift. This path is unavailable whenever the
-        // device is online — change CONFIG.MANAGER_PIN from its default
-        // before go-live, and treat every offline-fallback login as
-        // reviewable (it is not attributable to a named person).
-        currentUser = { name: 'Manager (offline)', role: 'Manager', isManager: true };
-        completeLogin();
+      } else if (!navigator.onLine) {
+        finishOfflineOrFail(enteredPin);
       } else {
         showPinError();
       }
     }).catch(function() {
-      if (!navigator.onLine && enteredPin === (CONFIG.MANAGER_PIN || '1234')) {
-        currentUser = { name: 'Manager (offline)', role: 'Manager', isManager: true };
-        completeLogin();
-      } else {
-        showPinError();
-      }
+      finishOfflineOrFail(enteredPin);
     });
   }
   function completeLogin() {
@@ -638,9 +719,137 @@
     var badgeClass = currentUser.isManager ? 'badge-served' : 'badge-active';
     el.innerHTML = '<span class="user-name">👤 ' + escHtml(currentUser.name) +
       '</span> <span class="badge ' + badgeClass + '">' + escHtml(currentUser.role) + '</span>' +
+      ' <span id="shiftStatusSlot"></span>' +
       ' <button class="btn btn-ghost btn-sm" onclick="logout()">Logout</button>';
+    renderShiftStatus();
   }
   function getSelectedCashier() { return currentUser ? currentUser.name : ''; }
+
+  /* ═══════════════════════════════════════════════════
+     SHIFTS — clock in/out + per-shift sales reconciliation
+     ═══════════════════════════════════════════════════ */
+  var currentShift = null; // {id, cashierName, startedAt}
+
+  async function checkActiveShift() {
+    if (!currentUser) return;
+    try {
+      const snap = await db.collection('shifts')
+        .where('cashierName', '==', currentUser.name)
+        .where('status', '==', 'active')
+        .limit(1).get();
+      currentShift = snap.empty ? null : Object.assign({ id: snap.docs[0].id }, snap.docs[0].data());
+    } catch (e) {
+      console.error('checkActiveShift error', e);
+      currentShift = null;
+    }
+    renderShiftStatus();
+  }
+
+  function renderShiftStatus() {
+    const slot = document.getElementById('shiftStatusSlot');
+    if (!slot || !currentUser) return;
+    if (currentShift) {
+      const started = new Date(currentShift.startedAt);
+      const label = started.toLocaleTimeString(rLocale, { hour: '2-digit', minute: '2-digit' });
+      slot.innerHTML = '<span class="badge badge-active" title="Clocked in ' + escHtml(label) + '">🟢 On shift since ' + escHtml(label) + '</span> ' +
+        '<button class="btn btn-cash btn-sm" onclick="openShiftEndModal()">End Shift</button>';
+    } else {
+      slot.innerHTML = '<button class="btn btn-success btn-sm" onclick="startShift()">▶ Start Shift</button>';
+    }
+  }
+
+  async function startShift() {
+    if (!currentUser || currentShift) return;
+    try {
+      const doc = { cashierName: currentUser.name, role: currentUser.role, startedAt: Date.now(), status: 'active' };
+      const ref = await db.collection('shifts').add(doc);
+      currentShift = Object.assign({ id: ref.id }, doc);
+      renderShiftStatus();
+      showToast('Shift started — have a good one, ' + currentUser.name.split(' ')[0] + '!', 'success');
+    } catch (e) {
+      console.error('startShift error', e);
+      showToast('Could not start shift — try again', 'error');
+    }
+  }
+
+  // Reconciliation reads from the orders already live in memory (today's
+  // orders, via the same Firestore listener the board itself uses) rather
+  // than firing a fresh query — a shift never spans past "today", so
+  // nothing is missed, and it avoids needing a new composite index just
+  // for this one summary screen.
+  function computeShiftTotals(shift) {
+    const paid = [...allOrders, ...allClearedOrders].filter(o => o.shiftId === shift.id && (o.status || '').includes('Paid'));
+    let cash = 0, pos = 0;
+    paid.forEach(o => {
+      const amt = Number(o.totalPrice || o.totalRevenue || 0);
+      if ((o.paymentMethod || '').toLowerCase() === 'pos') pos += amt; else cash += amt;
+    });
+    return { cash, pos, total: cash + pos, count: paid.length };
+  }
+
+  function openShiftEndModal() {
+    if (!currentShift) return;
+    const t = computeShiftTotals(currentShift);
+    const started = new Date(currentShift.startedAt);
+    const durationMin = Math.max(0, Math.round((Date.now() - currentShift.startedAt) / 60000));
+    const durationLabel = durationMin >= 60 ? (Math.floor(durationMin / 60) + 'h ' + (durationMin % 60) + 'm') : (durationMin + 'm');
+    document.getElementById('shiftModalBody').innerHTML = `
+      <div style="display:flex; flex-direction:column; gap:0.9rem;">
+        <div style="color:var(--text-secondary); font-size:0.85rem;">
+          Started ${escHtml(started.toLocaleTimeString(rLocale, { hour: '2-digit', minute: '2-digit' }))} · ${durationLabel} on shift · ${t.count} order${t.count === 1 ? '' : 's'} paid
+        </div>
+        <div style="display:flex; justify-content:space-between; padding:0.5rem 0; border-bottom:1px solid var(--border);">
+          <span>Cash sales</span><strong>${CONFIG.formatCurrency(t.cash)}</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between; padding:0.5rem 0; border-bottom:1px solid var(--border);">
+          <span>POS sales</span><strong>${CONFIG.formatCurrency(t.pos)}</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between; padding:0.5rem 0; font-size:1.1rem;">
+          <span>Total</span><strong style="color:var(--gold);">${CONFIG.formatCurrency(t.total)}</strong>
+        </div>
+        <div class="form-group" style="margin-top:0.5rem;">
+          <label style="font-size:0.85rem; font-weight:600; color:var(--text-secondary); display:block; margin-bottom:0.3rem;">Cash actually counted (optional)</label>
+          <input type="number" id="shift_cash_counted" class="form-control" placeholder="e.g. ${t.cash}" style="min-height:44px;" />
+          <div style="font-size:0.78rem; color:var(--text-muted); margin-top:0.3rem;">Leave blank to skip — the shift still closes and this can be reconciled later from the Manager panel.</div>
+        </div>
+      </div>`;
+    document.getElementById('shiftModal').classList.add('open');
+  }
+
+  function closeShiftModal() {
+    document.getElementById('shiftModal').classList.remove('open');
+  }
+
+  async function confirmEndShift() {
+    if (!currentShift) return closeShiftModal();
+    const t = computeShiftTotals(currentShift);
+    const countedEl = document.getElementById('shift_cash_counted');
+    const counted = countedEl && countedEl.value !== '' ? parseFloat(countedEl.value) : null;
+    const updates = {
+      status: 'closed',
+      endedAt: Date.now(),
+      totalCash: t.cash,
+      totalPOS: t.pos,
+      totalSales: t.total,
+      orderCount: t.count
+    };
+    if (counted !== null && !isNaN(counted)) {
+      updates.cashCounted = counted;
+      updates.cashVariance = counted - t.cash;
+    }
+    try {
+      await db.collection('shifts').doc(currentShift.id).update(updates);
+      CONFIG.writeAudit && CONFIG.writeAudit('SHIFT_ENDED', '', (currentUser ? currentUser.name : '') + ' — ' + CONFIG.formatCurrency(t.total) + ' over ' + t.count + ' orders', currentUser ? currentUser.name : 'System');
+      showToast('Shift closed — ' + CONFIG.formatCurrency(t.total) + ' reconciled', 'success');
+    } catch (e) {
+      console.error('confirmEndShift error', e);
+      showToast('Could not close shift — try again', 'error');
+      return;
+    }
+    currentShift = null;
+    closeShiftModal();
+    renderShiftStatus();
+  }
   // Real enforcement (NFR-1): a "payment" collected offline can silently fail
   // to sync, or sync twice — that's the one thing that must never be fuzzy
   // with real money. Cash/POS/Settle are blocked until the connection is back.
@@ -979,7 +1188,7 @@ function setRefreshing(yes) {
     if (isPaymentLocked()) return showToast('You are offline — payments are locked until the connection returns', 'error');
     const cashier = getSelectedCashier();
     try {
-      const res = await CONFIG.apiPost('settleCredit', { orderId, cashier, method });
+      const res = await CONFIG.apiPost('settleCredit', { orderId, cashier, method, shiftId: (currentShift && currentShift.id) || '' });
       if (res && res.status === 'error') {
         showToast(res.message || 'Failed to settle credit', 'error');
         return;
@@ -1074,7 +1283,7 @@ function setRefreshing(yes) {
      ═══════════════════════════════════════════════════ */
   async function updateStatus(orderId, newStatus, cashier) {
     try {
-      const res = await CONFIG.apiPost('updateStatus', { orderId, newStatus, cashier: cashier || '' });
+      const res = await CONFIG.apiPost('updateStatus', { orderId, newStatus, cashier: cashier || '', shiftId: (currentShift && currentShift.id) || '' });
       if (res.status === 'error') {
         showToast(res.message || 'Failed to update order', 'error');
         return false;
@@ -1713,6 +1922,7 @@ function setRefreshing(yes) {
 
   async function initApp() {
     renderUserDisplay();
+    await checkActiveShift();
     await fetchOrders();
     startAutoRefresh();
     updateTabBarFade();

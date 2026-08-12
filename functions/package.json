@@ -1,0 +1,19 @@
+{
+  "name": "mevish-functions",
+  "description": "Server-side cashier PIN verification for the Mevish RMS. Runs cashier login checks and PIN hashing in a trusted environment instead of the client, so a PIN never has to be readable from the browser to be checked.",
+  "engines": {
+    "node": "20"
+  },
+  "main": "index.js",
+  "scripts": {
+    "serve": "firebase emulators:start --only functions",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.5.0",
+    "firebase-functions": "^6.0.1",
+    "bcryptjs": "^2.4.3"
+  },
+  "private": true
+}

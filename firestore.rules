@@ -59,6 +59,17 @@ service cloud.firestore {
       allow delete: if isSuperAdmin();
     }
 
+    // ─── shifts — cashier clock-in/out + sales reconciliation ──
+    // Same posture as orders: PIN-pad login doesn't establish a Firebase
+    // Auth session, so a cashier device is "unauthenticated" from
+    // Firestore's point of view here too — this isn't a new exposure, it's
+    // the same one every order write already has.
+    match /shifts/{shiftId} {
+      allow read: if true;
+      allow create, update: if true;
+      allow delete: if isSuperAdmin();
+    }
+
     // ─── audit_log — immutable, append-only ───────────────────
     match /audit_log/{entry} {
       allow read: if isManager();
@@ -69,8 +80,15 @@ service cloud.firestore {
     // ─── menu_items ───────────────────────────────────────────
     match /menu_items/{item} {
       allow read: if true;                    // customer menu, menu board
-      allow create: if true;                  // allows first-run FALLBACK_MENU seeding from any page
-      allow update, delete: if isManager();
+      // create used to be open to unauthenticated clients for first-run
+      // FALLBACK_MENU seeding. The menu is fully seeded now and that
+      // client-side auto-seed code has been removed (see config.js) — an
+      // open create on a public collection with no ongoing purpose is
+      // just an unmonitored way for anyone to write arbitrary menu items
+      // (or worse, an inventory link + deduction quantity) with no
+      // authentication at all. Adding a menu item now requires being a
+      // Manager, same as editing or deleting one always has.
+      allow create, update, delete: if isManager();
     }
 
     // ─── inventory ────────────────────────────────────────────

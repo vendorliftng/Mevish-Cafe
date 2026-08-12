@@ -394,7 +394,26 @@ const CONFIG = {
     if (typeof db !== 'undefined' && db) {
       try {
         if (type === 'orders') {
-          const snapshot = await db.collection('orders').orderBy('timestamp', 'desc').limit(100).get();
+          // A flat "most recent 100" cap used to be the only option here.
+          // That's not just a performance shortcut — it was silently wrong:
+          // manager.html's Analytics date-range picker filtered whatever
+          // this returned, so picking a range further back than the most
+          // recent 100 orders covered just showed incomplete numbers with
+          // no warning, and it would only get worse as order volume grew.
+          // When a real range is given, query it directly instead of
+          // capping and hoping — that's both correct and reads only what's
+          // actually needed. No range (e.g. a caller that just wants
+          // "recent activity") keeps the old capped behavior.
+          let q = db.collection('orders').orderBy('timestamp', 'desc');
+          if (params && params.startMs != null && params.endMs != null) {
+            q = db.collection('orders')
+              .where('timestamp', '>=', params.startMs)
+              .where('timestamp', '<=', params.endMs)
+              .orderBy('timestamp', 'desc');
+          } else {
+            q = q.limit(100);
+          }
+          const snapshot = await q.get();
           return { status: 'success', data: snapshot.docs.map(doc => doc.data()) };
         }
         if (type === 'menu') {
@@ -620,6 +639,7 @@ const CONFIG = {
             updates.paidAt = Date.now();
             updates.paymentMethod = (newStatus.indexOf('POS') >= 0) ? 'POS' : 'Cash';
             updates.cashierName = cashier;
+            if (payload.shiftId) updates.shiftId = payload.shiftId; // ties this sale to whoever was clocked in when it was paid
             auditAction = 'PAYMENT_RECEIVED';
             auditDetails = updates.paymentMethod + ' payment received' + (cashier ? ' by ' + cashier : '');
             // First payment triggers stock deduction (FR-3.5). Idempotency is
@@ -645,13 +665,15 @@ const CONFIG = {
           const cashier = payload.cashier || '';
           const method = payload.method || payload.paymentMethod || 'Cash';
           const newStatus = 'Paid - ' + method + ' (' + cashier + ')';
-          await db.collection('orders').doc(payload.orderId).update({
+          const settleUpdates = {
             status: newStatus,
             paymentMethod: method,
             cashierName: cashier,
             paidAt: Date.now(),
             creditSettledAt: Date.now()
-          });
+          };
+          if (payload.shiftId) settleUpdates.shiftId = payload.shiftId;
+          await db.collection('orders').doc(payload.orderId).update(settleUpdates);
           // Credit orders were never deducted at issue time (FR-3.5) — settlement
           // is their first real payment, so it's deducted now.
           await CONFIG.deductInventoryForOrder(payload.orderId);
@@ -1163,18 +1185,19 @@ const CONFIG = {
           console.error("Failed to load tables collection:", err);
         }
 
-        // --- Auto-Migrate Menu Items ---
-        const menuSnap = await db.collection('menu_items').limit(1).get();
-        if (menuSnap.empty) {
-          console.log("Migrating fallback menu to Firestore...");
-          const batch = db.batch();
-          CONFIG.FALLBACK_MENU.forEach(item => {
-            const newRef = db.collection('menu_items').doc();
-            batch.set(newRef, item);
-          });
-          await batch.commit();
-          console.log("Migration complete!");
-        }
+        // Auto-migrating the fallback menu into Firestore used to live here,
+        // running unconditionally on every page load of every page —
+        // including the public, unauthenticated customer menu. That's
+        // exactly the pattern that produced the menu duplication bug (a
+        // check-then-write race with no lock: several page loads in close
+        // succession could each see an "empty" collection and each write
+        // the full fallback menu again). The menu is fully seeded now, so
+        // this has no ongoing job to do — CONFIG.FALLBACK_MENU still exists
+        // as an in-memory display fallback if a real fetch ever fails (see
+        // index.html/menu-board.html), it's just never written to
+        // Firestore automatically anymore. A brand-new deployment seeds its
+        // menu once, from an authenticated Manager session, the same way
+        // every other piece of starting data does.
       } catch (err) {
         console.error("Failed to load global settings from Firestore:", err);
       }
