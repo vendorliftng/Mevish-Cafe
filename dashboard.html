@@ -284,6 +284,23 @@
   </div>
 
   <!-- ═══════════════════════════════════════════════ -->
+  <!--  SPLIT PAYMENT MODAL                             -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <div class="modal-overlay" id="splitModal" onclick="onOverlayClick(event,'splitModal')">
+    <div class="modal modal-sm" role="dialog" aria-modal="true">
+      <div class="modal-header">
+        <h3 class="modal-title">Split Payment</h3>
+        <button class="modal-close" onclick="closeSplitModal()" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body"><div id="splitModalBody"></div></div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeSplitModal()">Cancel</button>
+        <button class="btn btn-primary" id="splitConfirmBtn" onclick="confirmSplitPayment()" disabled>Confirm Split Payment</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ -->
   <!--  MANUAL / WALK-IN ORDER MODAL (Manager only)     -->
   <!-- ═══════════════════════════════════════════════ -->
   <!-- ═══════════════════════════════════════════════ -->
@@ -813,7 +830,18 @@
     let cash = 0, pos = 0;
     paid.forEach(o => {
       const amt = Number(o.totalPrice || o.totalRevenue || 0);
-      if ((o.paymentMethod || '').toLowerCase() === 'pos') pos += amt; else cash += amt;
+      const method = (o.paymentMethod || '').toLowerCase();
+      if (method === 'split') {
+        // A split sale is part cash, part POS -- counting the whole thing
+        // as one or the other would throw off the cash-counted check at
+        // End Shift by the POS portion.
+        cash += Number(o.splitCash) || 0;
+        pos += Number(o.splitPOS) || 0;
+      } else if (method === 'pos') {
+        pos += amt;
+      } else {
+        cash += amt;
+      }
     });
     return { cash, pos, total: cash + pos, count: paid.length };
   }
@@ -1058,9 +1086,13 @@ function setRefreshing(yes) {
       actions = `<button class="btn btn-primary" data-payment-btn="1" onclick="event.stopPropagation();handleSettleCredit('${oid}','POS')">Settle · POS</button>`;
       actions += `<button class="btn btn-cash" data-payment-btn="1" onclick="event.stopPropagation();handleSettleCredit('${oid}','Cash')">Settle · Cash</button>`;
     }
-    // Overflow menu: Share always, Void only for managers on an active order
-    // (the only state a void is a clean no-stock-moved cancellation).
+    // Overflow menu: Share always, Split on payable orders, Void only for
+    // managers on an active order (the only state a void is a clean
+    // no-stock-moved cancellation).
     let menuItems = `<button class="card-menu-item" onclick="event.stopPropagation();toggleCardMenu('${oid}',event);openWhatsAppForward('${oid}')"><span aria-hidden="true">💬</span> Share via WhatsApp</button>`;
+    if (cat === 'active' || cat === 'served') {
+      menuItems += `<button class="card-menu-item" data-payment-btn="1" onclick="event.stopPropagation();toggleCardMenu('${oid}',event);openSplitModal('${oid}')"><span aria-hidden="true">➗</span> Split Payment</button>`;
+    }
     if (cat === 'active' && currentUser && currentUser.isManager) {
       menuItems += `<button class="card-menu-item danger" id="voidBtn-${oid}" onclick="event.stopPropagation();toggleCardMenu('${oid}',event);handleVoid('${oid}')"><span aria-hidden="true">🚫</span> Void Order</button>`;
     }
@@ -1156,6 +1188,73 @@ function setRefreshing(yes) {
     const s = String(seconds % 60).padStart(2, '0');
     el.textContent = `${m}:${s} remaining`;
     el.style.color = seconds <= 60 ? 'var(--c-danger)' : 'var(--c-text-light)';
+  }
+
+  /* ═══════════════════════════════════════════════════
+     SPLIT PAYMENT
+     ═══════════════════════════════════════════════════ */
+  var splitOrderId = null;
+  function openSplitModal(orderId) {
+    if (isPaymentLocked()) { showToast('You are offline — payments are locked until the connection returns', 'error'); return; }
+    const order = getOrderById(orderId);
+    if (!order) { showToast('Order not found', 'error'); return; }
+    splitOrderId = orderId;
+    const total = order.totalPrice || order.totalRevenue || order.total || 0;
+    document.getElementById('splitModalBody').innerHTML = `
+      <div style="display:flex; flex-direction:column; gap:0.9rem;">
+        <div style="font-size:1rem;">Total: <strong style="color:var(--gold);">${CONFIG.formatCurrency(total)}</strong></div>
+        <div class="form-group">
+          <label style="font-size:0.85rem; font-weight:600; color:var(--text-secondary); display:block; margin-bottom:0.3rem;">Cash amount</label>
+          <input type="number" id="split_cash" class="form-control" placeholder="0" oninput="validateSplit()" style="min-height:48px;" />
+        </div>
+        <div class="form-group">
+          <label style="font-size:0.85rem; font-weight:600; color:var(--text-secondary); display:block; margin-bottom:0.3rem;">POS amount</label>
+          <input type="number" id="split_pos" class="form-control" placeholder="0" oninput="validateSplit()" style="min-height:48px;" />
+        </div>
+        <div id="split_hint" style="font-size:0.85rem; color:var(--text-muted);">Both amounts must add up to the total.</div>
+      </div>`;
+    document.getElementById('splitModal').classList.add('open');
+    document.getElementById('splitConfirmBtn').disabled = true;
+  }
+  function closeSplitModal() {
+    document.getElementById('splitModal').classList.remove('open');
+    splitOrderId = null;
+  }
+  function validateSplit() {
+    if (!splitOrderId) return;
+    const order = getOrderById(splitOrderId);
+    const total = (order && (order.totalPrice || order.totalRevenue || order.total)) || 0;
+    const cash = parseFloat(document.getElementById('split_cash').value) || 0;
+    const pos = parseFloat(document.getElementById('split_pos').value) || 0;
+    const hint = document.getElementById('split_hint');
+    const matches = cash > 0 && pos > 0 && Math.abs((cash + pos) - total) < 0.5; // half-naira tolerance for rounding
+    document.getElementById('splitConfirmBtn').disabled = !matches;
+    hint.textContent = matches
+      ? '✓ ' + CONFIG.formatCurrency(cash) + ' + ' + CONFIG.formatCurrency(pos) + ' = ' + CONFIG.formatCurrency(total)
+      : CONFIG.formatCurrency(cash + pos) + ' so far — needs to total ' + CONFIG.formatCurrency(total);
+    hint.style.color = matches ? 'var(--success)' : 'var(--text-muted)';
+  }
+  async function confirmSplitPayment() {
+    if (!splitOrderId) return;
+    const orderId = splitOrderId;
+    const cashier = getSelectedCashier();
+    const cash = parseFloat(document.getElementById('split_cash').value) || 0;
+    const pos = parseFloat(document.getElementById('split_pos').value) || 0;
+    try {
+      const res = await CONFIG.apiPost('updateStatus', {
+        orderId, newStatus: 'Paid - Split (' + cashier + ')', cashier: cashier || '',
+        shiftId: (currentShift && currentShift.id) || '', splitCash: cash, splitPOS: pos
+      });
+      if (res.status === 'error') { showToast(res.message || 'Failed to record split payment', 'error'); return; }
+      closeSplitModal();
+      const order = getOrderById(orderId);
+      removeCardFromGrid(orderId);
+      showToast(`Split payment recorded by ${cashier}`, 'success');
+      if (order) showReceiptModal(order);
+    } catch (err) {
+      showToast('Network error — could not record split payment', 'error');
+      console.error('confirmSplitPayment error', err);
+    }
   }
 
   /* ═══════════════════════════════════════════════════

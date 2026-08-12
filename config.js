@@ -698,9 +698,16 @@ const CONFIG = {
             auditAction = 'ORDER_SERVED';
           } else if (newStatus.indexOf('Paid') === 0) {
             updates.paidAt = Date.now();
-            updates.paymentMethod = (newStatus.indexOf('POS') >= 0) ? 'POS' : 'Cash';
+            updates.paymentMethod = newStatus.indexOf('Split') >= 0 ? 'Split' : (newStatus.indexOf('POS') >= 0 ? 'POS' : 'Cash');
             updates.cashierName = cashier;
             if (payload.shiftId) updates.shiftId = payload.shiftId; // ties this sale to whoever was clocked in when it was paid
+            if (updates.paymentMethod === 'Split') {
+              // Recorded separately so shift reconciliation can put each
+              // part in the right bucket instead of counting the whole
+              // order as one payment method.
+              updates.splitCash = Number(payload.splitCash) || 0;
+              updates.splitPOS = Number(payload.splitPOS) || 0;
+            }
             auditAction = 'PAYMENT_RECEIVED';
             auditDetails = updates.paymentMethod + ' payment received' + (cashier ? ' by ' + cashier : '');
             // First payment triggers stock deduction (FR-3.5). Idempotency is
