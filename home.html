@@ -10,14 +10,15 @@
   <meta name="keywords" id="metaKeywords" content="restaurant, online ordering, food, dine in">
   <meta name="robots" content="index, follow">
   <meta name="author" id="metaAuthor" content="Restaurant">
-  <link rel="canonical" href="./home.html">
+  <link rel="canonical" id="canonicalLink" href="https://mevish.com.ng/home.html">
 
   <!-- Open Graph (overridden on load from CONFIG) -->
   <meta property="og:title" id="ogTitle" content="Restaurant">
   <meta property="og:description" id="ogDescription" content="Premium food, fast service, real flavour.">
   <meta property="og:type" content="restaurant">
-  <meta property="og:url" content="./home.html">
+  <meta property="og:url" id="ogUrl" content="https://mevish.com.ng/home.html">
   <meta property="og:site_name" id="ogSiteName" content="Restaurant">
+  <meta property="og:image" id="ogImage" content="">
 
   <!-- Twitter Card (overridden on load from CONFIG) -->
   <meta name="twitter:card" content="summary_large_image">
@@ -27,6 +28,7 @@
   <!-- Schema.org JSON-LD — injected dynamically on load from CONFIG -->
   <script type="application/ld+json" id="jsonLd"></script>
 
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgcng9IjIyIiBmaWxsPSIjMGQxMDE3Ii8+PHRleHQgeD0iNTAiIHk9IjY2IiBmb250LXNpemU9IjU2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7wn42977iPPC90ZXh0Pjwvc3ZnPgo=">
   <link rel="stylesheet" href="style.css">
     <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -621,6 +623,7 @@
       setAttr('ogTitle', 'content', ogTitle);
       setAttr('ogDescription', 'content', slogan || metaDescription);
       setAttr('ogSiteName', 'content', fullName);
+      if (R.ogImage) setAttr('ogImage', 'content', R.ogImage);
       setAttr('twitterTitle', 'content', ogTitle);
       setAttr('twitterDescription', 'content', slogan || metaDescription);
 
@@ -646,6 +649,7 @@
         if (R.phone) jsonLd.telephone = R.phone;
         if (R.email) jsonLd.email = R.email;
         if (R.mapsEmbedUrl) jsonLd.hasMap = R.mapsEmbedUrl;
+        if (R.ogImage) jsonLd.image = R.ogImage;
         var ldEl = document.getElementById('jsonLd');
         if (ldEl) ldEl.textContent = JSON.stringify(jsonLd);
       } catch (e) { /* JSON-LD is best-effort */ }

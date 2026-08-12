@@ -42,6 +42,13 @@ const CONFIG = {
     // Full embed URL for the restaurant location iframe
     mapsEmbedUrl: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3920.5!2d12.5!3d9.2!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMevish+Eatery!5e0!3m2!1sen!2sng",
 
+    // ─── Social Share Image ──────────────────────────────────
+    // Shown as the preview photo when home.html / index.html get shared
+    // on WhatsApp, Facebook, etc. Empty until set from Manager → Settings
+    // (needs a real hosted photo URL — WhatsApp/Facebook won't fetch a
+    // data: URI, only a real https:// link).
+    ogImage:       "",
+
     // ─── Replication ────────────────────────────────────────
     slug:          "mevish",            // Used for localStorage keys, CSS prefixes
 
@@ -1219,6 +1226,7 @@ const CONFIG = {
           if (data.email) CONFIG.RESTAURANT.email = data.email;
           if (data.address) { CONFIG.RESTAURANT.fullAddress = data.address; CONFIG.RESTAURANT.address = data.address; }
           if (data.hours) CONFIG.RESTAURANT.hours = data.hours;
+          if (data.ogImage) CONFIG.RESTAURANT.ogImage = data.ogImage;
           if (data.currency) CONFIG.CURRENCY = data.currency;
           if (data.tables && Array.isArray(data.tables)) CONFIG.TABLES = data.tables;
           if (data.taxRate !== undefined && data.taxRate !== null) CONFIG.TAX_RATE = data.taxRate;

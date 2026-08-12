@@ -5,10 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title id="pageTitle">Article | Blog</title>
   <meta name="description" id="pageDesc" content="">
+  <link rel="canonical" id="canonicalLink" href="https://mevish.com.ng/article.html">
   <meta property="og:title" id="ogTitle" content="">
+  <meta property="og:description" id="ogDescription" content="">
   <meta property="og:image" id="ogImage" content="">
   <meta property="og:type" content="article">
+  <meta property="og:url" id="ogUrl" content="https://mevish.com.ng/article.html">
   <meta property="og:site_name" id="ogSiteName" content="Blog">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgcng9IjIyIiBmaWxsPSIjMGQxMDE3Ii8+PHRleHQgeD0iNTAiIHk9IjY2IiBmb250LXNpemU9IjU2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7wn42977iPPC90ZXh0Pjwvc3ZnPgo=">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;600;700;900&display=swap" rel="stylesheet">
@@ -292,7 +296,18 @@ function renderArticle(post) {
   const desc = post.metaDescription || (post.content || '').substring(0, 160);
   document.getElementById('pageDesc').setAttribute('content', desc);
   document.getElementById('ogTitle').setAttribute('content', post.title);
-  if (post.imageUrl) document.getElementById('ogImage').setAttribute('content', post.imageUrl);
+  document.getElementById('ogDescription').setAttribute('content', desc);
+  // Falls back to the restaurant's own share photo (Manager → Settings)
+  // when this specific post has no cover image of its own.
+  const shareImage = post.imageUrl || (R_ART && R_ART.ogImage) || '';
+  if (shareImage) document.getElementById('ogImage').setAttribute('content', shareImage);
+
+  // Canonical / og:url — each article is its own URL via ?slug=
+  const articleUrl = 'https://mevish.com.ng/article.html?slug=' + encodeURIComponent(post.slug || slug || '');
+  const canonicalEl = document.getElementById('canonicalLink');
+  if (canonicalEl) canonicalEl.setAttribute('href', articleUrl);
+  const ogUrlEl = document.getElementById('ogUrl');
+  if (ogUrlEl) ogUrlEl.setAttribute('content', articleUrl);
 
   // Inject Article schema
   injectSchema({
@@ -302,8 +317,9 @@ function renderArticle(post) {
     'author': { '@type': 'Person', 'name': post.author || REST_NAME },
     'datePublished': post.date,
     'publisher': { '@type': 'Organization', 'name': REST_NAME },
-    'image': post.imageUrl || '',
-    'description': desc
+    'image': shareImage,
+    'description': desc,
+    'mainEntityOfPage': articleUrl
   });
 
   // Extract FAQs and inject FAQ schema

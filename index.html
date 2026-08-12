@@ -3,10 +3,29 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Order Now | Loading...</title>
-  <meta name="description" content="Order fresh, delicious food online. Browse our full menu and place your order." />
-  <meta name="description" data-dynamic="true" />
+  <title id="pageTitle">Order Now | Loading...</title>
+  <meta name="description" id="metaDescription" content="Order fresh, delicious food online. Browse our full menu and place your order." />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" id="canonicalLink" href="https://mevish.com.ng/index.html" />
+
+  <!-- Open Graph (overridden on load from CONFIG) -->
+  <meta property="og:title" id="ogTitle" content="Order Now" />
+  <meta property="og:description" id="ogDescription" content="Order fresh, delicious food online. Browse our full menu and place your order." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" id="ogUrl" content="https://mevish.com.ng/index.html" />
+  <meta property="og:site_name" id="ogSiteName" content="Restaurant" />
+  <meta property="og:image" id="ogImage" content="" />
+
+  <!-- Twitter Card (overridden on load from CONFIG) -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" id="twitterTitle" content="Order Now" />
+  <meta name="twitter:description" id="twitterDescription" content="Order fresh, delicious food online. Browse our full menu and place your order." />
+
+  <!-- Schema.org JSON-LD — injected dynamically on load from CONFIG -->
+  <script type="application/ld+json" id="jsonLd"></script>
+
   <meta name="theme-color" content="#0d1017" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgcng9IjIyIiBmaWxsPSIjMGQxMDE3Ii8+PHRleHQgeD0iNTAiIHk9IjY2IiBmb250LXNpemU9IjU2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7wn42977iPPC90ZXh0Pjwvc3ZnPgo=" />
   <link rel="stylesheet" href="style.css" />
     <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -1040,11 +1059,49 @@
     var R_SHORT = RESTAURANT_NAME.split(' ')[0];
 
     document.getElementById('logo-text').textContent = RESTAURANT_NAME;
-    document.title = 'Order Now | ' + RESTAURANT_NAME + ' — ' + (C.RESTAURANT ? C.RESTAURANT.city + ', ' + C.RESTAURANT.state : '');
-    var descMeta = document.querySelector('meta[name="description"]');
-    if (descMeta && C.RESTAURANT) {
-      descMeta.setAttribute('content', 'Order fresh, delicious food from ' + C.RESTAURANT.name + ' in ' + C.RESTAURANT.city + ', ' + C.RESTAURANT.state + '. Browse our full menu and place your order.');
-    }
+
+    // ── SEO: title, description, Open Graph, Twitter Card, JSON-LD ──
+    // Same pattern as home.html, kept in sync so both pages carry real
+    // social-share and structured-data metadata, not just a page title.
+    (function updateSeoTags() {
+      var R = (C && C.RESTAURANT) || {};
+      var title = 'Order Now | ' + RESTAURANT_NAME + (R.city ? ' — ' + R.city + ', ' + R.state : '');
+      var desc = 'Order fresh, delicious food from ' + RESTAURANT_NAME +
+        (R.city ? ' in ' + R.city + ', ' + R.state : '') + '. Browse our full menu and place your order.';
+
+      document.title = title;
+      var setAttr = function (id, attr, val) { var el = document.getElementById(id); if (el) el.setAttribute(attr, val); };
+      setAttr('metaDescription', 'content', desc);
+      setAttr('ogTitle', 'content', title);
+      setAttr('ogDescription', 'content', desc);
+      setAttr('ogSiteName', 'content', RESTAURANT_NAME);
+      setAttr('twitterTitle', 'content', title);
+      setAttr('twitterDescription', 'content', desc);
+      if (R.ogImage) setAttr('ogImage', 'content', R.ogImage);
+
+      try {
+        var jsonLd = {
+          "@context": "https://schema.org",
+          "@type": "Restaurant",
+          "name": RESTAURANT_NAME,
+          "description": desc,
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": R.city || '',
+            "addressRegion": R.state || '',
+            "addressCountry": R.country || ''
+          },
+          "servesCuisine": (R.cuisineTypes || []),
+          "priceRange": (typeof CONFIG !== 'undefined' && CONFIG.CURRENCY) ? CONFIG.CURRENCY : '',
+          "openingHours": R.hours || '',
+          "url": "./home.html"
+        };
+        if (R.phone) jsonLd.telephone = R.phone;
+        if (R.email) jsonLd.email = R.email;
+        var ldEl = document.getElementById('jsonLd');
+        if (ldEl) ldEl.textContent = JSON.stringify(jsonLd);
+      } catch (e) { /* JSON-LD is best-effort */ }
+    })();
 
     // Initialize storage prefix from slug
     if (typeof CONFIG !== 'undefined' && CONFIG.initStoragePrefix) {

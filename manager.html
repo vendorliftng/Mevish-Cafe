@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Manager Panel</title>
   <meta name="description" content="Admin control panel for the restaurant management system." />
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgcng9IjIyIiBmaWxsPSIjMGQxMDE3Ii8+PHRleHQgeD0iNTAiIHk9IjY2IiBmb250LXNpemU9IjU2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7wn42977iPPC90ZXh0Pjwvc3ZnPgo=" />
   <link rel="stylesheet" href="style.css?v=106" />
   <style>
     /* Child-friendly form styling: big touch targets, plain hints */
@@ -2166,6 +2168,7 @@ async function loadSettings() {
     email:          data.email          || CONFIG.RESTAURANT.email || '',
     address:        data.address        || CONFIG.RESTAURANT.fullAddress || '',
     hours:          data.hours          || CONFIG.RESTAURANT.hours || '',
+    ogImage:        data.ogImage        || CONFIG.RESTAURANT.ogImage || '',
     currency:       data.currency       || CONFIG.CURRENCY || '₦',
     taxRate:        (data.taxRate !== undefined && data.taxRate !== null) ? Number(data.taxRate) : 0,
     // Tables live in the "tables" collection now, managed from the Tables
@@ -2203,6 +2206,8 @@ function renderSettingsForm() {
       field('sf_email', 'Email', s.email, { ph: 'e.g. hello@mevish.com' }) +
       field('sf_address', 'Address', s.address, { ph: 'e.g. 12 Main Street, Lagos' }) +
       field('sf_hours', 'Opening hours', s.hours, { ph: 'e.g. Mon–Sun: 8am – 10pm' }) +
+      section('🔗', 'Social Sharing', 'The photo shown when your site is shared on WhatsApp or Facebook.') +
+      field('sf_ogImage', 'Share image URL', s.ogImage, { full: true, ph: 'A hosted photo link (e.g. from Firebase Storage) — a good shot of the food or the front of house works well' }) +
       section('💰', 'Money & Menu', 'Currency, tax, and how the menu is grouped.') +
       field('sf_currency', 'Currency symbol', s.currency, { ph: 'e.g. ₦' }) +
       field('sf_taxRate', 'Tax rate (%)', s.taxRate, { type: 'number', ph: 'e.g. 0 if none' }) +
@@ -2237,6 +2242,7 @@ async function saveSettings() {
     email: val('sf_email'),
     address: val('sf_address'),
     hours: val('sf_hours'),
+    ogImage: val('sf_ogImage'),
     currency: val('sf_currency') || CONFIG.CURRENCY,
     taxRate: parseFloat(val('sf_taxRate')) || 0,
     categories: list('sf_categories')
@@ -2253,6 +2259,7 @@ async function saveSettings() {
     CONFIG.RESTAURANT.fullAddress = payload.address;
     CONFIG.RESTAURANT.address = payload.address;
     CONFIG.RESTAURANT.hours = payload.hours;
+    CONFIG.RESTAURANT.ogImage = payload.ogImage;
     CONFIG.CURRENCY = payload.currency;
     if (payload.categories.length) CONFIG.CATEGORIES = ['All'].concat(payload.categories.filter(c => c !== 'All'));
     if (typeof CONFIG.writeAudit === 'function') CONFIG.writeAudit('SETTINGS_UPDATED', '', 'Restaurant settings saved', 'Manager');

@@ -14,4 +14,4 @@ Disallow: /manager.html
 Disallow: /blog-admin.html
 Disallow: /reset-data.html
 
-Sitemap: sitemap.xml
+Sitemap: https://mevish.com.ng/sitemap.xml
