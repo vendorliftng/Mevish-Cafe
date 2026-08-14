@@ -4,7 +4,15 @@
    print styles (receipt + report), animations, responsive.
    ============================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans:wght@400;500;600;700;800;900&display=swap');
+/* Noto Sans is loaded purely as a glyph fallback, not a look — Inter has
+   no ₦ (Naira sign, U+20A6) glyph of its own, so it silently falls back
+   to whatever the OS's default sans-serif ships, which on most systems
+   draws ₦ as a single-strike glyph nearly identical to a bare "N". Every
+   price and total in the app reads as "N0"/"N4,500" at a glance instead
+   of "₦0"/"₦4,500". Noto Sans draws the correct double-strike ₦, so
+   listing it before the OS default gives just that one character a
+   legible glyph without changing the typeface anywhere else. */
 
 /* ============================================================
    1. CSS CUSTOM PROPERTIES (DESIGN TOKENS)
@@ -73,7 +81,7 @@
   --r-lg:  16px;  --r-xl:  24px;  --r-full: 9999px;
 
   /* Typography */
-  --font:      'Inter', system-ui, -apple-system, sans-serif;
+  --font:      'Inter', 'Noto Sans', system-ui, -apple-system, sans-serif;
   --fs-xs:  0.75rem;   --fs-sm:  0.875rem; --fs-base: 1rem;
   --fs-lg:  1.125rem;  --fs-xl:  1.25rem;  --fs-2xl:  1.5rem;
   --fs-3xl: 1.875rem;  --fs-4xl: 2.25rem;  --fs-5xl:  3rem;
