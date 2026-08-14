@@ -475,11 +475,12 @@ let currentUserRole = null;
 // Session persistence alone still means "logged in for as long as this
 // browser tab happens to stay open" — could be all day. A 30-minute cap
 // on top of that means walking away from an unlocked device only leaves
-// it open for 30 minutes, not indefinitely. Absolute from login time, not
-// idle-reset — simpler to reason about, and clicking around the panel for
-// 31 minutes straight isn't actually a case that needs protecting.
+// it open for 30 minutes — but it's an IDLE cap, measured from the last
+// click/keypress/tap, not from login: actively working the panel resets
+// the clock on every interaction, so it never interrupts a real working
+// session, only an unattended one.
 const SESSION_MAX_MS = 30 * 60 * 1000;
-const SESSION_TS_KEY = CONFIG.STORAGE_PREFIX + 'mgr_login_ts';
+const SESSION_TS_KEY = CONFIG.STORAGE_PREFIX + 'mgr_activity_ts';
 let sessionExpiryTimer = null;
 
 function scheduleSessionExpiry(msRemaining) {
@@ -487,28 +488,45 @@ function scheduleSessionExpiry(msRemaining) {
   sessionExpiryTimer = setTimeout(async () => {
     sessionStorage.removeItem(SESSION_TS_KEY);
     await auth.signOut();
-    showError('Your session expired after 30 minutes — please log in again.');
+    showError('Your session expired after 30 minutes of inactivity — please log in again.');
   }, msRemaining);
 }
 
 // Returns false (and has already signed out) if the session is expired;
 // true if it's fine to proceed, having stamped/scheduled as needed.
 async function checkAndArmSessionTimeout() {
-  let loginTs = Number(sessionStorage.getItem(SESSION_TS_KEY));
-  if (!loginTs) {
-    loginTs = Date.now();
-    sessionStorage.setItem(SESSION_TS_KEY, String(loginTs));
+  let lastActivityTs = Number(sessionStorage.getItem(SESSION_TS_KEY));
+  if (!lastActivityTs) {
+    lastActivityTs = Date.now();
+    sessionStorage.setItem(SESSION_TS_KEY, String(lastActivityTs));
   }
-  const elapsed = Date.now() - loginTs;
+  const elapsed = Date.now() - lastActivityTs;
   if (elapsed >= SESSION_MAX_MS) {
     sessionStorage.removeItem(SESSION_TS_KEY);
     await auth.signOut();
-    showError('Your session expired after 30 minutes — please log in again.');
+    showError('Your session expired after 30 minutes of inactivity — please log in again.');
     return false;
   }
   scheduleSessionExpiry(SESSION_MAX_MS - elapsed);
   return true;
 }
+
+// Idle reset: any real interaction pushes the 30-minute clock back out.
+// Throttled to once per 5s so a scroll or a held key doesn't hammer
+// sessionStorage/setTimeout on every single event — for a 30-minute
+// window that's still effectively instant. mousemove is deliberately
+// excluded; a hand resting near the mouse shouldn't count as "in use".
+let lastActivityBump = 0;
+function bumpSessionActivity() {
+  const now = Date.now();
+  if (now - lastActivityBump < 5000) return;
+  lastActivityBump = now;
+  sessionStorage.setItem(SESSION_TS_KEY, String(now));
+  scheduleSessionExpiry(SESSION_MAX_MS);
+}
+['mousedown', 'keydown', 'touchstart', 'scroll'].forEach(function (evt) {
+  window.addEventListener(evt, bumpSessionActivity, { passive: true, capture: true });
+});
 
 auth.onAuthStateChanged(async user => {
   if (user) {

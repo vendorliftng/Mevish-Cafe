@@ -711,6 +711,7 @@
         allOrders = raw.filter(o => !o.status.includes('Paid') && !o.status.includes('Void'));
         allClearedOrders = raw.filter(o => o.status.includes('Paid') || o.status.includes('Void'));
         renderGrid();
+        renderClearedGrid();
       } catch(e) { console.error(e); }
       setRefreshing(false);
     }
@@ -1087,11 +1088,23 @@ function setRefreshing(yes) {
       // issue never deducts stock, settlement does) instead of at issue time.
       actions = `<button class="btn btn-primary" data-payment-btn="1" onclick="event.stopPropagation();handleSettleCredit('${oid}','POS')">Settle · POS</button>`;
       actions += `<button class="btn btn-cash" data-payment-btn="1" onclick="event.stopPropagation();handleSettleCredit('${oid}','Cash')">Settle · Cash</button>`;
+    } else if (cat === 'paid') {
+      // A cleared card otherwise has nothing in its primary action row at
+      // all — just the faint "⋯" menu, which made printing a cleared
+      // order easy to miss entirely. It's still in that menu too (every
+      // card keeps Print Receipt there, same predictable spot), but paid
+      // is the one state where printing is the *only* thing left to do
+      // with the card, so it gets its own visible button.
+      actions = `<button class="btn btn-primary" onclick="event.stopPropagation();handleReprintReceipt('${oid}')"><span aria-hidden="true">🖨️</span> Print Receipt</button>`;
     }
     // Overflow menu: Share always, Split on payable orders, Void only for
     // managers on an active order (the only state a void is a clean
     // no-stock-moved cancellation).
-    let menuItems = `<button class="card-menu-item" onclick="event.stopPropagation();toggleCardMenu('${oid}',event);openWhatsAppForward('${oid}')"><span aria-hidden="true">💬</span> Share via WhatsApp</button>`;
+    // Print lives here for every card, not just the auto-popup right after
+    // payment — that popup is a one-shot: close it (or step away to serve
+    // the next customer) and there was previously no way back to it at all.
+    let menuItems = `<button class="card-menu-item" onclick="event.stopPropagation();toggleCardMenu('${oid}',event);handleReprintReceipt('${oid}')"><span aria-hidden="true">🖨️</span> Print Receipt</button>`;
+    menuItems += `<button class="card-menu-item" onclick="event.stopPropagation();toggleCardMenu('${oid}',event);openWhatsAppForward('${oid}')"><span aria-hidden="true">💬</span> Share via WhatsApp</button>`;
     if (cat === 'active' || cat === 'served') {
       menuItems += `<button class="card-menu-item" data-payment-btn="1" onclick="event.stopPropagation();toggleCardMenu('${oid}',event);openSplitModal('${oid}')"><span aria-hidden="true">➗</span> Split Payment</button>`;
     }
@@ -1563,10 +1576,14 @@ function setRefreshing(yes) {
   function generateReceiptHTML(order) {
     const items = getOrderItemLines(order);
     const statusStr = order.status || '';
-    let cashier = 'Staff', method = 'N/A';
+    // order.cashier is an explicit override for the "just placed, not paid
+    // yet" moment (manual order confirm) where there's no "Paid - X (Y)"
+    // status string to parse a name out of yet, but the cashier standing
+    // here right now is still worth printing.
+    let cashier = order.cashier || 'Staff', method = '';
     if (statusStr.includes('Paid')) {
       const cm = statusStr.match(/Paid\s*-\s*(\w+)\s*\(([^)]+)\)/);
-      if (cm) { method = cm[1]; cashier = cm[2]; }
+      if (cm) { method = cm[1]; cashier = order.cashier || cm[2]; }
     }
     const date = formatReceiptDate(order.timestamp);
     const restName = (CONFIG.RESTAURANT && CONFIG.RESTAURANT.name) ? CONFIG.RESTAURANT.name : 'Restaurant';
@@ -1593,10 +1610,22 @@ function setRefreshing(yes) {
       ${itemLines}
       <hr class="receipt-dash">
       <div class="receipt-total-row"><span>TOTAL</span><span>${CONFIG.formatCurrency(order.total || order.totalRevenue || order.totalPrice || 0)}</span></div>
-      <div class="receipt-method">Payment Method: ${escHtml(method)}</div>
+      ${method ? `<div class="receipt-method">Payment Method: ${escHtml(method)}</div>` : ''}
       <hr class="receipt-dash">
       <div class="receipt-footer">${footer}</div>
     </div>`;
+  }
+
+  function handleReprintReceipt(orderId) {
+    // Deliberately NOT getOrderById() — that only searches allOrders, which
+    // is exactly the pool a just-paid order has already been filtered OUT
+    // of (see loadOrders' allOrders/allClearedOrders split). Reprinting a
+    // receipt is the one action here that needs to still find it after.
+    const order = allOrders.find(o => (o.orderId || o.id) === orderId)
+      || allClearedOrders.find(o => (o.orderId || o.id) === orderId)
+      || null;
+    if (!order) { showToast('Order not found', 'error'); return; }
+    showReceiptModal(order);
   }
 
   function showReceiptModal(order) {
@@ -2064,9 +2093,10 @@ function setRefreshing(yes) {
       cartItemsStr += ' ⚠️ BACKDATED TO: ' + dateVal + ' ' + timeVal;
     }
 
+    var newOrderId = CONFIG.generateOrderId();
     try {
       var res = await CONFIG.apiPost('newOrder', {
-        orderId: CONFIG.generateOrderId(),
+        orderId: newOrderId,
         customerName: name,
         customerPhone: phone,
         location: location,
@@ -2085,6 +2115,24 @@ function setRefreshing(yes) {
       }
       showToast('Manual order placed for ' + name, 'success');
       closeManualOrderModal();
+      // Print/hand over a ticket right away — this was the one point in the
+      // whole order lifecycle with no way to print anything at all. Payment
+      // hasn't necessarily happened yet (that's still Cash/POS/Credit on the
+      // card once it's in the grid), so this prints as an order ticket, not
+      // a paid receipt — generateReceiptHTML() already leaves the payment
+      // method line off when there isn't one yet.
+      showReceiptModal({
+        orderId: newOrderId,
+        status: 'Active',
+        items: items,
+        total: totalRevenue,
+        totalRevenue: totalRevenue,
+        name: name,
+        customerName: name,
+        location: location,
+        timestamp: (backdateChecked && dateVal && timeVal) ? new Date(dateVal + 'T' + timeVal).getTime() : Date.now(),
+        cashier: getSelectedCashier()
+      });
       await fetchOrders();
     } catch (err) {
       console.error('submitManualOrder error', err);

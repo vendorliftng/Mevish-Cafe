@@ -143,11 +143,12 @@ const RESETTABLE = [
 
 let currentUserRole = null;
 
-// Same 30-minute absolute session cap as manager.html — see that file for
-// the full reasoning. This page permanently deletes data, so if anything
-// deserves it, this does.
+// Same 30-minute IDLE session cap as manager.html — see that file for the
+// full reasoning. Measured from the last click/keypress/tap, not from
+// login, so it only signs out an unattended session. This page permanently
+// deletes data, so if anything deserves the cap, this does.
 const SESSION_MAX_MS = 30 * 60 * 1000;
-const SESSION_TS_KEY = (CONFIG.STORAGE_PREFIX || 'mevish_') + 'reset_login_ts';
+const SESSION_TS_KEY = (CONFIG.STORAGE_PREFIX || 'mevish_') + 'reset_activity_ts';
 let sessionExpiryTimer = null;
 
 function scheduleSessionExpiry(msRemaining) {
@@ -155,26 +156,38 @@ function scheduleSessionExpiry(msRemaining) {
   sessionExpiryTimer = setTimeout(async () => {
     sessionStorage.removeItem(SESSION_TS_KEY);
     await auth.signOut();
-    showError('Your session expired after 30 minutes — please log in again.');
+    showError('Your session expired after 30 minutes of inactivity — please log in again.');
   }, msRemaining);
 }
 
 async function checkAndArmSessionTimeout() {
-  let loginTs = Number(sessionStorage.getItem(SESSION_TS_KEY));
-  if (!loginTs) {
-    loginTs = Date.now();
-    sessionStorage.setItem(SESSION_TS_KEY, String(loginTs));
+  let lastActivityTs = Number(sessionStorage.getItem(SESSION_TS_KEY));
+  if (!lastActivityTs) {
+    lastActivityTs = Date.now();
+    sessionStorage.setItem(SESSION_TS_KEY, String(lastActivityTs));
   }
-  const elapsed = Date.now() - loginTs;
+  const elapsed = Date.now() - lastActivityTs;
   if (elapsed >= SESSION_MAX_MS) {
     sessionStorage.removeItem(SESSION_TS_KEY);
     await auth.signOut();
-    showError('Your session expired after 30 minutes — please log in again.');
+    showError('Your session expired after 30 minutes of inactivity — please log in again.');
     return false;
   }
   scheduleSessionExpiry(SESSION_MAX_MS - elapsed);
   return true;
 }
+
+let lastActivityBump = 0;
+function bumpSessionActivity() {
+  const now = Date.now();
+  if (now - lastActivityBump < 5000) return;
+  lastActivityBump = now;
+  sessionStorage.setItem(SESSION_TS_KEY, String(now));
+  scheduleSessionExpiry(SESSION_MAX_MS);
+}
+['mousedown', 'keydown', 'touchstart', 'scroll'].forEach(function (evt) {
+  window.addEventListener(evt, bumpSessionActivity, { passive: true, capture: true });
+});
 
 auth.onAuthStateChanged(async user => {
   if (!user) {
